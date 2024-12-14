@@ -51,3 +51,4 @@ const UsersTable = ({ role, token }) => {
 };
 
 export default UsersTable;
+

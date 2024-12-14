@@ -5,7 +5,6 @@ import Login from './components/Login';
 import UsersTable from './components/UsersTable';
 import ChartOfAccountsTable from './components/ChartOfAccountsTable';
 import InvoicesTable from './components/InvoicesTable';
-import GeneralJournalTable from './components/GeneralJournalTable';
 import CashReceiptJournalTable from './components/CashReceiptJournalTable';
 import CashDisbursementJournalTable from './components/CashDisbursementJournalTable';
 import Navbar from './components/Navbar'; // Import the Navbar
@@ -39,7 +38,6 @@ function App() {
           <Route path="/" element={token ? <UsersTable /> : <Login setToken={setToken} setRole={setRole} />} />
           <Route path="/chart-of-accounts" element={token ? <ChartOfAccountsTable /> : <Login setToken={setToken} setRole={setRole} />} />
           <Route path="/invoices" element={token ? <InvoicesTable /> : <Login setToken={setToken} setRole={setRole} />} />
-          <Route path="/general-journal" element={token ? <GeneralJournalTable /> : <Login setToken={setToken} setRole={setRole} />} />
           <Route path="/cash-receipt-journal" element={token ? <CashReceiptJournalTable /> : <Login setToken={setToken} setRole={setRole} />} />
           <Route path="/cash-disbursement-journal" element={token ? <CashDisbursementJournalTable /> : <Login setToken={setToken} setRole={setRole} />} />
         </Routes>

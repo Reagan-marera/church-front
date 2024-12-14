@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const CashDisbursementJournalTable = () => {
   const [disbursements, setDisbursements] = useState([]);
-  const [formData, setFormData] = useState({
+  const [newDisbursement, setNewDisbursement] = useState({
     disbursement_date: '',
     cheque_no: '',
+    p_voucher_no: '',
     to_whom_paid: '',
     payment_type: '',
     cashbook: '',
@@ -12,291 +13,322 @@ const CashDisbursementJournalTable = () => {
     account_class: '',
     account_type: '',
     account_credited: '',
-    cash: '',
-    total: '',
-    vote_total: '',
+    account_debited: '',
+    cash: 0,
+    bank: '',
+    vote_total: 0,
   });
-  const [error, setError] = useState(null);
-  const [editMode, setEditMode] = useState(false);
-  const [editId, setEditId] = useState(null);
-  const token = localStorage.getItem('token'); // Token retrieval
+  const [errorMessage, setErrorMessage] = useState('');
 
-  useEffect(() => {
-    if (!token) {
-      console.error('No token found. Please log in.');
-      return;
+  // Fetch disbursements from the backend using the fetch API
+  const fetchDisbursements = async () => {
+    try {
+      const token = localStorage.getItem('jwt_token');  // Assuming JWT token is saved in localStorage
+      if (!token) {
+        setErrorMessage('JWT token is missing. Please log in.');
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/cash-disbursement-journals', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch disbursements');
+      }
+
+      const data = await response.json();
+      console.log('Disbursements:', data);
+      setDisbursements(data);  // Set the disbursements to state
+    } catch (err) {
+      console.error('Error fetching disbursements:', err);
+      setErrorMessage('Error fetching disbursements. Please try again later.');
     }
+  };
 
-    fetch('http://localhost:5000/cash-disbursement-journals', {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data.msg === 'Token has expired') {
-          alert('Session expired. Please log in again.');
-          localStorage.removeItem('token');
-          window.location.href = '/login';  // Redirect to login page
-        } else {
-          setDisbursements(data);
-        }
-      })
-      .catch(error => setError(error.message));
-  }, [token]);
-
+  // Handle form input change
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevData => ({
-      ...prevData,
-      [name]: value,
+    setNewDisbursement(prevState => ({
+      ...prevState,
+      [name]: value
     }));
   };
 
-  const handleFormSubmit = (e) => {
+  // Handle form submit to add a new disbursement
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
 
+    const token = localStorage.getItem('token');
     if (!token) {
-      console.error('No token found. Please log in.');
+      setError('Authentication token is missing.');
       return;
     }
 
-    const method = editMode ? 'PUT' : 'POST';
-    const url = editMode
-      ? `http://localhost:5000/cash-disbursement-journals/${editId}`
-      : 'http://localhost:5000/cash-disbursement-journals';
+    try {
+      const response = await fetch('http://localhost:5000/cash-disbursement-journals', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newDisbursement)
+      });
 
-    fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(formData),
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (editMode) {
-          setDisbursements(prevDisbursements => prevDisbursements.map(disbursement => 
-            disbursement.id === editId ? data : disbursement));
-          setEditMode(false);
-          setEditId(null);
-        } else {
-          setDisbursements(prevDisbursements => [...prevDisbursements, data]);
-        }
-        setFormData({
-            disbursement_date: '',
-            cheque_no: '',
-            to_whom_paid: '',
-            payment_type: '',
-            cashbook: '',
-            description: '',
-            account_class: '',
-            account_type: '',
-            account_credited: '',
-            cash: '',
-            total: '',
-            vote_total: '', // Reset vote_total
-          });
-        // Refresh the page after submission
-        window.location.reload();
-      })
-      .catch(error => setError(error.message));
-  };
+      if (!response.ok) {
+        throw new Error('Failed to add new disbursement');
+      }
 
-  const handleEdit = (id) => {
-    const disbursementToEdit = disbursements.find(d => d.id === id);
-    setFormData({
-      disbursement_date: disbursementToEdit.disbursement_date,
-      cheque_no: disbursementToEdit.cheque_no,
-      to_whom_paid: disbursementToEdit.to_whom_paid,
-      payment_type: disbursementToEdit.payment_type,
-      cashbook: disbursementToEdit.cashbook,
-      description: disbursementToEdit.description,
-      account_class: disbursementToEdit.account_class,
-      account_type: disbursementToEdit.account_type,
-      account_credited: disbursementToEdit.account_credited,
-      cash: disbursementToEdit.cash,
-      total: disbursementToEdit.total,
-      vote_total: disbursementToEdit.vote_total,
-    });
-    setEditMode(true);
-    setEditId(id);
-  };
-
-  const handleDelete = (id) => {
-    if (!token) {
-      console.error('No token found. Please log in.');
-      return;
+      const addedDisbursement = await response.json();
+      console.log('New disbursement added:', addedDisbursement);
+      setDisbursements(prevState => [...prevState, addedDisbursement]);  // Add the new disbursement to the table
+      setNewDisbursement({
+        disbursement_date: '',
+        cheque_no: '',
+        p_voucher_no: '',
+        to_whom_paid: '',
+        payment_type: '',
+        cashbook: '',
+        description: '',
+        account_class: '',
+        account_type: '',
+        account_credited: '',
+        account_debited: '',
+        cash: 0,
+        bank: '',
+        vote_total: 0,
+      });  // Reset the form after submission
+      setErrorMessage('');  // Clear any previous error messages
+    } catch (err) {
+      console.error('Error adding disbursement:', err);
+      setErrorMessage('Error adding disbursement. Please try again later.');
     }
-
-    fetch(`http://localhost:5000/cash-disbursement-journals/${id}`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(response => response.json())
-      .then(() => {
-        setDisbursements(prevDisbursements => prevDisbursements.filter(d => d.id !== id));
-      })
-      .catch(error => setError(error.message));
   };
+
+  useEffect(() => {
+    fetchDisbursements();
+  }, []);
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.heading}>Cash Disbursement Journal</h2>
+      <h1>Cash Disbursement Journal</h1>
 
-      {error && <div style={styles.error}>Error: {error}</div>} {/* Display error if any */}
+      {/* Error message */}
+      {errorMessage && <p style={styles.errorMessage}>{errorMessage}</p>}
 
-      {/* Form to add or edit a disbursement */}
-      <form style={styles.form} onSubmit={handleFormSubmit}>
-        <input
-          type="date"
-          name="disbursement_date"
-          placeholder="Disbursement Date"
-          value={formData.disbursement_date}
-          onChange={handleInputChange}
-          required
-          style={styles.input}
-        />
-        <input
-          type="text"
-          name="cheque_no"
-          placeholder="Cheque No"
-          value={formData.cheque_no}
-          onChange={handleInputChange}
-          required
-          style={styles.input}
-        />
-        <input
-          type="text"
-          name="to_whom_paid"
-          placeholder="To Whom Paid"
-          value={formData.to_whom_paid}
-          onChange={handleInputChange}
-          required
-          style={styles.input}
-        />
-        <input
-          type="text"
-          name="payment_type"
-          placeholder="Payment Type"
-          value={formData.payment_type}
-          onChange={handleInputChange}
-          required
-          style={styles.input}
-        />
-        <input
-          type="text"
-          name="cashbook"
-          placeholder="Cashbook"
-          value={formData.cashbook}
-          onChange={handleInputChange}
-          required
-          style={styles.input}
-        />
-        <input
-          type="text"
-          name="description"
-          placeholder="Description"
-          value={formData.description}
-          onChange={handleInputChange}
-          style={styles.input}
-        />
-        <input
-          type="text"
-          name="account_class"
-          placeholder="Account Class"
-          value={formData.account_class}
-          onChange={handleInputChange}
-          style={styles.input}
-        />
-        <input
-          type="text"
-          name="account_type"
-          placeholder="Account Type"
-          value={formData.account_type}
-          onChange={handleInputChange}
-          style={styles.input}
-        />
-        <input
-          type="text"
-          name="account_credited"
-          placeholder="Account Credited"
-          value={formData.account_credited}
-          onChange={handleInputChange}
-          style={styles.input}
-        />
-        <input
-          type="number"
-          name="cash"
-          placeholder="Cash"
-          value={formData.cash}
-          onChange={handleInputChange}
-          style={styles.input}
-        />
-        <input
-          type="number"
-          name="total"
-          placeholder="Total"
-          value={formData.total}
-          onChange={handleInputChange}
-          required
-          style={styles.input}
-        />
-        <input
-          type="number"
-          name="vote_total"
-          placeholder="Vote Total"
-          value={formData.vote_total}
-          onChange={handleInputChange}
-          required
-          style={styles.input}
-        />
-        <button type="submit" style={styles.button}>
-          {editMode ? 'Update Disbursement' : 'Add Disbursement'}
-        </button>
+      {/* Form to add a new disbursement */}
+      <form onSubmit={handleFormSubmit} style={styles.form}>
+        <div style={styles.formGroup}>
+          <label>Disbursement Date</label>
+          <input
+            type="date"
+            name="disbursement_date"
+            value={newDisbursement.disbursement_date}
+            onChange={handleInputChange}
+            required
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label>Cheque No</label>
+          <input
+            type="text"
+            name="cheque_no"
+            value={newDisbursement.cheque_no}
+            onChange={handleInputChange}
+            required
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label>P Voucher No</label>
+          <input
+            type="text"
+            name="p_voucher_no"
+            value={newDisbursement.p_voucher_no}
+            onChange={handleInputChange}
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label>To Whom Paid</label>
+          <input
+            type="text"
+            name="to_whom_paid"
+            value={newDisbursement.to_whom_paid}
+            onChange={handleInputChange}
+            required
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label>Payment Type</label>
+          <input
+            type="text"
+            name="payment_type"
+            value={newDisbursement.payment_type}
+            onChange={handleInputChange}
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label>Cashbook</label>
+          <input
+            type="text"
+            name="cashbook"
+            value={newDisbursement.cashbook}
+            onChange={handleInputChange}
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label>Description</label>
+          <textarea
+            name="description"
+            value={newDisbursement.description}
+            onChange={handleInputChange}
+            style={styles.textarea}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label>Account Class</label>
+          <input
+            type="text"
+            name="account_class"
+            value={newDisbursement.account_class}
+            onChange={handleInputChange}
+            required
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label>Account Type</label>
+          <input
+            type="text"
+            name="account_type"
+            value={newDisbursement.account_type}
+            onChange={handleInputChange}
+            required
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label>Account Credited</label>
+          <input
+            type="text"
+            name="account_credited"
+            value={newDisbursement.account_credited}
+            onChange={handleInputChange}
+            required
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label>Account Debited</label>
+          <input
+            type="text"
+            name="account_debited"
+            value={newDisbursement.account_debited}
+            onChange={handleInputChange}
+            required
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label>Cash</label>
+          <input
+            type="number"
+            name="cash"
+            value={newDisbursement.cash}
+            onChange={handleInputChange}
+            required
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label>Bank</label>
+          <input
+            type="text"
+            name="bank"
+            value={newDisbursement.bank}
+            onChange={handleInputChange}
+            required
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formGroup}>
+          <label>Vote Total</label>
+          <input
+            type="number"
+            name="vote_total"
+            value={newDisbursement.vote_total}
+            onChange={handleInputChange}
+            required
+            style={styles.input}
+          />
+        </div>
+
+        <button type="submit" style={styles.submitButton}>Add Disbursement</button>
       </form>
 
-      {/* Table displaying disbursements */}
+      {/* Table displaying all disbursements */}
       <table style={styles.table}>
         <thead>
           <tr>
-            {['ID', 'Disbursement Date', 'Cheque No', 'To Whom Paid', 'Payment Type', 'Cashbook', 'Description', 'Account Class', 'Account Type', 'Account Credited', 'Cash', 'Total', 'Vote Total', 'Actions'].map(header => (
-              <th key={header} style={styles.tableHeader}>{header}</th>
-            ))}
+            <th>ID</th>
+            <th>Disbursement Date</th>
+            <th>Cheque No</th>
+            <th>P Voucher No</th>
+            <th>To Whom Paid</th>
+            <th>Payment Type</th>
+            <th>Cashbook</th>
+            <th>Description</th>
+            <th>Account Class</th>
+            <th>Account Type</th>
+            <th>Account Credited</th>
+            <th>Account Debited</th>
+            <th>Cash</th>
+            <th>Bank</th>
+            <th>Vote Total</th>
           </tr>
         </thead>
         <tbody>
-          {disbursements.length > 0 ? (
-            disbursements.map(disbursement => (
-              <tr key={disbursement.id} style={styles.tableRow}>
-                <td style={styles.tableCell}>{disbursement.id}</td>
-                <td style={styles.tableCell}>{disbursement.disbursement_date}</td>
-                <td style={styles.tableCell}>{disbursement.cheque_no}</td>
-                <td style={styles.tableCell}>{disbursement.to_whom_paid}</td>
-                <td style={styles.tableCell}>{disbursement.payment_type}</td>
-                <td style={styles.tableCell}>{disbursement.cashbook}</td>
-                <td style={styles.tableCell}>{disbursement.description}</td>
-                <td style={styles.tableCell}>{disbursement.account_class}</td>
-                <td style={styles.tableCell}>{disbursement.account_type}</td>
-                <td style={styles.tableCell}>{disbursement.account_credited}</td>
-                <td style={styles.tableCell}>{disbursement.cash}</td>
-                <td style={styles.tableCell}>{disbursement.total}</td>
-                <td style={styles.tableCell}>{disbursement.vote_total}</td>
-                <td style={styles.tableCell}>
-                  <button onClick={() => handleEdit(disbursement.id)} style={styles.editButton}>Edit</button>
-                  <button onClick={() => handleDelete(disbursement.id)} style={styles.deleteButton}>Delete</button>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="14" style={styles.tableCell}>No disbursements found</td>
+          {disbursements.map((disbursement) => (
+            <tr key={disbursement.id}>
+              <td>{disbursement.id}</td>
+              <td>{disbursement.disbursement_date}</td>
+              <td>{disbursement.cheque_no}</td>
+              <td>{disbursement.p_voucher_no}</td>
+              <td>{disbursement.to_whom_paid}</td>
+              <td>{disbursement.payment_type}</td>
+              <td>{disbursement.cashbook}</td>
+              <td>{disbursement.description}</td>
+              <td>{disbursement.account_class}</td>
+              <td>{disbursement.account_type}</td>
+              <td>{disbursement.account_credited}</td>
+              <td>{disbursement.account_debited}</td>
+              <td>{disbursement.cash}</td>
+              <td>{disbursement.bank}</td>
+              <td>{disbursement.vote_total}</td>
             </tr>
-          )}
+          ))}
         </tbody>
       </table>
     </div>
@@ -304,18 +336,58 @@ const CashDisbursementJournalTable = () => {
 };
 
 const styles = {
-  container: { padding: '20px', fontFamily: 'Arial, sans-serif' },
-  heading: { fontSize: '24px', marginBottom: '20px' },
-  form: { marginBottom: '20px' },
-  input: { margin: '5px', padding: '8px', width: '200px' },
-  button: { marginTop: '10px', padding: '10px 20px', cursor: 'pointer' },
-  table: { width: '100%', borderCollapse: 'collapse' },
-  tableHeader: { borderBottom: '2px solid black', padding: '8px' },
-  tableRow: { borderBottom: '1px solid #ddd' },
-  tableCell: { padding: '8px', textAlign: 'left' },
-  editButton: { backgroundColor: '#4CAF50', color: 'white', padding: '6px 12px', border: 'none', cursor: 'pointer' },
-  deleteButton: { backgroundColor: '#f44336', color: 'white', padding: '6px 12px', border: 'none', cursor: 'pointer' },
-  error: { color: 'red', marginBottom: '10px' }
+  container: {
+    padding: '20px',
+  },
+  form: {
+    marginBottom: '20px',
+  },
+  formGroup: {
+    marginBottom: '10px',
+  },
+  input: {
+    padding: '10px',
+    fontSize: '16px',
+    borderRadius: '5px',
+    border: '1px solid #ccc',
+    width: '100%',
+  },
+  textarea: {
+    padding: '10px',
+    fontSize: '16px',
+    borderRadius: '5px',
+    border: '1px solid #ccc',
+    minHeight: '100px',
+    width: '100%',
+  },
+  submitButton: {
+    padding: '10px 20px',
+    fontSize: '16px',
+    backgroundColor: '#4CAF50',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    marginTop: '20px',
+  },
+  th: {
+    backgroundColor: '#f2f2f2',
+    padding: '10px',
+    textAlign: 'left',
+  },
+  td: {
+    padding: '10px',
+    textAlign: 'left',
+    borderBottom: '1px solid #ddd',
+  },
+  errorMessage: {
+    color: 'red',
+    fontWeight: 'bold',
+  },
 };
 
 export default CashDisbursementJournalTable;

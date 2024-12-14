@@ -7,10 +7,9 @@ const ChartOfAccountsTable = () => {
 
   // State for the form inputs
   const [formData, setFormData] = useState({
-    account_code: '',
+    parent_account: '',
     account_name: '',
     account_type: '',
-    category: '',
     sub_account_details: '',
   });
 
@@ -50,10 +49,9 @@ const ChartOfAccountsTable = () => {
       // Reload accounts data after adding new account
       fetchAccounts();
       setFormData({
-        account_code: '',
+        parent_account: '',
         account_name: '',
         account_type: '',
-        category: '',
         sub_account_details: '',
       });
       alert(newAccount.message); // Show success message
@@ -121,11 +119,11 @@ const ChartOfAccountsTable = () => {
       {/* Form to create a new account */}
       <form onSubmit={handleFormSubmit} style={styles.form}>
         <div style={styles.formGroup}>
-          <label style={styles.label}>Account Code:</label>
+          <label style={styles.label}>Parent Account:</label>
           <input
             type="text"
-            name="account_code"
-            value={formData.account_code}
+            name="parent_account"
+            value={formData.parent_account}
             onChange={handleInputChange}
             required
             style={styles.input}
@@ -154,16 +152,6 @@ const ChartOfAccountsTable = () => {
           />
         </div>
         <div style={styles.formGroup}>
-          <label style={styles.label}>Category:</label>
-          <input
-            type="text"
-            name="category"
-            value={formData.category}
-            onChange={handleInputChange}
-            style={styles.input}
-          />
-        </div>
-        <div style={styles.formGroup}>
           <label style={styles.label}>Sub Account Details:</label>
           <input
             type="text"
@@ -181,26 +169,24 @@ const ChartOfAccountsTable = () => {
         <thead>
           <tr>
             <th style={styles.tableHeader}>ID</th>
-            <th style={styles.tableHeader}>Account Code</th>
+            <th style={styles.tableHeader}>Parent Account</th>
             <th style={styles.tableHeader}>Account Name</th>
             <th style={styles.tableHeader}>Account Type</th>
-            <th style={styles.tableHeader}>Category</th>
             <th style={styles.tableHeader}>Sub Account Details</th>
           </tr>
         </thead>
         <tbody>
           {accounts.length === 0 ? (
             <tr>
-              <td colSpan="6" style={styles.tableCell}>No accounts available.</td>
+              <td colSpan="5" style={styles.tableCell}>No accounts available.</td>
             </tr>
           ) : (
             accounts.map(account => (
               <tr key={account.id} style={styles.tableRow}>
                 <td style={styles.tableCell}>{account.id}</td>
-                <td style={styles.tableCell}>{account.account_code}</td>
+                <td style={styles.tableCell}>{account.parent_account}</td>
                 <td style={styles.tableCell}>{account.account_name}</td>
                 <td style={styles.tableCell}>{account.account_type}</td>
-                <td style={styles.tableCell}>{account.category}</td>
                 <td style={styles.tableCell}>{account.sub_account_details}</td>
               </tr>
             ))
