@@ -6,12 +6,14 @@ const InvoicesTable = () => {
     const [formData, setFormData] = useState({
         invoice_number: '',
         date_issued: '',
-        account_type: '',  // Account type field for dropdown
+        account_type: '', // Set as an empty string initially
         amount: '',
         account_class: '',
         account_debited: '',
         account_credited: '',
-        invoice_type: '', // Invoice type field (text input)
+        invoice_type: '',
+        parent_account: '', // Add parent account to form data
+        grn_number: '', // Add grn_number to form data
     });
 
     const [selectedAccount, setSelectedAccount] = useState(''); // Selected account for invoice
@@ -36,7 +38,12 @@ const InvoicesTable = () => {
         })
             .then((response) => response.json())
             .then((data) => {
-                setCoa(data); // Set Chart of Accounts data
+                console.log('Chart of Accounts Data:', data); // Log data to check its structure
+                if (Array.isArray(data)) {
+                    setCoa(data); // Set Chart of Accounts data if it is an array
+                } else {
+                    console.error('Chart of Accounts is not an array:', data);
+                }
             })
             .catch((error) => console.error('Error fetching Chart of Accounts:', error));
     }, []);
@@ -98,24 +105,44 @@ const InvoicesTable = () => {
         }
     };
 
+    const handleParentAccountChange = (event) => {
+        setFormData({
+            ...formData,
+            parent_account: event.target.value, // Update the form data with selected parent account
+        });
+    };
+
     const handleSubmit = (event) => {
         event.preventDefault();
         const token = localStorage.getItem('token');
 
+        // Prepare the payload to be sent
+        const invoiceData = {
+            invoice_number: formData.invoice_number,
+            date_issued: formData.date_issued,
+            account_type: formData.account_type,
+            amount: parseFloat(formData.amount),
+            account_class: formData.account_class, // Assuming this field exists in formData
+            account_debited: formData.account_debited, // Assuming this field exists in formData
+            account_credited: formData.account_credited, // Assuming this field exists in formData
+            invoice_type: formData.invoice_type, // Include invoice_type here
+            coa_id: selectedAccount, // Selected account (coa_id)
+            parent_account: formData.parent_account, // Parent account ID
+            grn_number: formData.grn_number, // GRN number
+        };
+
+        // Send the request to the backend
         fetch('http://localhost:5000/invoices', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({
-                ...formData,
-                coa_id: selectedAccount, // Send the coa_id (selected account)
-            }),
+            body: JSON.stringify(invoiceData), // Send the structured invoice data
         })
             .then((response) => response.json())
             .then(() => {
-                fetchInvoices();
+                fetchInvoices(); // Reload the invoices
                 setFormData({
                     invoice_number: '',
                     date_issued: '',
@@ -124,8 +151,10 @@ const InvoicesTable = () => {
                     account_class: '',
                     account_debited: '',
                     account_credited: '',
-                    invoice_type: '', // Clear the invoice type field
-                });
+                    invoice_type: '',
+                    parent_account: '',
+                    grn_number: '',
+                }); // Clear the form
             })
             .catch((error) => {
                 setErrorMessage('Error submitting invoice.');
@@ -155,6 +184,12 @@ const InvoicesTable = () => {
             });
     };
 
+    // Extract unique parent_account values for dropdown
+    const uniqueParentAccounts = Array.from(new Set(coa.map(account => account.parent_account)));
+
+    // Extract unique account types for the dropdown
+    const uniqueAccountTypes = Array.from(new Set(coa.map(account => account.account_type)));
+
     // Styling
     const styles = {
         container: { padding: '40px', fontFamily: '"Roboto", Arial, sans-serif', backgroundColor: '#f8f9fa' },
@@ -177,170 +212,177 @@ const InvoicesTable = () => {
 
             {sessionExpired && <p style={styles.message}>Your session has expired. Please log in again.</p>}
 
-            {/* Display Invoices */}
-            <table style={styles.table}>
-                <thead>
-                    <tr>
-                        <th style={styles.th}>Invoice Number</th>
-                        <th style={styles.th}>Date Issued</th>
-                        <th style={styles.th}>Account Type</th>
-                        <th style={styles.th}>Invoice Type</th>
-                        <th style={styles.th}>Amount</th>
-                        <th style={styles.th}>Account Class</th>
-                        <th style={styles.th}>Account Debited</th>
-                        <th style={styles.th}>Account Credited</th>
-                        <th style={styles.th}>Account Name</th>
-                        <th style={styles.th}>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {invoices.length > 0 ? (
-                        invoices.map((invoice) => (
-                            <tr key={invoice.id}>
-                                <td style={styles.td}>{invoice.invoice_number}</td>
-                                <td style={styles.td}>{invoice.date_issued}</td>
-                                <td style={styles.td}>{invoice.account_type}</td>
-                                <td style={styles.td}>{invoice.invoice_type}</td>
-                                <td style={styles.td}>{invoice.amount}</td>
-                                <td style={styles.td}>{invoice.account_class}</td>
-                                <td style={styles.td}>{invoice.account_debited}</td>
-                                <td style={styles.td}>{invoice.account_credited}</td>
-                                <td style={styles.td}>{invoice.account_name}</td>
-                                <td style={styles.td}>
-                                    <button
-                                        style={styles.button}
-                                        onClick={() => handleDelete(invoice.id)}
-                                    >
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        ))
-                    ) : (
-                        <tr>
-                            <td colSpan="10" style={styles.td}>No invoices available</td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+           {/* Display Invoices */}
+<table style={styles.table}>
+    <thead>
+        <tr>
+            <th style={styles.th}>Invoice Number</th>
+            <th style={styles.th}>Date Issued</th>
+            <th style={styles.th}>Account Type</th>
+            <th style={styles.th}>Invoice Type</th>
+            <th style={styles.th}>Amount</th>
+            <th style={styles.th}>Account Class</th>
+            <th style={styles.th}>Account Debited</th>
+            <th style={styles.th}>Account Credited</th>
+            <th style={styles.th}>Parent Account</th>
+            <th style={styles.th}>GRN Number</th>
+            <th style={styles.th}>Account Name</th>
+            <th style={styles.th}>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {invoices.length > 0 ? (
+            invoices.map((invoice) => (
+                <tr key={invoice.id}>
+                    <td style={styles.td}>{invoice.invoice_number}</td>
+                    <td style={styles.td}>{invoice.date_issued}</td>
+                    <td style={styles.td}>{invoice.account_type}</td>
+                    <td style={styles.td}>{invoice.invoice_type}</td>
+                    <td style={styles.td}>{invoice.amount}</td>
+                    <td style={styles.td}>{invoice.account_class}</td>
+                    <td style={styles.td}>{invoice.account_debited}</td>
+                    <td style={styles.td}>{invoice.account_credited}</td>
+                    <td style={styles.td}>{invoice.parent_account}</td>
+                    <td style={styles.td}>{invoice.grn_number}</td>
+                    <td style={styles.td}>{invoice.account_name}</td>
+                    <td style={styles.td}>
+                        <button
+                            style={styles.button}
+                            onClick={() => handleDelete(invoice.id)}
+                        >
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            ))
+        ) : (
+            <tr>
+                <td colSpan="12" style={styles.td}>No invoices available</td>
+            </tr>
+        )}
+    </tbody>
+</table>
 
-            <h3 style={styles.formTitle}>Create New Invoice</h3>
-
-            {/* Invoice Form */}
+            {/* Add Invoice Form */}
             <form onSubmit={handleSubmit} style={styles.form}>
-                <label style={styles.formLabel}>
-                    Invoice Number:
-                    <input
-                        type="text"
-                        name="invoice_number"
-                        value={formData.invoice_number}
-                        onChange={handleInputChange}
-                        required
-                        style={styles.input}
-                    />
-                </label>
-                <label style={styles.formLabel}>
-                    Date Issued:
-                    <input
-                        type="date"
-                        name="date_issued"
-                        value={formData.date_issued}
-                        onChange={handleInputChange}
-                        required
-                        style={styles.input}
-                    />
-                </label>
-                <label style={styles.formLabel}>
-                    Account Type:
-                    <select
-                        value={formData.account_type}
-                        onChange={handleAccountTypeChange}
-                        required
-                        style={styles.select}
-                    >
-                        <option value="">--Select Account Type--</option>
-                        {Array.isArray(coa) && coa.map((account) => (
-                            <option key={account.id} value={account.account_type}>
-                                {account.account_type}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <label style={styles.formLabel}>
-                    Account Name:
-                    <select
-                        value={selectedAccount}
-                        onChange={handleAccountChange}
-                        required
-                        style={styles.select}
-                    >
-                        <option value="">--Select Account--</option>
-                        {coa.map((account) => (
-                            <option key={account.id} value={account.id}>
-                                {account.account_name}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <label style={styles.formLabel}>
-                    Invoice Type:
-                    <input
-                        type="text"
-                        name="invoice_type"
-                        value={formData.invoice_type}
-                        onChange={handleInputChange}
-                        required
-                        style={styles.input}
-                    />
-                </label>
-                <label style={styles.formLabel}>
-                    Amount:
-                    <input
-                        type="number"
-                        name="amount"
-                        value={formData.amount}
-                        onChange={handleInputChange}
-                        required
-                        style={styles.input}
-                    />
-                </label>
-                <label style={styles.formLabel}>
-                    Account Class:
-                    <input
-                        type="text"
-                        name="account_class"
-                        value={formData.account_class}
-                        onChange={handleInputChange}
-                        required
-                        style={styles.input}
-                    />
-                </label>
-                <label style={styles.formLabel}>
-                    Account Debited:
-                    <input
-                        type="text"
-                        name="account_debited"
-                        value={formData.account_debited}
-                        onChange={handleInputChange}
-                        required
-                        style={styles.input}
-                    />
-                </label>
-                <label style={styles.formLabel}>
-                    Account Credited:
-                    <input
-                        type="text"
-                        name="account_credited"
-                        value={formData.account_credited}
-                        onChange={handleInputChange}
-                        required
-                        style={styles.input}
-                    />
-                </label>
-                <button type="submit" style={styles.button}>Submit Invoice</button>
-            </form>
+                <h3 style={styles.formTitle}>Add New Invoice</h3>
+                <label style={styles.formLabel}>Invoice Number</label>
+                <input
+                    type="text"
+                    name="invoice_number"
+                    value={formData.invoice_number}
+                    onChange={handleInputChange}
+                    style={styles.input}
+                    required
+                />
 
-            {errorMessage && <p style={styles.message}>{errorMessage}</p>}
+                <label style={styles.formLabel}>Date Issued</label>
+                <input
+                    type="date"
+                    name="date_issued"
+                    value={formData.date_issued}
+                    onChange={handleInputChange}
+                    style={styles.input}
+                    required
+                />
+
+                {/* Account Type Dropdown */}
+                <label style={styles.formLabel}>Account Type</label>
+                <select
+                    name="account_type"
+                    value={formData.account_type}
+                    onChange={handleAccountTypeChange}
+                    style={styles.select}
+                    required
+                >
+                    <option value="">Select Account Type</option>
+                    {uniqueAccountTypes.map((accountType, index) => (
+                        <option key={index} value={accountType}>
+                            {accountType}
+                        </option>
+                    ))}
+                </select>
+
+                {/* Other form fields */}
+                <label style={styles.formLabel}>Amount</label>
+                <input
+                    type="number"
+                    name="amount"
+                    value={formData.amount}
+                    onChange={handleInputChange}
+                    style={styles.input}
+                    required
+                />
+
+                <label style={styles.formLabel}>Account Class</label>
+                <input
+                    type="text"
+                    name="account_class"
+                    value={formData.account_class}
+                    onChange={handleInputChange}
+                    style={styles.input}
+                    required
+                />
+
+                <label style={styles.formLabel}>Account Debited</label>
+                <input
+                    type="text"
+                    name="account_debited"
+                    value={formData.account_debited}
+                    onChange={handleInputChange}
+                    style={styles.input}
+                    required
+                />
+
+                <label style={styles.formLabel}>Account Credited</label>
+                <input
+                    type="text"
+                    name="account_credited"
+                    value={formData.account_credited}
+                    onChange={handleInputChange}
+                    style={styles.input}
+                    required
+                />
+
+                <label style={styles.formLabel}>Invoice Type</label>
+                <input
+                    type="text"
+                    name="invoice_type"
+                    value={formData.invoice_type}
+                    onChange={handleInputChange}
+                    style={styles.input}
+                    required
+                />
+
+                {/* Parent Account Dropdown */}
+                <label style={styles.formLabel}>Parent Account</label>
+                <select
+                    name="parent_account"
+                    value={formData.parent_account}
+                    onChange={handleParentAccountChange}
+                    style={styles.select}
+                    required
+                >
+                    <option value="">Select Parent Account</option>
+                    {uniqueParentAccounts.map((account, index) => (
+                        <option key={index} value={account}>
+                            {account}
+                        </option>
+                    ))}
+                </select>
+
+                <label style={styles.formLabel}>GRN Number</label>
+                <input
+                    type="text"
+                    name="grn_number"
+                    value={formData.grn_number}
+                    onChange={handleInputChange}
+                    style={styles.input}
+                    required
+                />
+
+                <button type="submit" style={styles.button}>Submit</button>
+            </form>
         </div>
     );
 };

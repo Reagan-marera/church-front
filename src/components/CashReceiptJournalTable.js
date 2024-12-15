@@ -6,7 +6,7 @@ const CashReceiptJournalTable = () => {
   const [formData, setFormData] = useState({
     receipt_date: '',
     receipt_no: '',
-    ref_no: '',  // Added ref_no field to formData
+    ref_no: '',
     from_whom_received: '',
     description: '',
     account_class: '',
@@ -17,7 +17,9 @@ const CashReceiptJournalTable = () => {
     bank: '',
     cash: '',
     total: '',
+    parent_account: '', // Added parent_account field
   });
+  
   const [coa, setCoa] = useState([]);  // List for account types from the Chart of Accounts (COA)
 
   // Function to fetch journal data
@@ -131,6 +133,7 @@ const CashReceiptJournalTable = () => {
         bank: '',
         cash: '',
         total: '',
+        parent_account: '',
       });
 
       fetchJournals(); // Re-fetch updated journals
@@ -173,21 +176,25 @@ const CashReceiptJournalTable = () => {
     fetchJournals(); // Fetch journals on component mount
     fetchCOA(); // Fetch the Chart of Accounts (COA) on component mount
   }, []);
-
   const styles = {
     container: {
       maxWidth: '1000px',
-      margin: '0 auto',
+      margin: '20px auto',
       padding: '20px',
       fontFamily: 'Arial, sans-serif',
+      backgroundColor: '#f9f9f9',
+      borderRadius: '8px',
+      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
     },
     header: {
       textAlign: 'center',
       fontSize: '2rem',
+      fontWeight: 'bold',
+      color: '#333',
       marginBottom: '20px',
     },
     errorMessage: {
-      color: 'red',
+      color: '#dc3545',
       textAlign: 'center',
       marginBottom: '20px',
     },
@@ -195,31 +202,34 @@ const CashReceiptJournalTable = () => {
       marginBottom: '30px',
       display: 'flex',
       flexWrap: 'wrap',
-      gap: '10px',
+      gap: '15px',
     },
     formRow: {
       display: 'flex',
       flexWrap: 'wrap',
-      gap: '10px',
+      gap: '15px',
       width: '100%',
     },
     formInput: {
       padding: '10px',
       fontSize: '1rem',
       width: '100%',
-      maxWidth: '200px',
-      border: '1px solid #ccc',
+      maxWidth: '250px',
+      border: '1px solid #ddd',
       borderRadius: '5px',
+      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+      outline: 'none',
     },
     btnSubmit: {
-      padding: '10px 20px',
+      padding: '12px 20px',
       fontSize: '1rem',
       backgroundColor: '#28a745',
-      color: 'white',
+      color: '#fff',
       border: 'none',
       borderRadius: '5px',
       cursor: 'pointer',
-      marginTop: '10px',
+      transition: 'background-color 0.3s ease',
+      alignSelf: 'flex-start',
     },
     btnSubmitHover: {
       backgroundColor: '#218838',
@@ -228,27 +238,35 @@ const CashReceiptJournalTable = () => {
       width: '100%',
       borderCollapse: 'collapse',
       marginTop: '20px',
+      fontSize: '0.9rem',
+      textAlign: 'left',
     },
     tableHeader: {
-      backgroundColor: '#f4f4f4',
+      backgroundColor: '#007bff',
+      color: '#fff',
     },
     tableCell: {
-      padding: '10px',
-      textAlign: 'left',
+      padding: '12px 15px',
       border: '1px solid #ddd',
     },
     tableRowHover: {
-      backgroundColor: '#f1f1f1',
+      backgroundColor: '#f9f9f9',
+      transition: 'background-color 0.3s ease',
+    },
+    tableRowHoverActive: {
+      backgroundColor: '#eaeaea',
     },
     btnDelete: {
       backgroundColor: '#dc3545',
-      color: 'white',
+      color: '#fff',
       border: 'none',
-      padding: '5px 10px',
+      padding: '6px 12px',
       borderRadius: '5px',
       cursor: 'pointer',
+      transition: 'background-color 0.3s ease',
     },
   };
+  
 
   return (
     <div style={styles.container}>
@@ -267,6 +285,23 @@ const CashReceiptJournalTable = () => {
             required
             style={styles.formInput}
           />
+          <div style={styles.formRow}>
+  <select
+    name="parent_account"
+    value={formData.parent_account}
+    onChange={handleInputChange}
+    required
+    style={styles.formInput}
+  >
+    <option value="">Select Parent Account</option>
+    {coa.length > 0 && coa.map((account, index) => (
+      <option key={index} value={account.parent_account}>
+        {account.parent_account}
+      </option>
+    ))}
+  </select>
+</div>
+
           <input
             type="text"
             name="receipt_no"
@@ -382,6 +417,7 @@ const CashReceiptJournalTable = () => {
             value={formData.bank}
             onChange={handleInputChange}
             style={styles.formInput}
+            
           />
         </div>
         <button type="submit" style={styles.btnSubmit}>
@@ -389,52 +425,52 @@ const CashReceiptJournalTable = () => {
         </button>
       </form>
 
-      {/* Table to display the journal entries */}
-      <table style={styles.table}>
-        <thead style={styles.tableHeader}>
-          <tr>
-            <th style={styles.tableCell}>Receipt No</th>
-            <th style={styles.tableCell}>Reference No</th>
-            <th style={styles.tableCell}>Receipt Date</th>
-            <th style={styles.tableCell}>From Whom</th>
-            <th style={styles.tableCell}>Account Class</th>
-            <th style={styles.tableCell}>Account Type</th>
-            <th style={styles.tableCell}>Receipt Type</th>
-            <th style={styles.tableCell}>Account Debited</th>
-            <th style={styles.tableCell}>Account Credited</th>
-            <th style={styles.tableCell}>Cash</th>
-            <th style={styles.tableCell}>Bank</th>
-            <th style={styles.tableCell}>Total</th>
-            <th style={styles.tableCell}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {journals.map((journal, index) => (
-            <tr key={index} style={styles.tableRowHover}>
-              <td style={styles.tableCell}>{journal.receipt_no}</td>
-              <td style={styles.tableCell}>{journal.ref_no}</td> {/* Added ref_no column */}
-              <td style={styles.tableCell}>{journal.receipt_date}</td>
-              <td style={styles.tableCell}>{journal.from_whom_received}</td>
-              <td style={styles.tableCell}>{journal.account_class}</td>
-              <td style={styles.tableCell}>{journal.account_type}</td>
-              <td style={styles.tableCell}>{journal.receipt_type}</td>
-              <td style={styles.tableCell}>{journal.account_debited}</td>
-              <td style={styles.tableCell}>{journal.account_credited}</td>
-              <td style={styles.tableCell}>{journal.cash}</td>
-              <td style={styles.tableCell}>{journal.bank}</td>
-              <td style={styles.tableCell}>{journal.total}</td>
-              <td style={styles.tableCell}>
-                <button
-                  style={styles.btnDelete}
-                  onClick={() => handleDelete(journal.id)}
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <thead style={styles.tableHeader}>
+  <tr>
+    <th style={styles.tableCell}>Receipt No</th>
+    <th style={styles.tableCell}>Reference No</th>
+    <th style={styles.tableCell}>Receipt Date</th>
+    <th style={styles.tableCell}>From Whom</th>
+    <th style={styles.tableCell}>Account Class</th>
+    <th style={styles.tableCell}>Account Type</th>
+    <th style={styles.tableCell}>Parent Account</th> {/* Added Parent Account */}
+    <th style={styles.tableCell}>Receipt Type</th>
+    <th style={styles.tableCell}>Account Debited</th>
+    <th style={styles.tableCell}>Account Credited</th>
+    <th style={styles.tableCell}>Cash</th>
+    <th style={styles.tableCell}>Bank</th>
+    <th style={styles.tableCell}>Total</th>
+    <th style={styles.tableCell}>Actions</th>
+  </tr>
+</thead>
+<tbody>
+  {journals.map((journal, index) => (
+    <tr key={index} style={styles.tableRowHover}>
+      <td style={styles.tableCell}>{journal.receipt_no}</td>
+      <td style={styles.tableCell}>{journal.ref_no}</td>
+      <td style={styles.tableCell}>{journal.receipt_date}</td>
+      <td style={styles.tableCell}>{journal.from_whom_received}</td>
+      <td style={styles.tableCell}>{journal.account_class}</td>
+      <td style={styles.tableCell}>{journal.account_type}</td>
+      <td style={styles.tableCell}>{journal.parent_account}</td> {/* Added Parent Account */}
+      <td style={styles.tableCell}>{journal.receipt_type}</td>
+      <td style={styles.tableCell}>{journal.account_debited}</td>
+      <td style={styles.tableCell}>{journal.account_credited}</td>
+      <td style={styles.tableCell}>{journal.cash}</td>
+      <td style={styles.tableCell}>{journal.bank}</td>
+      <td style={styles.tableCell}>{journal.total}</td>
+      <td style={styles.tableCell}>
+        <button
+          style={styles.btnDelete}
+          onClick={() => handleDelete(journal.id)}
+        >
+          Delete
+        </button>
+      </td>
+    </tr>
+  ))}
+</tbody>
+
     </div>
   );
 };
