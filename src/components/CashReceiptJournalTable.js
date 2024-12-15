@@ -285,23 +285,24 @@ const CashReceiptJournalTable = () => {
             required
             style={styles.formInput}
           />
-          <div style={styles.formRow}>
-  <select
-    name="parent_account"
-    value={formData.parent_account}
-    onChange={handleInputChange}
-    required
-    style={styles.formInput}
-  >
-    <option value="">Select Parent Account</option>
-    {coa.length > 0 && coa.map((account, index) => (
-      <option key={index} value={account.parent_account}>
-        {account.parent_account}
-      </option>
-    ))}
-  </select>
-</div>
+          
+          <select
+            name="parent_account"
+            value={formData.parent_account}
+            onChange={handleInputChange}
+            required
+            style={styles.formInput}
+          >
+            <option value="">Select Parent Account</option>
+            {coa.length > 0 && coa.map((account, index) => (
+              <option key={index} value={account.parent_account}>
+                {account.parent_account}
+              </option>
+            ))}
+          </select>
+        </div>
 
+        <div style={styles.formRow}>
           <input
             type="text"
             name="receipt_no"
@@ -311,8 +312,7 @@ const CashReceiptJournalTable = () => {
             required
             style={styles.formInput}
           />
-        </div>
-        <div style={styles.formRow}>
+          
           <input
             type="text"
             name="ref_no"
@@ -322,6 +322,9 @@ const CashReceiptJournalTable = () => {
             required
             style={styles.formInput}
           />
+        </div>
+
+        <div style={styles.formRow}>
           <input
             type="text"
             name="from_whom_received"
@@ -332,6 +335,7 @@ const CashReceiptJournalTable = () => {
             style={styles.formInput}
           />
         </div>
+
         <div style={styles.formRow}>
           <input
             type="text"
@@ -342,6 +346,7 @@ const CashReceiptJournalTable = () => {
             style={styles.formInput}
           />
         </div>
+
         <div style={styles.formRow}>
           <input
             type="text"
@@ -352,6 +357,7 @@ const CashReceiptJournalTable = () => {
             required
             style={styles.formInput}
           />
+          
           <select
             name="account_type"
             value={formData.account_type}
@@ -367,6 +373,7 @@ const CashReceiptJournalTable = () => {
             ))}
           </select>
         </div>
+
         <div style={styles.formRow}>
           <select
             name="receipt_type"
@@ -381,6 +388,7 @@ const CashReceiptJournalTable = () => {
             <option value="bank_transfer">Bank Transfer</option>
           </select>
         </div>
+
         <div style={styles.formRow}>
           <input
             type="text"
@@ -391,6 +399,7 @@ const CashReceiptJournalTable = () => {
             required
             style={styles.formInput}
           />
+          
           <input
             type="text"
             name="account_credited"
@@ -401,6 +410,7 @@ const CashReceiptJournalTable = () => {
             style={styles.formInput}
           />
         </div>
+
         <div style={styles.formRow}>
           <input
             type="number"
@@ -410,6 +420,7 @@ const CashReceiptJournalTable = () => {
             onChange={handleInputChange}
             style={styles.formInput}
           />
+          
           <input
             type="number"
             name="bank"
@@ -417,20 +428,20 @@ const CashReceiptJournalTable = () => {
             value={formData.bank}
             onChange={handleInputChange}
             style={styles.formInput}
-            
           />
         </div>
+
         <button type="submit" style={styles.btnSubmit}>
           Add Journal Entry
         </button>
       </form>
-
       <thead style={styles.tableHeader}>
   <tr>
     <th style={styles.tableCell}>Receipt No</th>
     <th style={styles.tableCell}>Reference No</th>
     <th style={styles.tableCell}>Receipt Date</th>
     <th style={styles.tableCell}>From Whom</th>
+    <th style={styles.tableCell}>Description</th>
     <th style={styles.tableCell}>Account Class</th>
     <th style={styles.tableCell}>Account Type</th>
     <th style={styles.tableCell}>Parent Account</th> {/* Added Parent Account */}
@@ -450,12 +461,14 @@ const CashReceiptJournalTable = () => {
       <td style={styles.tableCell}>{journal.ref_no}</td>
       <td style={styles.tableCell}>{journal.receipt_date}</td>
       <td style={styles.tableCell}>{journal.from_whom_received}</td>
+      <td style={styles.tableCell}>{journal.description}</td>
       <td style={styles.tableCell}>{journal.account_class}</td>
       <td style={styles.tableCell}>{journal.account_type}</td>
       <td style={styles.tableCell}>{journal.parent_account}</td> {/* Added Parent Account */}
       <td style={styles.tableCell}>{journal.receipt_type}</td>
       <td style={styles.tableCell}>{journal.account_debited}</td>
       <td style={styles.tableCell}>{journal.account_credited}</td>
+      
       <td style={styles.tableCell}>{journal.cash}</td>
       <td style={styles.tableCell}>{journal.bank}</td>
       <td style={styles.tableCell}>{journal.total}</td>
