@@ -1,25 +1,26 @@
 import React, { useState, useEffect } from 'react';
 
 const InvoicesTable = () => {
-    const [coa, setCoa] = useState([]);  // Store Chart of Accounts
-    const [invoices, setInvoices] = useState([]);  // Store invoices
+    const [coa, setCoa] = useState([]); // Chart of accounts
+    const [invoices, setInvoices] = useState([]); // Store invoices
     const [formData, setFormData] = useState({
         invoice_number: '',
         date_issued: '',
-        account_type: '',
+        account_type: '',  // Account type field for dropdown
         amount: '',
         account_class: '',
         account_debited: '',
-        account_credited: ''
+        account_credited: '',
+        invoice_type: '', // Invoice type field (text input)
     });
 
-    const [selectedAccount, setSelectedAccount] = useState('');  // Selected account for invoice
+    const [selectedAccount, setSelectedAccount] = useState(''); // Selected account for invoice
     const [sessionExpired, setSessionExpired] = useState(false); // Track session expiry
     const [errorMessage, setErrorMessage] = useState('');
 
     // Fetch Chart of Accounts and Invoices on mount
     useEffect(() => {
-        const token = localStorage.getItem('token');  // Retrieve the JWT token
+        const token = localStorage.getItem('token'); // Retrieve the JWT token
 
         if (!token) {
             setSessionExpired(true);
@@ -35,11 +36,20 @@ const InvoicesTable = () => {
         })
             .then((response) => response.json())
             .then((data) => {
-                setCoa(data);  // Set Chart of Accounts data
+                setCoa(data); // Set Chart of Accounts data
             })
             .catch((error) => console.error('Error fetching Chart of Accounts:', error));
+    }, []);
 
-        // Fetch invoices associated with the user
+    useEffect(() => {
+        if (Array.isArray(coa) && coa.length > 0) {
+            fetchInvoices();
+        }
+    }, [coa]);
+
+    // Fetch invoices with additional account name
+    const fetchInvoices = () => {
+        const token = localStorage.getItem('token');
         fetch('http://localhost:5000/invoices', {
             method: 'GET',
             headers: {
@@ -48,28 +58,46 @@ const InvoicesTable = () => {
         })
             .then((response) => response.json())
             .then((data) => {
-                setInvoices(data);  // Set invoices data
+                // Map invoices to include account name from coa
+                const enrichedInvoices = data.map((invoice) => {
+                    const account = coa.find((a) => a.account_type === invoice.account_type);
+                    return {
+                        ...invoice,
+                        account_name: account ? account.account_name : 'Account Not Found',
+                    };
+                });
+                setInvoices(enrichedInvoices); // Set enriched invoices
             })
-            .catch((error) => {
-                if (error.response && error.response.status === 401) {
-                    setSessionExpired(true); // Handle session expiry
-                }
-                console.error('Error fetching invoices:', error);
-            });
-    }, []);
+            .catch((error) => console.error('Error fetching invoices:', error));
+    };
 
-    // Handle form field changes
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
     };
 
-    // Handle account selection
-    const handleAccountChange = (event) => {
-        setSelectedAccount(event.target.value);
+    const handleAccountTypeChange = (event) => {
+        const selectedAccountType = event.target.value;
+        setFormData({
+            ...formData,
+            account_type: selectedAccountType,  // Update the form data with the selected account type
+        });
+
+        // Reset the dependent fields when account type changes
+        setSelectedAccount('');
     };
 
-    // Handle form submission to create a new invoice
+    const handleAccountChange = (event) => {
+        setSelectedAccount(event.target.value);
+        const selectedCoa = coa.find(account => account.id === event.target.value);
+        if (selectedCoa) {
+            setFormData({
+                ...formData,
+                account_type: selectedCoa.account_type, // Set the account_type when the account is selected
+            });
+        }
+    };
+
     const handleSubmit = (event) => {
         event.preventDefault();
         const token = localStorage.getItem('token');
@@ -82,13 +110,12 @@ const InvoicesTable = () => {
             },
             body: JSON.stringify({
                 ...formData,
-                coa_id: selectedAccount,  // Use the selected account id
+                coa_id: selectedAccount, // Send the coa_id (selected account)
             }),
         })
             .then((response) => response.json())
-            .then((data) => {
-                console.log('Invoice created successfully:', data);
-                setInvoices([...invoices, data]);  // Update state with new invoice
+            .then(() => {
+                fetchInvoices();
                 setFormData({
                     invoice_number: '',
                     date_issued: '',
@@ -97,6 +124,7 @@ const InvoicesTable = () => {
                     account_class: '',
                     account_debited: '',
                     account_credited: '',
+                    invoice_type: '', // Clear the invoice type field
                 });
             })
             .catch((error) => {
@@ -105,85 +133,42 @@ const InvoicesTable = () => {
             });
     };
 
+    const handleDelete = (invoiceId) => {
+        const token = localStorage.getItem('token');
+
+        fetch(`http://localhost:5000/invoices/${invoiceId}`, {
+            method: 'DELETE',
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        })
+            .then((response) => {
+                if (response.ok) {
+                    fetchInvoices();
+                } else {
+                    setErrorMessage('Error deleting invoice.');
+                }
+            })
+            .catch((error) => {
+                setErrorMessage('Error deleting invoice.');
+                console.error('Error deleting invoice:', error);
+            });
+    };
+
+    // Styling
     const styles = {
-        container: {
-            maxWidth: '1000px',
-            margin: '20px auto',
-            padding: '20px',
-            backgroundColor: '#f9f9f9',
-            borderRadius: '8px',
-            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-        },
-        table: {
-            width: '100%',
-            borderCollapse: 'collapse',
-            marginBottom: '20px',
-        },
-        th: {
-            backgroundColor: '#4CAF50',
-            color: '#fff',
-            padding: '12px',
-            textAlign: 'left',
-            fontSize: '14px',
-            fontWeight: 'bold',
-        },
-        td: {
-            padding: '12px',
-            borderBottom: '1px solid #ddd',
-            textAlign: 'left',
-            fontSize: '14px',
-        },
-        button: {
-            padding: '12px 18px',
-            backgroundColor: '#4CAF50',
-            color: '#fff',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            marginTop: '10px',
-            transition: 'background-color 0.3s ease',
-        },
-        buttonHover: {
-            backgroundColor: '#45a049',
-        },
-        form: {
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: '20px',
-            marginBottom: '20px',
-        },
-        input: {
-            padding: '10px',
-            fontSize: '14px',
-            borderRadius: '5px',
-            border: '1px solid #ddd',
-            boxSizing: 'border-box',
-        },
-        select: {
-            padding: '10px',
-            fontSize: '14px',
-            borderRadius: '5px',
-            border: '1px solid #ddd',
-            boxSizing: 'border-box',
-        },
-        message: {
-            color: '#d9534f',
-            fontSize: '16px',
-            marginTop: '20px',
-        },
-        heading: {
-            textAlign: 'center',
-            color: '#333',
-            fontSize: '24px',
-            fontWeight: 'bold',
-            marginBottom: '20px',
-        },
-        formTitle: {
-            color: '#333',
-            fontSize: '20px',
-            marginBottom: '20px',
-        },
+        container: { padding: '40px', fontFamily: '"Roboto", Arial, sans-serif', backgroundColor: '#f8f9fa' },
+        heading: { textAlign: 'center', marginBottom: '30px', color: '#333' },
+        table: { width: '100%', borderCollapse: 'collapse', marginBottom: '30px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
+        th: { padding: '12px 20px', textAlign: 'left', backgroundColor: '#4CAF50', color: 'white', fontWeight: 'bold', borderBottom: '2px solid #ddd' },
+        td: { padding: '12px 20px', borderBottom: '1px solid #ddd', fontSize: '14px' },
+        button: { backgroundColor: '#4CAF50', color: 'white', padding: '10px 20px', border: 'none', cursor: 'pointer', borderRadius: '4px', textAlign: 'center', fontSize: '14px', margin: '5px' },
+        form: { marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '600px', margin: 'auto', backgroundColor: '#ffffff', padding: '20px', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
+        input: { padding: '10px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '14px', width: '100%' },
+        select: { padding: '10px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '14px', width: '100%' },
+        formTitle: { marginTop: '20px', fontSize: '24px', fontWeight: '600', textAlign: 'center', color: '#4CAF50' },
+        message: { color: 'red', textAlign: 'center' },
+        formLabel: { fontSize: '16px', fontWeight: 'bold' },
     };
 
     return (
@@ -199,10 +184,13 @@ const InvoicesTable = () => {
                         <th style={styles.th}>Invoice Number</th>
                         <th style={styles.th}>Date Issued</th>
                         <th style={styles.th}>Account Type</th>
+                        <th style={styles.th}>Invoice Type</th>
                         <th style={styles.th}>Amount</th>
                         <th style={styles.th}>Account Class</th>
                         <th style={styles.th}>Account Debited</th>
                         <th style={styles.th}>Account Credited</th>
+                        <th style={styles.th}>Account Name</th>
+                        <th style={styles.th}>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -212,15 +200,25 @@ const InvoicesTable = () => {
                                 <td style={styles.td}>{invoice.invoice_number}</td>
                                 <td style={styles.td}>{invoice.date_issued}</td>
                                 <td style={styles.td}>{invoice.account_type}</td>
+                                <td style={styles.td}>{invoice.invoice_type}</td>
                                 <td style={styles.td}>{invoice.amount}</td>
                                 <td style={styles.td}>{invoice.account_class}</td>
                                 <td style={styles.td}>{invoice.account_debited}</td>
                                 <td style={styles.td}>{invoice.account_credited}</td>
+                                <td style={styles.td}>{invoice.account_name}</td>
+                                <td style={styles.td}>
+                                    <button
+                                        style={styles.button}
+                                        onClick={() => handleDelete(invoice.id)}
+                                    >
+                                        Delete
+                                    </button>
+                                </td>
                             </tr>
                         ))
                     ) : (
                         <tr>
-                            <td colSpan="7" style={styles.td}>No invoices available</td>
+                            <td colSpan="10" style={styles.td}>No invoices available</td>
                         </tr>
                     )}
                 </tbody>
@@ -230,110 +228,115 @@ const InvoicesTable = () => {
 
             {/* Invoice Form */}
             <form onSubmit={handleSubmit} style={styles.form}>
-                <div>
-                    <label htmlFor="invoice_number">Invoice Number:</label>
+                <label style={styles.formLabel}>
+                    Invoice Number:
                     <input
                         type="text"
-                        id="invoice_number"
                         name="invoice_number"
                         value={formData.invoice_number}
                         onChange={handleInputChange}
                         required
                         style={styles.input}
                     />
-                </div>
-                <div>
-                    <label htmlFor="date_issued">Date Issued:</label>
+                </label>
+                <label style={styles.formLabel}>
+                    Date Issued:
                     <input
                         type="date"
-                        id="date_issued"
                         name="date_issued"
                         value={formData.date_issued}
                         onChange={handleInputChange}
                         required
                         style={styles.input}
                     />
-                </div>
-                <div>
-                    <label htmlFor="account_type">Account Type:</label>
+                </label>
+                <label style={styles.formLabel}>
+                    Account Type:
+                    <select
+                        value={formData.account_type}
+                        onChange={handleAccountTypeChange}
+                        required
+                        style={styles.select}
+                    >
+                        <option value="">--Select Account Type--</option>
+                        {Array.isArray(coa) && coa.map((account) => (
+                            <option key={account.id} value={account.account_type}>
+                                {account.account_type}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                <label style={styles.formLabel}>
+                    Account Name:
+                    <select
+                        value={selectedAccount}
+                        onChange={handleAccountChange}
+                        required
+                        style={styles.select}
+                    >
+                        <option value="">--Select Account--</option>
+                        {coa.map((account) => (
+                            <option key={account.id} value={account.id}>
+                                {account.account_name}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                <label style={styles.formLabel}>
+                    Invoice Type:
                     <input
                         type="text"
-                        id="account_type"
-                        name="account_type"
-                        value={formData.account_type}
+                        name="invoice_type"
+                        value={formData.invoice_type}
                         onChange={handleInputChange}
                         required
                         style={styles.input}
                     />
-                </div>
-                <div>
-                    <label htmlFor="amount">Amount:</label>
+                </label>
+                <label style={styles.formLabel}>
+                    Amount:
                     <input
                         type="number"
-                        id="amount"
                         name="amount"
                         value={formData.amount}
                         onChange={handleInputChange}
                         required
                         style={styles.input}
                     />
-                </div>
-                <div>
-                    <label htmlFor="account_class">Account Class:</label>
+                </label>
+                <label style={styles.formLabel}>
+                    Account Class:
                     <input
                         type="text"
-                        id="account_class"
                         name="account_class"
                         value={formData.account_class}
                         onChange={handleInputChange}
                         required
                         style={styles.input}
                     />
-                </div>
-                <div>
-                    <label htmlFor="account_debited">Account Debited:</label>
+                </label>
+                <label style={styles.formLabel}>
+                    Account Debited:
                     <input
                         type="text"
-                        id="account_debited"
                         name="account_debited"
                         value={formData.account_debited}
                         onChange={handleInputChange}
                         required
                         style={styles.input}
                     />
-                </div>
-                <div>
-                    <label htmlFor="account_credited">Account Credited:</label>
+                </label>
+                <label style={styles.formLabel}>
+                    Account Credited:
                     <input
                         type="text"
-                        id="account_credited"
                         name="account_credited"
                         value={formData.account_credited}
                         onChange={handleInputChange}
                         required
                         style={styles.input}
                     />
-                </div>
-                <div>
-                    <label htmlFor="account-select">Select Account:</label>
-                    <select
-                        id="account-select"
-                        value={selectedAccount}
-                        onChange={handleAccountChange}
-                        style={styles.select}
-                    >
-                        {coa.length > 0 ? (
-                            coa.map((account) => (
-                                <option key={account.id} value={account.id}>
-                                    {account.account_name}
-                                </option>
-                            ))
-                        ) : (
-                            <option>No accounts available</option>
-                        )}
-                    </select>
-                </div>
-
+                </label>
                 <button type="submit" style={styles.button}>Submit Invoice</button>
             </form>
 
