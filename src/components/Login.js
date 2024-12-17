@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const Login = ({ setToken, setRole }) => {
+const Login = ({ setToken, setRole, setTransactions }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -30,7 +30,13 @@ const Login = ({ setToken, setRole }) => {
         setToken(data.token);  // Set the token in the parent component
         setRole(data.role);    // Set the role in the parent component
         localStorage.setItem('token', data.token);  // Save token to localStorage
-        navigate('/home'); // Redirect to home page after successful login
+
+        // If the role is 'CEO', fetch all transactions
+        if (data.role === 'CEO') {
+          fetchTransactions(data.token);  // Fetch all transactions
+        }
+
+        navigate('/'); // Redirect to home page after successful login
       } else {
         const data = await response.json();
         setErrorMessage(data.message || 'Login failed');
@@ -38,6 +44,28 @@ const Login = ({ setToken, setRole }) => {
     } catch (error) {
       console.error('Error:', error);
       setErrorMessage('An error occurred during login');
+    }
+  };
+
+  // Fetch all transactions if the user is a CEO
+  const fetchTransactions = async (token) => {
+    try {
+      const response = await fetch('http://localhost:5000/transactions', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTransactions(data);  // Set transactions in the parent component
+      } else {
+        console.error('Failed to fetch transactions');
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
     }
   };
 
@@ -134,18 +162,5 @@ const styles = {
     marginTop: '10px',
   },
 };
-
-// Adding dynamic styling for input focus effect
-document.addEventListener('focusin', (e) => {
-  if (e.target.tagName === 'INPUT') {
-    e.target.style.borderColor = '#007bff';
-  }
-});
-
-document.addEventListener('focusout', (e) => {
-  if (e.target.tagName === 'INPUT') {
-    e.target.style.borderColor = '#ced4da';
-  }
-});
 
 export default Login;

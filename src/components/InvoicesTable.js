@@ -115,52 +115,57 @@ const InvoicesTable = () => {
     const handleSubmit = (event) => {
         event.preventDefault();
         const token = localStorage.getItem('token');
-
-        // Prepare the payload to be sent
+   
         const invoiceData = {
             invoice_number: formData.invoice_number,
             date_issued: formData.date_issued,
             account_type: formData.account_type,
             amount: parseFloat(formData.amount),
-            account_class: formData.account_class, // Assuming this field exists in formData
-            account_debited: formData.account_debited, // Assuming this field exists in formData
-            account_credited: formData.account_credited, // Assuming this field exists in formData
-            invoice_type: formData.invoice_type, // Include invoice_type here
-            coa_id: selectedAccount, // Selected account (coa_id)
-            parent_account: formData.parent_account, // Parent account ID
-            grn_number: formData.grn_number, // GRN number
-        };
-
-        // Send the request to the backend
+            account_class: formData.account_class,
+            account_debited: formData.account_debited,
+            account_credited: formData.account_credited,
+            invoice_type: formData.invoice_type,  // Ensure this is included
+            coa_id: selectedAccount,
+            parent_account: formData.parent_account,
+            grn_number: formData.grn_number,
+          };
+          
+          console.log("Submitting invoice data:", invoiceData);  // Ensure `invoice_type` is included
+          
         fetch('http://localhost:5000/invoices', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(invoiceData), // Send the structured invoice data
+            body: JSON.stringify(invoiceData),
         })
             .then((response) => response.json())
-            .then(() => {
-                fetchInvoices(); // Reload the invoices
-                setFormData({
-                    invoice_number: '',
-                    date_issued: '',
-                    account_type: '',
-                    amount: '',
-                    account_class: '',
-                    account_debited: '',
-                    account_credited: '',
-                    invoice_type: '',
-                    parent_account: '',
-                    grn_number: '',
-                }); // Clear the form
+            .then((data) => {
+                if (data.error) {
+                    console.error("Server Error:", data.error);
+                } else {
+                    fetchInvoices(); // Reload the invoices
+                    setFormData({
+                        invoice_number: '',
+                        date_issued: '',
+                        account_type: '',
+                        amount: '',
+                        account_class: '',
+                        account_debited: '',
+                        account_credited: '',
+                        invoice_type: '',
+                        parent_account: '',
+                        grn_number: '',
+                    });
+                }
             })
             .catch((error) => {
                 setErrorMessage('Error submitting invoice.');
                 console.error('Error submitting invoice:', error);
             });
     };
+   
 
     const handleDelete = (invoiceId) => {
         const token = localStorage.getItem('token');
@@ -190,6 +195,9 @@ const InvoicesTable = () => {
     // Extract unique account types for the dropdown
     const uniqueAccountTypes = Array.from(new Set(coa.map(account => account.account_type)));
 
+    // Extract unique account names for debited and credited dropdowns
+    const uniqueAccountNames = Array.from(new Set(coa.map(account => account.account_name)));
+
     // Styling
     const styles = {
         container: { padding: '40px', fontFamily: '"Roboto", Arial, sans-serif', backgroundColor: '#f8f9fa' },
@@ -213,55 +221,55 @@ const InvoicesTable = () => {
             {sessionExpired && <p style={styles.message}>Your session has expired. Please log in again.</p>}
 
            {/* Display Invoices */}
-<table style={styles.table}>
-    <thead>
-        <tr>
-            <th style={styles.th}>Invoice Number</th>
-            <th style={styles.th}>Date Issued</th>
-            <th style={styles.th}>Account Type</th>
-            <th style={styles.th}>Invoice Type</th>
-            <th style={styles.th}>Amount</th>
-            <th style={styles.th}>Account Class</th>
-            <th style={styles.th}>Account Debited</th>
-            <th style={styles.th}>Account Credited</th>
-            <th style={styles.th}>Parent Account</th>
-            <th style={styles.th}>GRN Number</th>
-            <th style={styles.th}>Account Name</th>
-            <th style={styles.th}>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {invoices.length > 0 ? (
-            invoices.map((invoice) => (
-                <tr key={invoice.id}>
-                    <td style={styles.td}>{invoice.invoice_number}</td>
-                    <td style={styles.td}>{invoice.date_issued}</td>
-                    <td style={styles.td}>{invoice.account_type}</td>
-                    <td style={styles.td}>{invoice.invoice_type}</td>
-                    <td style={styles.td}>{invoice.amount}</td>
-                    <td style={styles.td}>{invoice.account_class}</td>
-                    <td style={styles.td}>{invoice.account_debited}</td>
-                    <td style={styles.td}>{invoice.account_credited}</td>
-                    <td style={styles.td}>{invoice.parent_account}</td>
-                    <td style={styles.td}>{invoice.grn_number}</td>
-                    <td style={styles.td}>{invoice.account_name}</td>
-                    <td style={styles.td}>
-                        <button
-                            style={styles.button}
-                            onClick={() => handleDelete(invoice.id)}
-                        >
-                            Delete
-                        </button>
-                    </td>
-                </tr>
-            ))
-        ) : (
-            <tr>
-                <td colSpan="12" style={styles.td}>No invoices available</td>
-            </tr>
-        )}
-    </tbody>
-</table>
+            <table style={styles.table}>
+                <thead>
+                    <tr>
+                        <th style={styles.th}>Invoice Number</th>
+                        <th style={styles.th}>Date Issued</th>
+                        <th style={styles.th}>Account Type</th>
+                        <th style={styles.th}>Invoice Type</th>
+                        <th style={styles.th}>Amount</th>
+                        <th style={styles.th}>Account Class</th>
+                        <th style={styles.th}>Account Debited</th>
+                        <th style={styles.th}>Account Credited</th>
+                        <th style={styles.th}>Parent Account</th>
+                        <th style={styles.th}>GRN Number</th>
+                        <th style={styles.th}>Account Name</th>
+                        <th style={styles.th}>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {invoices.length > 0 ? (
+                        invoices.map((invoice) => (
+                            <tr key={invoice.id}>
+                                <td style={styles.td}>{invoice.invoice_number}</td>
+                                <td style={styles.td}>{invoice.date_issued}</td>
+                                <td style={styles.td}>{invoice.account_type}</td>
+                                <td style={styles.td}>{invoice.invoice_type}</td>
+                                <td style={styles.td}>{invoice.amount}</td>
+                                <td style={styles.td}>{invoice.account_class}</td>
+                                <td style={styles.td}>{invoice.account_debited}</td>
+                                <td style={styles.td}>{invoice.account_credited}</td>
+                                <td style={styles.td}>{invoice.parent_account}</td>
+                                <td style={styles.td}>{invoice.grn_number}</td>
+                                <td style={styles.td}>{invoice.account_name}</td>
+                                <td style={styles.td}>
+                                    <button
+                                        style={styles.button}
+                                        onClick={() => handleDelete(invoice.id)}
+                                    >
+                                        Delete
+                                    </button>
+                                </td>
+                            </tr>
+                        ))
+                    ) : (
+                        <tr>
+                            <td colSpan="12" style={styles.td}>No invoices available</td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
 
             {/* Add Invoice Form */}
             <form onSubmit={handleSubmit} style={styles.form}>
@@ -324,35 +332,45 @@ const InvoicesTable = () => {
                     required
                 />
 
+                {/* Account Debited Dropdown */}
                 <label style={styles.formLabel}>Account Debited</label>
-                <input
-                    type="text"
+                <select
                     name="account_debited"
                     value={formData.account_debited}
                     onChange={handleInputChange}
-                    style={styles.input}
-                    required
-                />
+                    style={styles.select}
+                >
+                    <option value="">Select Account Debited</option>
+                    {uniqueAccountNames.length > 0 ? (
+                        uniqueAccountNames.map((account) => (
+                            <option key={account} value={account}>
+                                {account}
+                            </option>
+                        ))
+                    ) : (
+                        <option value="">No Accounts Available</option>
+                    )}
+                </select>
 
+                {/* Account Credited Dropdown */}
                 <label style={styles.formLabel}>Account Credited</label>
-                <input
-                    type="text"
+                <select
                     name="account_credited"
                     value={formData.account_credited}
                     onChange={handleInputChange}
-                    style={styles.input}
-                    required
-                />
-
-                <label style={styles.formLabel}>Invoice Type</label>
-                <input
-                    type="text"
-                    name="invoice_type"
-                    value={formData.invoice_type}
-                    onChange={handleInputChange}
-                    style={styles.input}
-                    required
-                />
+                    style={styles.select}
+                >
+                    <option value="">Select Account Credited</option>
+                    {uniqueAccountNames.length > 0 ? (
+                        uniqueAccountNames.map((account) => (
+                            <option key={account} value={account}>
+                                {account}
+                            </option>
+                        ))
+                    ) : (
+                        <option value="">No Accounts Available</option>
+                    )}
+                </select>
 
                 {/* Parent Account Dropdown */}
                 <label style={styles.formLabel}>Parent Account</label>
@@ -361,16 +379,16 @@ const InvoicesTable = () => {
                     value={formData.parent_account}
                     onChange={handleParentAccountChange}
                     style={styles.select}
-                    required
                 >
                     <option value="">Select Parent Account</option>
-                    {uniqueParentAccounts.map((account, index) => (
-                        <option key={index} value={account}>
-                            {account}
+                    {uniqueParentAccounts.map((parentAccount, index) => (
+                        <option key={index} value={parentAccount}>
+                            {parentAccount}
                         </option>
                     ))}
                 </select>
 
+                {/* GRN Number */}
                 <label style={styles.formLabel}>GRN Number</label>
                 <input
                     type="text"
@@ -378,10 +396,22 @@ const InvoicesTable = () => {
                     value={formData.grn_number}
                     onChange={handleInputChange}
                     style={styles.input}
-                    required
                 />
+                <label style={styles.formLabel}>Invoice Type</label>
+<input
+  type="text"
+  name="invoice_type"
+  value={formData.invoice_type}
+  onChange={handleInputChange}
+  style={styles.input}
+  required
+/>
 
-                <button type="submit" style={styles.button}>Submit</button>
+                <button type="submit" style={styles.button}>
+                    Submit Invoice
+                </button>
+
+                {errorMessage && <p style={styles.message}>{errorMessage}</p>}
             </form>
         </div>
     );

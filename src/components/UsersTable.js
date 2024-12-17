@@ -23,7 +23,7 @@ const UserTransactions = () => {
         });
 
         if (!response.ok) {
-          throw new Error(`Error: ${response.status} - ${response.statusText}`);
+          throw new Error(`Error: ${response.status} - ${response.statusText} PLEASE LOGIN`);
         }
 
         const data = await response.json();

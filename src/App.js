@@ -8,6 +8,7 @@ import InvoicesTable from './components/InvoicesTable';
 import CashReceiptJournalTable from './components/CashReceiptJournalTable';
 import CashDisbursementJournalTable from './components/CashDisbursementJournalTable';
 import Navbar from './components/Navbar'; // Import the Navbar
+import Dashboard from './components/Dashboard'; // Import Dashboard component
 
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
@@ -40,6 +41,9 @@ function App() {
           <Route path="/invoices" element={token ? <InvoicesTable /> : <Login setToken={setToken} setRole={setRole} />} />
           <Route path="/cash-receipt-journal" element={token ? <CashReceiptJournalTable /> : <Login setToken={setToken} setRole={setRole} />} />
           <Route path="/cash-disbursement-journal" element={token ? <CashDisbursementJournalTable /> : <Login setToken={setToken} setRole={setRole} />} />
+
+          {/* Dashboard Route (protected) */}
+          <Route path="/dashboard" element={token ? <Dashboard /> : <Login setToken={setToken} setRole={setRole} />} />
         </Routes>
       </div>
     </Router>
