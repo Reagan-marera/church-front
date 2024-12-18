@@ -6,9 +6,16 @@ const UserTransactions = () => {
     cash_receipts: [],
     cash_disbursements: [],
   });
+  const [filteredTransactions, setFilteredTransactions] = useState({
+    invoices_issued: [],
+    cash_receipts: [],
+    cash_disbursements: [],
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Fetch all transactions first
   useEffect(() => {
     const fetchTransactions = async () => {
       const token = localStorage.getItem('token'); // Ensure the JWT token is stored locally
@@ -28,6 +35,7 @@ const UserTransactions = () => {
 
         const data = await response.json();
         setTransactions(data);
+        setFilteredTransactions(data);
         setLoading(false);
       } catch (err) {
         console.error('Failed to fetch transactions:', err);
@@ -39,6 +47,31 @@ const UserTransactions = () => {
     fetchTransactions();
   }, []);
 
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+  
+    // Filter transactions based on the search query
+    const filterData = (data) => {
+      return data.filter((item) => {
+        // Check if the parent_account or any subaccount contains the query
+        const matchesParentAccount = item.parent_account && item.parent_account.toLowerCase().includes(query.toLowerCase());
+        const matchesSubaccounts = item.sub_accounts && Object.values(item.sub_accounts).some(subaccount =>
+          subaccount.name && subaccount.name.toLowerCase().includes(query.toLowerCase())
+        );
+        return matchesParentAccount || matchesSubaccounts;
+      });
+    };
+  
+    // Apply filter to each transaction type
+    setFilteredTransactions({
+      invoices_issued: filterData(transactions.invoices_issued),
+      cash_receipts: filterData(transactions.cash_receipts),
+      cash_disbursements: filterData(transactions.cash_disbursements),
+    });
+  };
+  
+  
   if (loading) {
     return <p style={styles.loading}>Loading transactions...</p>;
   }
@@ -50,6 +83,14 @@ const UserTransactions = () => {
   return (
     <div style={styles.container}>
       <h2 style={styles.header}>User Transactions</h2>
+
+      <input
+        type="text"
+        placeholder="Search by Parent Account "
+        value={searchQuery}
+        onChange={handleSearchChange}
+        style={styles.searchInput}
+      />
 
       <div>
         <h3 style={styles.sectionHeader}>Invoices Issued</h3>
@@ -67,10 +108,11 @@ const UserTransactions = () => {
               <th style={styles.th}>Invoice Type</th>
               <th style={styles.th}>GRN Number</th>
               <th style={styles.th}>Parent Account</th>
+              <th style={styles.th}>Subaccounts</th>
             </tr>
           </thead>
           <tbody>
-            {transactions.invoices_issued.map((invoice) => (
+            {filteredTransactions.invoices_issued.map((invoice) => (
               <tr key={invoice.id}>
                 <td style={styles.td}>{invoice.id}</td>
                 <td style={styles.td}>{invoice.invoice_number}</td>
@@ -83,6 +125,17 @@ const UserTransactions = () => {
                 <td style={styles.td}>{invoice.invoice_type}</td>
                 <td style={styles.td}>{invoice.grn_number}</td>
                 <td style={styles.td}>{invoice.parent_account}</td>
+                <td style={styles.td}>
+  {invoice.sub_accounts ? (
+    Object.values(invoice.sub_accounts).map((subaccount, index) => (
+      <div key={index}>
+        {subaccount.name}: Amount: {subaccount.amount}
+      </div>
+    ))
+  ) : (
+    'No subaccounts'
+  )}
+</td>
               </tr>
             ))}
           </tbody>
@@ -107,10 +160,11 @@ const UserTransactions = () => {
               <th style={styles.th}>Cash</th>
               <th style={styles.th}>Total</th>
               <th style={styles.th}>Parent Account</th>
+              <th style={styles.th}>Subaccounts</th>
             </tr>
           </thead>
           <tbody>
-            {transactions.cash_receipts.map((receipt) => (
+            {filteredTransactions.cash_receipts.map((receipt) => (
               <tr key={receipt.id}>
                 <td style={styles.td}>{receipt.id}</td>
                 <td style={styles.td}>{receipt.receipt_date}</td>
@@ -125,6 +179,17 @@ const UserTransactions = () => {
                 <td style={styles.td}>{receipt.cash}</td>
                 <td style={styles.td}>{receipt.total}</td>
                 <td style={styles.td}>{receipt.parent_account}</td>
+                <td style={styles.td}>
+  {receipt.sub_accounts ? (
+    Object.values(receipt.sub_accounts).map((subaccount, index) => (
+      <div key={index}>
+        {subaccount.name}: Amount: {subaccount.amount}
+      </div>
+    ))
+  ) : (
+    'No subaccounts'
+  )}
+</td>
               </tr>
             ))}
           </tbody>
@@ -132,70 +197,85 @@ const UserTransactions = () => {
       </div>
 
       <div>
-        <h3 style={styles.sectionHeader}>Cash Disbursements</h3>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>ID</th>
-              <th style={styles.th}>Disbursement Date</th>
-              <th style={styles.th}>Cheque No</th>
-              <th style={styles.th}>To Whom Paid</th>
-              <th style={styles.th}>Payment Type</th>
-              <th style={styles.th}>Description</th>
-              <th style={styles.th}>Account Class</th>
-              <th style={styles.th}>Account Type</th>
-              <th style={styles.th}>Account Debited</th>
-              <th style={styles.th}>Account Credited</th>
-              <th style={styles.th}>Cash</th>
-              <th style={styles.th}>Bank</th>
-              <th style={styles.th}>Parent Account</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.cash_disbursements.map((disbursement) => (
-              <tr key={disbursement.id}>
-                <td style={styles.td}>{disbursement.id}</td>
-                <td style={styles.td}>{disbursement.disbursement_date}</td>
-                <td style={styles.td}>{disbursement.cheque_no}</td>
-                <td style={styles.td}>{disbursement.to_whom_paid}</td>
-                <td style={styles.td}>{disbursement.payment_type}</td>
-                <td style={styles.td}>{disbursement.description}</td>
-                <td style={styles.td}>{disbursement.account_class}</td>
-                <td style={styles.td}>{disbursement.account_type}</td>
-                <td style={styles.td}>{disbursement.account_debited}</td>
-                <td style={styles.td}>{disbursement.account_credited}</td>
-                <td style={styles.td}>{disbursement.cash}</td>
-                <td style={styles.td}>{disbursement.bank}</td>
-                <td style={styles.td}>{disbursement.parent_account}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <h3 style={styles.sectionHeader}>Cash Disbursements</h3>
+  <table style={styles.table}>
+    <thead>
+      <tr>
+        <th style={styles.th}>ID</th>
+        <th style={styles.th}>Disbursement Date</th>
+        <th style={styles.th}>Cheque No</th>
+        <th style={styles.th}>To Whom Paid</th>
+        <th style={styles.th}>Payment Type</th>
+        <th style={styles.th}>Description</th>
+        <th style={styles.th}>Account Class</th>
+        <th style={styles.th}>Account Type</th>
+        <th style={styles.th}>Account Debited</th>
+        <th style={styles.th}>Account Credited</th>
+        <th style={styles.th}>Cash</th>
+        <th style={styles.th}>Bank</th>
+        <th style={styles.th}>Parent Account</th>
+        <th style={styles.th}>Subaccounts</th>
+      </tr>
+    </thead>
+    <tbody>
+      {filteredTransactions.cash_disbursements.map((disbursement) => (
+        <tr key={disbursement.id}>
+          <td style={styles.td}>{disbursement.id}</td>
+          <td style={styles.td}>{disbursement.disbursement_date}</td>
+          <td style={styles.td}>{disbursement.cheque_no}</td>
+          <td style={styles.td}>{disbursement.to_whom_paid}</td>
+          <td style={styles.td}>{disbursement.payment_type}</td>
+          <td style={styles.td}>{disbursement.description}</td>
+          <td style={styles.td}>{disbursement.account_class}</td>
+          <td style={styles.td}>{disbursement.account_type}</td>
+          <td style={styles.td}>{disbursement.account_debited}</td>
+          <td style={styles.td}>{disbursement.account_credited}</td>
+          <td style={styles.td}>{disbursement.cash}</td>
+          <td style={styles.td}>{disbursement.bank}</td>
+          <td style={styles.td}>{disbursement.parent_account}</td>
+          <td style={styles.td}>
+            {/* Check if sub_accounts exists and render the amount along with name */}
+            {disbursement.sub_accounts && Object.entries(disbursement.sub_accounts).length > 0 ? (
+              Object.entries(disbursement.sub_accounts).map(([name, amount]) => (
+                <div key={name}>
+                  {name}: Amount: {amount}
+                </div>
+              ))
+            ) : (
+              'No subaccounts'
+            )}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
       </div>
     </div>
   );
 };
-
+// Styles
 const styles = {
   container: {
     padding: '30px',
     maxWidth: '1200px',
     margin: '0 auto',
     backgroundColor: '#fff',
-    boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)',
+    boxShadow: '0 0 20px rgba(0, 0, 0, 0.1)',
     borderRadius: '8px',
+    fontFamily: 'Arial, sans-serif', // World Bank uses clean sans-serif fonts
   },
   header: {
-    color: '#005f71',
-    fontSize: '2rem',
+    color: '#003c5c', // A darker blue shade used in World Bank's branding
+    fontSize: '2.5rem',
+    fontWeight: 'bold',
     marginBottom: '20px',
   },
   sectionHeader: {
-    color: '#333',
-    fontSize: '1.5rem',
-    marginBottom: '10px',
-    borderBottom: '2px solid #005f71',
-    paddingBottom: '5px',
+    color: '#003c5c', // Matching dark blue for section headers
+    fontSize: '1.8rem',
+    marginBottom: '15px',
+    borderBottom: '3px solid #006d8e', // A lighter blue for emphasis
+    paddingBottom: '8px',
     marginTop: '30px',
   },
   table: {
@@ -203,28 +283,51 @@ const styles = {
     marginTop: '20px',
     borderCollapse: 'collapse',
     backgroundColor: '#fff',
+    borderRadius: '4px',
   },
   th: {
-    padding: '12px',
+    padding: '14px',
     textAlign: 'left',
-    border: '1px solid #ddd',
-    backgroundColor: '#005f71',
+    border: '1px solid #ccc',
+    backgroundColor: '#006d8e', // World Bank's primary accent color
     color: 'white',
     fontWeight: 'bold',
   },
   td: {
-    padding: '12px',
+    padding: '14px',
     textAlign: 'left',
-    border: '1px solid #ddd',
-    backgroundColor: '#fafafa',
+    border: '1px solid #ccc',
+    backgroundColor: '#f4f9fb', // Light background with a hint of blue
   },
   loading: {
     fontSize: '1.2rem',
-    color: '#888',
+    color: '#006d8e', // Using World Bank's primary color for loading text
   },
   error: {
     fontSize: '1.2rem',
-    color: '#ff4e4e',
+    color: '#e53935', // A red color for error messages
+  },
+  searchInput: {
+    padding: '12px',
+    fontSize: '1rem',
+    marginBottom: '20px',
+    width: '100%',
+    maxWidth: '420px',
+    borderRadius: '5px',
+    border: '1px solid #ccc',
+    backgroundColor: '#eaf1f6', // Subtle background for the input field
+  },
+  subaccountContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    marginBottom: '5px', // space between each subaccount
+  },
+  subaccountName: {
+    fontWeight: 'bold',
+    color: '#003c5c', // Dark blue for subaccount names
+  },
+  subaccountAmount: {
+    color: '#005f71', // Slightly lighter blue for amounts
   },
 };
 
