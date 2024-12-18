@@ -102,15 +102,14 @@ function DisbursementForm() {
     setSubAccounts(updatedSubAccounts);
     calculateTotal(formData.cash, formData.bank, updatedSubAccounts);
   };
-
-  const calculateTotal = (cash = formData.cash, bank = formData.bank, subAccounts = subAccounts) => {
-    const subTotal = subAccounts.reduce((sum, sub) => sum + (sub.amount || 0), 0);
-    const totalAmount = parseFloat(cash) + parseFloat(bank) + subTotal;
+  const calculateTotal = (cash = formData.cash, bank = formData.bank) => {
+    const totalAmount = parseFloat(cash) + parseFloat(bank);
     setFormData(prevData => ({
       ...prevData,
       total: isNaN(totalAmount) ? 0.0 : totalAmount,
     }));
   };
+  
 
   const fetchSubAccountsForDisbursement = (disbursementId) => {
     const selectedDisbursement = disbursements.find(disbursement => disbursement.id === disbursementId);
@@ -121,22 +120,29 @@ function DisbursementForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
-
+  
     const formattedSubAccounts = {};
     subAccounts.forEach((sub) => {
       if (sub.name && sub.amount) {
         formattedSubAccounts[sub.name] = sub.amount;
       }
     });
-
+  
+    // Validate total matches the subaccounts total
+    const subTotal = subAccounts.reduce((sum, sub) => sum + (sub.amount || 0), 0);
+    if (formData.total !== subTotal) {
+      setErrorMessage('Total amount does not match the sum of sub-accounts.');
+      return;
+    }
+  
     const formattedDate = new Date(formData.disbursement_date).toISOString().split('T')[0];
-
+  
     const payload = {
       ...formData,
       disbursement_date: formattedDate,
       sub_accounts: formattedSubAccounts,
     };
-
+  
     try {
       const response = await fetch('http://localhost:5000/cash-disbursement-journals', {
         method: 'POST',
@@ -146,7 +152,7 @@ function DisbursementForm() {
         },
         body: JSON.stringify(payload),
       });
-
+  
       const result = await response.json();
       if (!response.ok) {
         throw new Error(result.message || 'Failed to submit data');
@@ -157,7 +163,7 @@ function DisbursementForm() {
       setErrorMessage(error.message);
     }
   };
-
+  
   const handleDelete = async (id) => {
     const token = localStorage.getItem('token');
     try {

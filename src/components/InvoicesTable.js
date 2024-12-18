@@ -1,420 +1,422 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
+import "./InvoicesTable.css"; // Import the external CSS file
 
-const InvoicesTable = () => {
-    const [coa, setCoa] = useState([]); // Chart of accounts
-    const [invoices, setInvoices] = useState([]); // Store invoices
-    const [formData, setFormData] = useState({
-        invoice_number: '',
-        date_issued: '',
-        account_type: '', // Set as an empty string initially
-        amount: '',
-        account_class: '',
-        account_debited: '',
-        account_credited: '',
-        invoice_type: '',
-        parent_account: '', // Add parent account to form data
-        grn_number: '', // Add grn_number to form data
+const InvoiceTable = () => {
+  const [invoices, setInvoices] = useState([]);
+  const [coa, setCoa] = useState([]);
+  const [subAccountData, setSubAccountData] = useState({});
+  const [error, setError] = useState("");
+  const [formData, setFormData] = useState({
+    invoice_number: "",
+    date_issued: "",
+    account_type: "",
+    amount: 0,
+    account_class: "",
+    account_debited: "",
+    account_credited: "",
+    grn_number: "",
+    invoice_type: "",
+    parent_account: "",
+  });
+
+  const [viewingSubAccounts, setViewingSubAccounts] = useState(null);
+
+  const fetchInvoices = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("User is not authenticated");
+        return;
+      }
+      const response = await fetch("http://localhost:5000/invoices", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error(await response.text());
+      setInvoices(await response.json());
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const fetchCOA = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/chart-of-accounts", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error(await response.text());
+      setCoa(await response.json());
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      return updated;
     });
+  };
 
-    const [selectedAccount, setSelectedAccount] = useState(''); // Selected account for invoice
-    const [sessionExpired, setSessionExpired] = useState(false); // Track session expiry
-    const [errorMessage, setErrorMessage] = useState('');
-
-    // Fetch Chart of Accounts and Invoices on mount
-    useEffect(() => {
-        const token = localStorage.getItem('token'); // Retrieve the JWT token
-
-        if (!token) {
-            setSessionExpired(true);
-            return;
-        }
-
-        // Fetch Chart of Accounts from the backend
-        fetch('http://localhost:5000/chart-of-accounts', {
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                console.log('Chart of Accounts Data:', data); // Log data to check its structure
-                if (Array.isArray(data)) {
-                    setCoa(data); // Set Chart of Accounts data if it is an array
-                } else {
-                    console.error('Chart of Accounts is not an array:', data);
-                }
-            })
-            .catch((error) => console.error('Error fetching Chart of Accounts:', error));
-    }, []);
-
-    useEffect(() => {
-        if (Array.isArray(coa) && coa.length > 0) {
-            fetchInvoices();
-        }
-    }, [coa]);
-
-    // Fetch invoices with additional account name
-    const fetchInvoices = () => {
-        const token = localStorage.getItem('token');
-        fetch('http://localhost:5000/invoices', {
-            method: 'GET',
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                // Map invoices to include account name from coa
-                const enrichedInvoices = data.map((invoice) => {
-                    const account = coa.find((a) => a.account_type === invoice.account_type);
-                    return {
-                        ...invoice,
-                        account_name: account ? account.account_name : 'Account Not Found',
-                    };
-                });
-                setInvoices(enrichedInvoices); // Set enriched invoices
-            })
-            .catch((error) => console.error('Error fetching invoices:', error));
+  const handleSubAccountChange = (index, field, value) => {
+    const updatedSubAccounts = { ...subAccountData };
+    updatedSubAccounts[`account_${index + 1}`] = {
+      ...updatedSubAccounts[`account_${index + 1}`],
+      [field]: field === "amount" ? parseFloat(value) || 0 : value,
     };
+    setSubAccountData(updatedSubAccounts);
 
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
-    };
-
-    const handleAccountTypeChange = (event) => {
-        const selectedAccountType = event.target.value;
-        setFormData({
-            ...formData,
-            account_type: selectedAccountType,  // Update the form data with the selected account type
-        });
-
-        // Reset the dependent fields when account type changes
-        setSelectedAccount('');
-    };
-
-    const handleAccountChange = (event) => {
-        setSelectedAccount(event.target.value);
-        const selectedCoa = coa.find(account => account.id === event.target.value);
-        if (selectedCoa) {
-            setFormData({
-                ...formData,
-                account_type: selectedCoa.account_type, // Set the account_type when the account is selected
-            });
-        }
-    };
-
-    const handleParentAccountChange = (event) => {
-        setFormData({
-            ...formData,
-            parent_account: event.target.value, // Update the form data with selected parent account
-        });
-    };
-
-    const handleSubmit = (event) => {
-        event.preventDefault();
-        const token = localStorage.getItem('token');
-   
-        const invoiceData = {
-            invoice_number: formData.invoice_number,
-            date_issued: formData.date_issued,
-            account_type: formData.account_type,
-            amount: parseFloat(formData.amount),
-            account_class: formData.account_class,
-            account_debited: formData.account_debited,
-            account_credited: formData.account_credited,
-            invoice_type: formData.invoice_type,  // Ensure this is included
-            coa_id: selectedAccount,
-            parent_account: formData.parent_account,
-            grn_number: formData.grn_number,
-          };
-          
-          console.log("Submitting invoice data:", invoiceData);  // Ensure `invoice_type` is included
-          
-        fetch('http://localhost:5000/invoices', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(invoiceData),
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.error) {
-                    console.error("Server Error:", data.error);
-                } else {
-                    fetchInvoices(); // Reload the invoices
-                    setFormData({
-                        invoice_number: '',
-                        date_issued: '',
-                        account_type: '',
-                        amount: '',
-                        account_class: '',
-                        account_debited: '',
-                        account_credited: '',
-                        invoice_type: '',
-                        parent_account: '',
-                        grn_number: '',
-                    });
-                }
-            })
-            .catch((error) => {
-                setErrorMessage('Error submitting invoice.');
-                console.error('Error submitting invoice:', error);
-            });
-    };
-   
-
-    const handleDelete = (invoiceId) => {
-        const token = localStorage.getItem('token');
-
-        fetch(`http://localhost:5000/invoices/${invoiceId}`, {
-            method: 'DELETE',
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        })
-            .then((response) => {
-                if (response.ok) {
-                    fetchInvoices();
-                } else {
-                    setErrorMessage('Error deleting invoice.');
-                }
-            })
-            .catch((error) => {
-                setErrorMessage('Error deleting invoice.');
-                console.error('Error deleting invoice:', error);
-            });
-    };
-
-    // Extract unique parent_account values for dropdown
-    const uniqueParentAccounts = Array.from(new Set(coa.map(account => account.parent_account)));
-
-    // Extract unique account types for the dropdown
-    const uniqueAccountTypes = Array.from(new Set(coa.map(account => account.account_type)));
-
-    // Extract unique account names for debited and credited dropdowns
-    const uniqueAccountNames = Array.from(new Set(coa.map(account => account.account_name)));
-
-    // Styling
-    const styles = {
-        container: { padding: '40px', fontFamily: '"Roboto", Arial, sans-serif', backgroundColor: '#f8f9fa' },
-        heading: { textAlign: 'center', marginBottom: '30px', color: '#333' },
-        table: { width: '100%', borderCollapse: 'collapse', marginBottom: '30px', backgroundColor: 'white', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
-        th: { padding: '12px 20px', textAlign: 'left', backgroundColor: '#4CAF50', color: 'white', fontWeight: 'bold', borderBottom: '2px solid #ddd' },
-        td: { padding: '12px 20px', borderBottom: '1px solid #ddd', fontSize: '14px' },
-        button: { backgroundColor: '#4CAF50', color: 'white', padding: '10px 20px', border: 'none', cursor: 'pointer', borderRadius: '4px', textAlign: 'center', fontSize: '14px', margin: '5px' },
-        form: { marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '600px', margin: 'auto', backgroundColor: '#ffffff', padding: '20px', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
-        input: { padding: '10px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '14px', width: '100%' },
-        select: { padding: '10px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '14px', width: '100%' },
-        formTitle: { marginTop: '20px', fontSize: '24px', fontWeight: '600', textAlign: 'center', color: '#4CAF50' },
-        message: { color: 'red', textAlign: 'center' },
-        formLabel: { fontSize: '16px', fontWeight: 'bold' },
-    };
-
-    return (
-        <div style={styles.container}>
-            <h2 style={styles.heading}>Invoices Table</h2>
-
-            {sessionExpired && <p style={styles.message}>Your session has expired. Please log in again.</p>}
-
-           {/* Display Invoices */}
-            <table style={styles.table}>
-                <thead>
-                    <tr>
-                        <th style={styles.th}>Invoice Number</th>
-                        <th style={styles.th}>Date Issued</th>
-                        <th style={styles.th}>Account Type</th>
-                        <th style={styles.th}>Invoice Type</th>
-                        <th style={styles.th}>Amount</th>
-                        <th style={styles.th}>Account Class</th>
-                        <th style={styles.th}>Account Debited</th>
-                        <th style={styles.th}>Account Credited</th>
-                        <th style={styles.th}>Parent Account</th>
-                        <th style={styles.th}>GRN Number</th>
-                        <th style={styles.th}>Account Name</th>
-                        <th style={styles.th}>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {invoices.length > 0 ? (
-                        invoices.map((invoice) => (
-                            <tr key={invoice.id}>
-                                <td style={styles.td}>{invoice.invoice_number}</td>
-                                <td style={styles.td}>{invoice.date_issued}</td>
-                                <td style={styles.td}>{invoice.account_type}</td>
-                                <td style={styles.td}>{invoice.invoice_type}</td>
-                                <td style={styles.td}>{invoice.amount}</td>
-                                <td style={styles.td}>{invoice.account_class}</td>
-                                <td style={styles.td}>{invoice.account_debited}</td>
-                                <td style={styles.td}>{invoice.account_credited}</td>
-                                <td style={styles.td}>{invoice.parent_account}</td>
-                                <td style={styles.td}>{invoice.grn_number}</td>
-                                <td style={styles.td}>{invoice.account_name}</td>
-                                <td style={styles.td}>
-                                    <button
-                                        style={styles.button}
-                                        onClick={() => handleDelete(invoice.id)}
-                                    >
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        ))
-                    ) : (
-                        <tr>
-                            <td colSpan="12" style={styles.td}>No invoices available</td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
-
-            {/* Add Invoice Form */}
-            <form onSubmit={handleSubmit} style={styles.form}>
-                <h3 style={styles.formTitle}>Add New Invoice</h3>
-                <label style={styles.formLabel}>Invoice Number</label>
-                <input
-                    type="text"
-                    name="invoice_number"
-                    value={formData.invoice_number}
-                    onChange={handleInputChange}
-                    style={styles.input}
-                    required
-                />
-
-                <label style={styles.formLabel}>Date Issued</label>
-                <input
-                    type="date"
-                    name="date_issued"
-                    value={formData.date_issued}
-                    onChange={handleInputChange}
-                    style={styles.input}
-                    required
-                />
-
-                {/* Account Type Dropdown */}
-                <label style={styles.formLabel}>Account Type</label>
-                <select
-                    name="account_type"
-                    value={formData.account_type}
-                    onChange={handleAccountTypeChange}
-                    style={styles.select}
-                    required
-                >
-                    <option value="">Select Account Type</option>
-                    {uniqueAccountTypes.map((accountType, index) => (
-                        <option key={index} value={accountType}>
-                            {accountType}
-                        </option>
-                    ))}
-                </select>
-
-                {/* Other form fields */}
-                <label style={styles.formLabel}>Amount</label>
-                <input
-                    type="number"
-                    name="amount"
-                    value={formData.amount}
-                    onChange={handleInputChange}
-                    style={styles.input}
-                    required
-                />
-
-                <label style={styles.formLabel}>Account Class</label>
-                <input
-                    type="text"
-                    name="account_class"
-                    value={formData.account_class}
-                    onChange={handleInputChange}
-                    style={styles.input}
-                    required
-                />
-
-                {/* Account Debited Dropdown */}
-                <label style={styles.formLabel}>Account Debited</label>
-                <select
-                    name="account_debited"
-                    value={formData.account_debited}
-                    onChange={handleInputChange}
-                    style={styles.select}
-                >
-                    <option value="">Select Account Debited</option>
-                    {uniqueAccountNames.length > 0 ? (
-                        uniqueAccountNames.map((account) => (
-                            <option key={account} value={account}>
-                                {account}
-                            </option>
-                        ))
-                    ) : (
-                        <option value="">No Accounts Available</option>
-                    )}
-                </select>
-
-                {/* Account Credited Dropdown */}
-                <label style={styles.formLabel}>Account Credited</label>
-                <select
-                    name="account_credited"
-                    value={formData.account_credited}
-                    onChange={handleInputChange}
-                    style={styles.select}
-                >
-                    <option value="">Select Account Credited</option>
-                    {uniqueAccountNames.length > 0 ? (
-                        uniqueAccountNames.map((account) => (
-                            <option key={account} value={account}>
-                                {account}
-                            </option>
-                        ))
-                    ) : (
-                        <option value="">No Accounts Available</option>
-                    )}
-                </select>
-
-                {/* Parent Account Dropdown */}
-                <label style={styles.formLabel}>Parent Account</label>
-                <select
-                    name="parent_account"
-                    value={formData.parent_account}
-                    onChange={handleParentAccountChange}
-                    style={styles.select}
-                >
-                    <option value="">Select Parent Account</option>
-                    {uniqueParentAccounts.map((parentAccount, index) => (
-                        <option key={index} value={parentAccount}>
-                            {parentAccount}
-                        </option>
-                    ))}
-                </select>
-
-                {/* GRN Number */}
-                <label style={styles.formLabel}>GRN Number</label>
-                <input
-                    type="text"
-                    name="grn_number"
-                    value={formData.grn_number}
-                    onChange={handleInputChange}
-                    style={styles.input}
-                />
-                <label style={styles.formLabel}>Invoice Type</label>
-<input
-  type="text"
-  name="invoice_type"
-  value={formData.invoice_type}
-  onChange={handleInputChange}
-  style={styles.input}
-  required
-/>
-
-                <button type="submit" style={styles.button}>
-                    Submit Invoice
-                </button>
-
-                {errorMessage && <p style={styles.message}>{errorMessage}</p>}
-            </form>
-        </div>
+    const totalSubAccounts = Object.values(updatedSubAccounts).reduce(
+      (sum, acc) => sum + (acc.amount || 0),
+      0
     );
+    const totalMain = parseFloat(formData.amount) || 0;
+
+    if (totalMain !== totalSubAccounts) {
+      setError("Subaccount totals must match the combined total.");
+    } else {
+      setError("");
+    }
+  };
+
+  const handleAddSubAccount = () => {
+    const nextIndex = Object.keys(subAccountData).length + 1;
+    setSubAccountData({
+      ...subAccountData,
+      [`account_${nextIndex}`]: { name: "", amount: 0 },
+    });
+  };
+
+  const handleRemoveSubAccount = (index) => {
+    const updatedSubAccounts = { ...subAccountData };
+    delete updatedSubAccounts[`account_${index + 1}`];
+    setSubAccountData(updatedSubAccounts);
+
+    const totalMain = parseFloat(formData.amount) || 0;
+    const totalSubAccounts = Object.values(updatedSubAccounts).reduce(
+      (sum, acc) => sum + (acc.amount || 0),
+      0
+    );
+
+    if (totalMain !== totalSubAccounts) {
+      setError("Subaccount totals must match the combined total.");
+    } else {
+      setError("");
+    }
+  };
+
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const totalSubAccounts = Object.values(subAccountData).reduce(
+        (sum, acc) => sum + (acc.amount || 0),
+        0
+      );
+
+      if (parseFloat(formData.amount) !== totalSubAccounts) {
+        setError("Subaccount totals must match the combined total.");
+        return;
+      }
+
+      const payload = {
+        ...formData,
+        sub_accounts: subAccountData,
+      };
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("User is not authenticated");
+        return;
+      }
+
+      const response = await fetch("http://localhost:5000/invoices", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) throw new Error(await response.text());
+
+      setFormData({
+        invoice_number: "",
+        date_issued: "",
+        account_type: "",
+        amount: 0,
+        account_class: "",
+        account_debited: "",
+        account_credited: "",
+        grn_number: "",
+        invoice_type: "",
+        parent_account: "",
+      });
+      setSubAccountData({});
+      fetchInvoices();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const toggleSubAccountsView = (id) => {
+    setViewingSubAccounts(viewingSubAccounts === id ? null : id);
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("User is not authenticated");
+        return;
+      }
+      const response = await fetch(`http://localhost:5000/invoices/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error(await response.text());
+      fetchInvoices();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchInvoices();
+    fetchCOA();
+  }, []);
+
+  return (
+    <div className="container">
+      <h1 className="header">Invoice Table</h1>
+
+      {error && <p className="error">{error}</p>}
+
+      <form className="form" onSubmit={handleFormSubmit}>
+        {/* Form for invoice details */}
+        <div className="form-row">
+          <input
+            type="text"
+            name="invoice_number"
+            value={formData.invoice_number}
+            onChange={handleInputChange}
+            placeholder="Invoice Number"
+            required
+            className="form-input"
+          />
+          <input
+            type="date"
+            name="date_issued"
+            value={formData.date_issued}
+            onChange={handleInputChange}
+            required
+            className="form-input"
+          />
+        </div>
+
+        <div className="form-row">
+          <input
+            type="text"
+            name="account_type"
+            value={formData.account_type}
+            onChange={handleInputChange}
+            placeholder="Account Type"
+            required
+            className="form-input"
+          />
+          <input
+            type="number"
+            name="amount"
+            value={formData.amount}
+            onChange={handleInputChange}
+            placeholder="Amount"
+            required
+            className="form-input"
+          />
+        </div>
+
+        <div className="form-row">
+          <input
+            type="text"
+            name="account_class"
+            value={formData.account_class}
+            onChange={handleInputChange}
+            placeholder="Account Class"
+            required
+            className="form-input"
+          />
+        </div>
+
+        <div className="form-row">
+          <select
+            name="account_debited"
+            value={formData.account_debited}
+            onChange={handleInputChange}
+            required
+            className="form-input"
+          >
+            <option value="">Select Account Debited</option>
+            {coa.map((account, index) => (
+              <option key={index} value={account.account_name}>
+                {account.account_name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            name="account_credited"
+            value={formData.account_credited}
+            onChange={handleInputChange}
+            required
+            className="form-input"
+          >
+            <option value="">Select Account Credited</option>
+            {coa.map((account, index) => (
+              <option key={index} value={account.account_name}>
+                {account.account_name}
+              </option>
+            ))}
+          </select>
+
+          <select
+            name="parent_account"
+            value={formData.parent_account}
+            onChange={handleInputChange}
+            required
+            className="form-input"
+          >
+            <option value="">Select Parent Account</option>
+            {coa.map((account, index) => (
+              <option key={index} value={account.parent_account}>
+                {account.parent_account}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-row">
+          <input
+            type="text"
+            name="grn_number"
+            value={formData.grn_number}
+            onChange={handleInputChange}
+            placeholder="GRN Number (optional)"
+            className="form-input"
+          />
+          <select
+            name="invoice_type"
+            value={formData.invoice_type}
+            onChange={handleInputChange}
+            required
+            className="form-input"
+          >
+            <option value="">Select Invoice Type</option>
+            <option value="standard">Standard</option>
+            <option value="credit">Credit</option>
+            <option value="debit">Debit</option>
+          </select>
+        </div>
+
+        {/* Subaccounts Form */}
+        <div>
+          <h3>Subaccounts</h3>
+          {Object.keys(subAccountData).map((key, index) => (
+            <div key={key} className="form-row">
+              <input
+                type="text"
+                value={subAccountData[key].name}
+                onChange={(e) => handleSubAccountChange(index, 'name', e.target.value)}
+                placeholder={`Subaccount ${index + 1} Name`}
+                className="form-input"
+              />
+              <input
+                type="number"
+                value={subAccountData[key].amount}
+                onChange={(e) => handleSubAccountChange(index, 'amount', e.target.value)}
+                placeholder={`Amount for Subaccount ${index + 1}`}
+                className="form-input"
+              />
+              <button
+                type="button"
+                onClick={() => handleRemoveSubAccount(index)}
+                className="remove-subaccount-btn"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          <button type="button" onClick={handleAddSubAccount} className="add-subaccount-btn">
+            Add Subaccount
+          </button>
+        </div>
+
+        <button type="submit" className="form-submit-btn">
+          Submit
+        </button>
+      </form>
+
+      {/* Invoice Table */}
+      <table className="invoice-table">
+        <thead>
+          <tr>
+            <th>Invoice No</th>
+            <th>Date Issued</th>
+            <th>Account Type</th>
+            <th>Amount</th>
+            <th>Account Class</th>
+            <th>Account Debited</th>
+            <th>Account Credited</th>
+            <th>Parent Account</th>
+            <th>Invoice Type</th>
+            <th>GRN Number</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {invoices.map((invoice) => (
+            <tr key={invoice.id}>
+              <td>{invoice.invoice_number}</td>
+              <td>{invoice.date_issued}</td>
+              <td>{invoice.account_type}</td>
+              <td>{invoice.amount}</td>
+              <td>{invoice.account_class}</td>
+              <td>{invoice.account_debited}</td>
+              <td>{invoice.account_credited}</td>
+              <td>{invoice.parent_account}</td>
+              <td>{invoice.invoice_type}</td>
+              <td>{invoice.grn_number}</td>
+              <td>
+                <button onClick={() => toggleSubAccountsView(invoice.id)}>
+                  {viewingSubAccounts === invoice.id ? 'Hide Subaccounts' : 'View Subaccounts'}
+                </button>
+              </td>
+              <td>
+                <button onClick={() => handleDelete(invoice.id)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Display Subaccounts */}
+      {viewingSubAccounts && (
+        <div className="subaccount-container">
+          <h4>Subaccounts</h4>
+          {invoices
+            .filter((invoice) => invoice.id === viewingSubAccounts)
+            .map((invoice) => (
+              <div key={invoice.id}>
+                {invoice.sub_accounts && Object.keys(invoice.sub_accounts).map((key) => (
+                  <div key={key} className="subaccount-row">
+                    <div>Name: {invoice.sub_accounts[key].name}</div>
+                    <div>Amount: {invoice.sub_accounts[key].amount}</div>
+                  </div>
+                ))}
+              </div>
+            ))}
+        </div>
+      )}
+    </div>
+  );
 };
 
-export default InvoicesTable;
+export default InvoiceTable;
