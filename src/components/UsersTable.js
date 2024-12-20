@@ -101,11 +101,9 @@ const UserTransactions = () => {
               <th style={styles.th}>Invoice Number</th>
               <th style={styles.th}>Date Issued</th>
               <th style={styles.th}>Amount</th>
-              <th style={styles.th}>Account Class</th>
-              <th style={styles.th}>Account Type</th>
               <th style={styles.th}>Account Debited</th>
               <th style={styles.th}>Account Credited</th>
-              <th style={styles.th}>Invoice Type</th>
+              
               <th style={styles.th}>GRN Number</th>
               <th style={styles.th}>Parent Account</th>
               <th style={styles.th}>Subaccounts</th>
@@ -118,11 +116,8 @@ const UserTransactions = () => {
                 <td style={styles.td}>{invoice.invoice_number}</td>
                 <td style={styles.td}>{invoice.date_issued}</td>
                 <td style={styles.td}>{invoice.amount}</td>
-                <td style={styles.td}>{invoice.account_class}</td>
-                <td style={styles.td}>{invoice.account_type}</td>
                 <td style={styles.td}>{invoice.account_debited}</td>
                 <td style={styles.td}>{invoice.account_credited}</td>
-                <td style={styles.td}>{invoice.invoice_type}</td>
                 <td style={styles.td}>{invoice.grn_number}</td>
                 <td style={styles.td}>{invoice.parent_account}</td>
                 <td style={styles.td}>
@@ -152,13 +147,9 @@ const UserTransactions = () => {
               <th style={styles.th}>Receipt No</th>
               <th style={styles.th}>From Whom Received</th>
               <th style={styles.th}>Description</th>
-              <th style={styles.th}>Account Class</th>
-              <th style={styles.th}>Account Type</th>
-              <th style={styles.th}>Receipt Type</th>
               <th style={styles.th}>Account Debited</th>
               <th style={styles.th}>Account Credited</th>
-              <th style={styles.th}>Cash</th>
-              <th style={styles.th}>Total</th>
+            
               <th style={styles.th}>Parent Account</th>
               <th style={styles.th}>Subaccounts</th>
             </tr>
@@ -171,13 +162,9 @@ const UserTransactions = () => {
                 <td style={styles.td}>{receipt.receipt_no}</td>
                 <td style={styles.td}>{receipt.from_whom_received}</td>
                 <td style={styles.td}>{receipt.description}</td>
-                <td style={styles.td}>{receipt.account_class}</td>
-                <td style={styles.td}>{receipt.account_type}</td>
-                <td style={styles.td}>{receipt.receipt_type}</td>
                 <td style={styles.td}>{receipt.account_debited}</td>
                 <td style={styles.td}>{receipt.account_credited}</td>
-                <td style={styles.td}>{receipt.cash}</td>
-                <td style={styles.td}>{receipt.total}</td>
+              
                 <td style={styles.td}>{receipt.parent_account}</td>
                 <td style={styles.td}>
   {receipt.sub_accounts ? (
@@ -207,12 +194,9 @@ const UserTransactions = () => {
         <th style={styles.th}>To Whom Paid</th>
         <th style={styles.th}>Payment Type</th>
         <th style={styles.th}>Description</th>
-        <th style={styles.th}>Account Class</th>
-        <th style={styles.th}>Account Type</th>
         <th style={styles.th}>Account Debited</th>
         <th style={styles.th}>Account Credited</th>
-        <th style={styles.th}>Cash</th>
-        <th style={styles.th}>Bank</th>
+      
         <th style={styles.th}>Parent Account</th>
         <th style={styles.th}>Subaccounts</th>
       </tr>
@@ -226,12 +210,9 @@ const UserTransactions = () => {
           <td style={styles.td}>{disbursement.to_whom_paid}</td>
           <td style={styles.td}>{disbursement.payment_type}</td>
           <td style={styles.td}>{disbursement.description}</td>
-          <td style={styles.td}>{disbursement.account_class}</td>
-          <td style={styles.td}>{disbursement.account_type}</td>
           <td style={styles.td}>{disbursement.account_debited}</td>
           <td style={styles.td}>{disbursement.account_credited}</td>
-          <td style={styles.td}>{disbursement.cash}</td>
-          <td style={styles.td}>{disbursement.bank}</td>
+         
           <td style={styles.td}>{disbursement.parent_account}</td>
           <td style={styles.td}>
             {/* Check if sub_accounts exists and render the amount along with name */}
@@ -315,19 +296,19 @@ const styles = {
     maxWidth: '420px',
     borderRadius: '5px',
     border: '1px solid #ccc',
-    backgroundColor: '#eaf1f6', // Subtle background for the input field
+    backgroundColor: '#eaf1f6', 
   },
   subaccountContainer: {
     display: 'flex',
     flexDirection: 'column',
-    marginBottom: '5px', // space between each subaccount
+    marginBottom: '5px', 
   },
   subaccountName: {
     fontWeight: 'bold',
-    color: '#003c5c', // Dark blue for subaccount names
+    color: '#003c5c', 
   },
   subaccountAmount: {
-    color: '#005f71', // Slightly lighter blue for amounts
+    color: '#005f71', 
   },
 };
 

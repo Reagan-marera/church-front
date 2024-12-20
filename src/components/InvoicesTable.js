@@ -15,7 +15,6 @@ const InvoiceTable = () => {
     account_debited: "",
     account_credited: "",
     grn_number: "",
-    invoice_type: "",
     parent_account: "",
   });
 
@@ -123,9 +122,10 @@ const InvoiceTable = () => {
 
       const payload = {
         ...formData,
+        account_credited: formData.account_credited || null,
+        account_debited: formData.account_debited || null,
         sub_accounts: subAccountData,
       };
-
       const token = localStorage.getItem("token");
       if (!token) {
         setError("User is not authenticated");
@@ -148,7 +148,6 @@ const InvoiceTable = () => {
         account_debited: "",
         account_credited: "",
         grn_number: "",
-        invoice_type: "",
         parent_account: "",
       });
       setSubAccountData({});
@@ -247,35 +246,34 @@ const InvoiceTable = () => {
         </div>
 
         <div className="form-row">
-          <select
-            name="account_debited"
-            value={formData.account_debited}
-            onChange={handleInputChange}
-            required
-            className="form-input"
-          >
-            <option value="">Select Account Debited</option>
-            {coa.map((account, index) => (
-              <option key={index} value={account.account_name}>
-                {account.account_name}
-              </option>
-            ))}
-          </select>
+  <select
+    name="account_debited"
+    value={formData.account_debited}
+    onChange={handleInputChange}
+    className="form-input"
+  >
+    <option value="">Select Account Debited</option>
+    {coa.map((account, index) => (
+      <option key={index} value={account.account_name}>
+        {account.account_name}
+      </option>
+    ))}
+  </select>
 
-          <select
-            name="account_credited"
-            value={formData.account_credited}
-            onChange={handleInputChange}
-            required
-            className="form-input"
-          >
-            <option value="">Select Account Credited</option>
-            {coa.map((account, index) => (
-              <option key={index} value={account.account_name}>
-                {account.account_name}
-              </option>
-            ))}
-          </select>
+  <select
+    name="account_credited"
+    value={formData.account_credited}
+    onChange={handleInputChange}
+    className="form-input"
+  >
+    <option value="">Select Account Credited</option>
+    {coa.map((account, index) => (
+      <option key={index} value={account.account_name}>
+        {account.account_name}
+      </option>
+    ))}
+  </select>
+
 
           <select
             name="parent_account"
@@ -302,19 +300,7 @@ const InvoiceTable = () => {
             placeholder="GRN Number (optional)"
             className="form-input"
           />
-          <select
-            name="invoice_type"
-            value={formData.invoice_type}
-            onChange={handleInputChange}
-            required
-            className="form-input"
-          >
-            <option value="">Select Invoice Type</option>
-            <option value="standard">Standard</option>
-            <option value="credit">Credit</option>
-            <option value="debit">Debit</option>
-          </select>
-        </div>
+          </div>
 
         {/* Subaccounts Form */}
         <div>
@@ -358,32 +344,41 @@ const InvoiceTable = () => {
       <table className="invoice-table">
         <thead>
           <tr>
+          <th>Date Issued</th>
+          <th>Account Type</th>
+          <th>Account Class</th>
+          <th>GRN Number</th>
             <th>Invoice No</th>
-            <th>Date Issued</th>
-            <th>Account Type</th>
-            <th>Amount</th>
-            <th>Account Class</th>
-            <th>Account Debited</th>
-            <th>Account Credited</th>
             <th>Parent Account</th>
-            <th>Invoice Type</th>
-            <th>GRN Number</th>
+            <th>Account Credited</th>
+            <th>Account Debited</th>
+            <th>Amount</th>
+            
+           
+           
+            
+            
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {invoices.map((invoice) => (
             <tr key={invoice.id}>
+                 <td>{invoice.date_issued}</td>
+                 <td>{invoice.account_type}</td>
+                 <td>{invoice.account_class}</td>
+                 <td>{invoice.grn_number}</td>
               <td>{invoice.invoice_number}</td>
-              <td>{invoice.date_issued}</td>
-              <td>{invoice.account_type}</td>
-              <td>{invoice.amount}</td>
-              <td>{invoice.account_class}</td>
-              <td>{invoice.account_debited}</td>
-              <td>{invoice.account_credited}</td>
               <td>{invoice.parent_account}</td>
-              <td>{invoice.invoice_type}</td>
-              <td>{invoice.grn_number}</td>
+              <td>{invoice.account_credited}</td>
+              <td>{invoice.account_debited}</td>
+              <td>{invoice.amount}</td>
+             
+             
+              
+              
+              
+             
               <td>
                 <button onClick={() => toggleSubAccountsView(invoice.id)}>
                   {viewingSubAccounts === invoice.id ? 'Hide Subaccounts' : 'View Subaccounts'}

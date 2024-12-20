@@ -119,27 +119,6 @@ const ChartOfAccountsTable = () => {
       {/* Form to create a new account */}
       <form onSubmit={handleFormSubmit} style={styles.form}>
         <div style={styles.formGroup}>
-          <label style={styles.label}>Parent Account:</label>
-          <input
-            type="text"
-            name="parent_account"
-            value={formData.parent_account}
-            onChange={handleInputChange}
-            required
-            style={styles.input}
-          />
-        </div>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Account Name:</label>
-          <input
-            type="text"
-            name="account_name"
-            value={formData.account_name}
-            onChange={handleInputChange}
-            required
-            style={styles.input}
-          />
-        </div>
         <div style={styles.formGroup}>
           <label style={styles.label}>Account Type:</label>
           <input
@@ -151,6 +130,29 @@ const ChartOfAccountsTable = () => {
             style={styles.input}
           />
         </div>
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Account class:</label>
+          <input
+            type="text"
+            name="account_name"
+            value={formData.account_name}
+            onChange={handleInputChange}
+            required
+            style={styles.input}
+          />
+        </div>
+       
+          <label style={styles.label}>Parent Account:</label>
+          <input
+            type="text"
+            name="parent_account"
+            value={formData.parent_account}
+            onChange={handleInputChange}
+            required
+            style={styles.input}
+          />
+        </div>
+       
         <div style={styles.formGroup}>
           <label style={styles.label}>Sub Account Details:</label>
           <input
@@ -168,11 +170,11 @@ const ChartOfAccountsTable = () => {
       <table style={styles.table}>
         <thead>
           <tr>
-            <th style={styles.tableHeader}>ID</th>
-            <th style={styles.tableHeader}>Parent Account</th>
-            <th style={styles.tableHeader}>Account Name</th>
-            <th style={styles.tableHeader}>Account Type</th>
-            <th style={styles.tableHeader}>Sub Account Details</th>
+          <th style={styles.tableHeader}>ID</th>
+          <th style={styles.tableHeader}>Account Type</th>
+          <th style={styles.tableHeader}>Account Class</th>
+          <th style={styles.tableHeader}>Parent Account</th>
+          <th style={styles.tableHeader}>Sub Account Details</th>
           </tr>
         </thead>
         <tbody>
@@ -184,9 +186,9 @@ const ChartOfAccountsTable = () => {
             accounts.map(account => (
               <tr key={account.id} style={styles.tableRow}>
                 <td style={styles.tableCell}>{account.id}</td>
-                <td style={styles.tableCell}>{account.parent_account}</td>
-                <td style={styles.tableCell}>{account.account_name}</td>
                 <td style={styles.tableCell}>{account.account_type}</td>
+                <td style={styles.tableCell}>{account.account_name}</td>
+                <td style={styles.tableCell}>{account.parent_account}</td>
                 <td style={styles.tableCell}>{account.sub_account_details}</td>
               </tr>
             ))
