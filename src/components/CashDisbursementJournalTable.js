@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import './DisbursementForm.css'; // External CSS file for cleaner styles
+import './DisbursementForm.css';
 
 function DisbursementForm() {
   const [formData, setFormData] = useState({
@@ -20,35 +20,24 @@ function DisbursementForm() {
     total: 0.0,
   });
 
-  const [subAccounts, setSubAccounts] = useState([{ name: '', amount: 0 }]);
+  const [subAccountData, setSubAccountData] = useState([{ name: '', amount: 0 }]);
   const [errorMessage, setErrorMessage] = useState('');
   const [coaAccounts, setCoaAccounts] = useState([]);
   const [disbursements, setDisbursements] = useState([]);
-  const [subAccountsForDisbursement, setSubAccountsForDisbursement] = useState([]); 
+  const [subAccountsForDisbursement, setSubAccountsForDisbursement] = useState([]);
 
   useEffect(() => {
     const fetchCOA = async () => {
+      const token = localStorage.getItem('token');
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('Unauthorized: Missing token.');
-        }
+        if (!token) throw new Error('Unauthorized: Missing token.');
         const response = await fetch('http://localhost:5000/chart-of-accounts', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          headers: { 'Authorization': `Bearer ${token}` },
         });
         const data = await response.json();
-        if (Array.isArray(data)) {
-          setCoaAccounts(data);
-        } else {
-          setCoaAccounts([]);
-        }
+        if (Array.isArray(data)) setCoaAccounts(data);
       } catch (error) {
         setErrorMessage(error.message);
-        setCoaAccounts([]);
       }
     };
     fetchCOA();
@@ -56,19 +45,13 @@ function DisbursementForm() {
 
   useEffect(() => {
     const fetchDisbursements = async () => {
+      const token = localStorage.getItem('token');
       try {
-        const token = localStorage.getItem('token');
         const response = await fetch('http://localhost:5000/cash-disbursement-journals', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          headers: { 'Authorization': `Bearer ${token}` },
         });
         const data = await response.json();
-        if (Array.isArray(data)) {
-          setDisbursements(data);
-        }
+        setDisbursements(Array.isArray(data) ? data : []);
       } catch (error) {
         setErrorMessage(error.message);
       }
@@ -78,71 +61,68 @@ function DisbursementForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value }, () => {
-      if (name === 'cash' || name === 'bank') {
-        calculateTotal(formData.cash, formData.bank);
-      }
+    setFormData((prevData) => {
+      const updatedData = { ...prevData, [name]: value };
+      if (name === 'cash' || name === 'bank') calculateTotal(updatedData.cash, updatedData.bank);
+      return updatedData;
     });
   };
 
-  const handleSubAccountChange = (index, e) => {
-    const { name, value } = e.target;
-    const updatedSubAccounts = [...subAccounts];
-    updatedSubAccounts[index][name] = name === 'amount' ? parseFloat(value) : value;
-    setSubAccounts(updatedSubAccounts);
+  const handleSubAccountChange = (index, name, value) => {
+    const updatedSubAccounts = [...subAccountData];
+    updatedSubAccounts[index] = { ...updatedSubAccounts[index], [name]: value };
+    setSubAccountData(updatedSubAccounts);
+  };
+
+  const handleAddSubAccount = () => {
+    setSubAccountData([...subAccountData, { name: '', amount: 0 }]);
+  };
+
+  const handleRemoveSubAccount = (index) => {
+    const updatedSubAccounts = subAccountData.filter((_, i) => i !== index);
+    setSubAccountData(updatedSubAccounts);
     calculateTotal(formData.cash, formData.bank, updatedSubAccounts);
   };
 
-  const addSubAccount = () => {
-    setSubAccounts([...subAccounts, { name: '', amount: 0 }]);
-  };
-
-  const removeSubAccount = (index) => {
-    const updatedSubAccounts = subAccounts.filter((_, i) => i !== index);
-    setSubAccounts(updatedSubAccounts);
-    calculateTotal(formData.cash, formData.bank, updatedSubAccounts);
-  };
-  const calculateTotal = (cash = formData.cash, bank = formData.bank) => {
-    const totalAmount = parseFloat(cash) + parseFloat(bank);
-    setFormData(prevData => ({
+  const calculateTotal = (cash = formData.cash, bank = formData.bank, subAccounts = subAccountData) => {
+    const totalAmount = parseFloat(cash) + parseFloat(bank) + subAccounts.reduce((sum, sub) => sum + parseFloat(sub.amount || 0), 0);
+    setFormData((prevData) => ({
       ...prevData,
       total: isNaN(totalAmount) ? 0.0 : totalAmount,
     }));
   };
-  
 
   const fetchSubAccountsForDisbursement = (disbursementId) => {
-    const selectedDisbursement = disbursements.find(disbursement => disbursement.id === disbursementId);
-    const subAccounts = selectedDisbursement ? selectedDisbursement.sub_accounts : [];
-    setSubAccountsForDisbursement(Object.entries(subAccounts).map(([name, amount]) => ({ name, amount })));
+    const selectedDisbursement = disbursements.find((disbursement) => disbursement.id === disbursementId);
+    if (selectedDisbursement && selectedDisbursement.sub_accounts) {
+      setSubAccountData(Object.entries(selectedDisbursement.sub_accounts).map(([name, amount]) => ({ name, amount })));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
   
-    const formattedSubAccounts = {};
-    subAccounts.forEach((sub) => {
-      if (sub.name && sub.amount) {
-        formattedSubAccounts[sub.name] = sub.amount;
-      }
-    });
-  
     // Validate total matches the subaccounts total
-    const subTotal = subAccounts.reduce((sum, sub) => sum + (sub.amount || 0), 0);
+    const subTotal = subAccountData.reduce((sum, sub) => sum + parseFloat(sub.amount || 0), 0);
     if (formData.total !== subTotal) {
       setErrorMessage('Total amount does not match the sum of sub-accounts.');
       return;
     }
-  
+
+    const formattedSubAccounts = subAccountData.reduce((acc, { name, amount }) => {
+      if (name && amount) acc[name] = parseFloat(amount);
+      return acc;
+    }, {});
+
     const formattedDate = new Date(formData.disbursement_date).toISOString().split('T')[0];
-  
+
     const payload = {
       ...formData,
       disbursement_date: formattedDate,
       sub_accounts: formattedSubAccounts,
     };
-  
+
     try {
       const response = await fetch('http://localhost:5000/cash-disbursement-journals', {
         method: 'POST',
@@ -152,34 +132,24 @@ function DisbursementForm() {
         },
         body: JSON.stringify(payload),
       });
-  
       const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to submit data');
-      }
+      if (!response.ok) throw new Error(result.message || 'Failed to submit data');
       alert('Disbursement added successfully!');
       setDisbursements([...disbursements, result]);
     } catch (error) {
       setErrorMessage(error.message);
     }
   };
-  
+
   const handleDelete = async (id) => {
     const token = localStorage.getItem('token');
     try {
       const response = await fetch(`http://localhost:5000/cash-disbursement-journals/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Authorization': `Bearer ${token}` },
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete the disbursement');
-      }
-
-      setDisbursements((prevData) => prevData.filter((item) => item.id !== id));
+      if (!response.ok) throw new Error('Failed to delete the disbursement');
+      setDisbursements(disbursements.filter((item) => item.id !== id));
       alert('Disbursement deleted successfully!');
     } catch (error) {
       setErrorMessage(error.message);
@@ -211,43 +181,48 @@ function DisbursementForm() {
           </select>
         </div>
 
-        {/* Account Credited Dropdown */}
-        <div className="form-group">
-          <label>Account Credited:</label>
-          <select
-            name="account_credited"
-            value={formData.account_credited}
-            onChange={handleChange}
-            required
-            className="form-control"
-          >
-            <option value="">Select Account</option>
-            {coaAccounts.map(account => (
-              <option key={account.id} value={account.account_name}>
-                {account.account_name}
-              </option>
-            ))}
-          </select>
-        </div>
+       {/* Account Credited Dropdown */}
+<div className="form-group">
+  <label>Account Credited:</label>
+  <select
+    name="account_credited"
+    value={formData.account_credited}
+    onChange={handleChange}
+    required
+    className="form-control"
+  >
+    <option value="">Select Account</option>
+    {coaAccounts.map(account => (
+      account.sub_account_details?.map(subAccount => (
+        <option key={subAccount.id} value={subAccount.name}>
+          {subAccount.name}
+        </option>
+      ))
+    ))}
+  </select>
+</div>
 
-        {/* Account Debited Dropdown */}
-        <div className="form-group">
-          <label>Account Debited:</label>
-          <select
-            name="account_debited"
-            value={formData.account_debited}
-            onChange={handleChange}
-            required
-            className="form-control"
-          >
-            <option value="">Select Account</option>
-            {coaAccounts.map(account => (
-              <option key={account.id} value={account.account_name}>
-                {account.account_name}
-              </option>
-            ))}
-          </select>
-        </div>
+{/* Account Debited Dropdown */}
+<div className="form-group">
+  <label>Account Debited:</label>
+  <select
+    name="account_debited"
+    value={formData.account_debited}
+    onChange={handleChange}
+    required
+    className="form-control"
+  >
+    <option value="">Select Account</option>
+    {coaAccounts.map(account => (
+      account.sub_account_details?.map(subAccount => (
+        <option key={subAccount.id} value={subAccount.name}>
+          {subAccount.name}
+        </option>
+      ))
+    ))}
+  </select>
+</div>
+
 
         {Object.entries(formData).map(([key, value]) => {
           if (key !== 'parent_account' && key !== 'account_credited' && key !== 'account_debited') {
@@ -281,36 +256,55 @@ function DisbursementForm() {
             );
           }
         })}
+  {/* Subaccounts Form */}
+  <div>
+  <h3>Subaccounts</h3>
+  {subAccountData.map((subAccount, index) => (
+    <div key={index} className="form-row">
+      <select
+        value={subAccount.name}
+        onChange={(e) => handleSubAccountChange(index, "name", e.target.value)}
+        className="form-input"
+      >
+        <option value="">Select Subaccount</option>
+        {/* Render the subaccounts based on coaAccounts */}
+        {coaAccounts.length > 0 ? (
+          coaAccounts.map(account =>
+            account.sub_account_details?.map(subAccount => (
+              <option key={subAccount.id} value={subAccount.name}>
+                {subAccount.name}
+              </option>
+            ))
+          )
+        ) : (
+          <option disabled>Loading accounts...</option>
+        )}
+      </select>
 
-        <h3 className="subaccounts-header">Sub-Accounts</h3>
-        {subAccounts.map((sub, index) => (
-          <div key={index} className="subaccount-item">
-            <input
-              type="text"
-              name="name"
-              placeholder="Sub-Account Name"
-              value={sub.name}
-              onChange={(e) => handleSubAccountChange(index, e)}
-              required
-              className="form-control"
-            />
-            <input
-              type="number"
-              name="amount"
-              placeholder="Amount"
-              value={sub.amount}
-              onChange={(e) => handleSubAccountChange(index, e)}
-              required
-              className="form-control"
-            />
-            <button type="button" onClick={() => removeSubAccount(index)} className="remove-button">
-              Remove
-            </button>
-          </div>
-        ))}
-        <button type="button" onClick={addSubAccount} className="add-button">
-          Add Sub-Account
-        </button>
+      <input
+        type="number"
+        value={subAccount.amount}
+        onChange={(e) => handleSubAccountChange(index, "amount", e.target.value)}
+        placeholder={`Amount for Subaccount ${index + 1}`}
+        className="form-input"
+      />
+      <button
+        type="button"
+        onClick={() => handleRemoveSubAccount(index)}
+        className="remove-subaccount-btn"
+      >
+        Remove
+      </button>
+    </div>
+  ))}
+  <button
+    type="button"
+    onClick={handleAddSubAccount}
+    className="add-subaccount-btn"
+  >
+    Add Subaccount
+  </button>
+</div>
 
         <div className="total-section">
           <strong>Total Amount:</strong> {formData.total ? formData.total.toFixed(2) : '0.00'}
@@ -377,30 +371,30 @@ function DisbursementForm() {
         </tbody>
       </table>
 
-      {/* Display Sub-Accounts */}
-      {subAccountsForDisbursement.length > 0 && (
-        <div className="subaccounts-table-container">
-          <h4>Sub-Accounts for Selected Disbursement</h4>
-          <table className="subaccounts-table">
+      {subAccountsForDisbursement && (
+        <div className="subaccounts-modal">
+          <h3>Subaccounts for Invoice</h3>
+          <table>
             <thead>
               <tr>
-                <th>Name</th>
+                <th>Subaccount</th>
                 <th>Amount</th>
               </tr>
             </thead>
             <tbody>
-              {subAccountsForDisbursement.map((sub, index) => (
-                <tr key={index}>
-                  <td>{sub.name}</td>
-                  <td>{sub.amount}</td>
+              {Object.entries(subAccountsForDisbursement).map(([name, amount]) => (
+                <tr key={name}>
+                  <td>{name}</td>
+                  <td>{amount}</td> {/* Directly displaying amount */}
                 </tr>
               ))}
             </tbody>
           </table>
+          <button onClick={() => setSubAccountsForDisbursement(null)}>Close</button>
         </div>
       )}
     </div>
   );
-}
+};
 
 export default DisbursementForm;

@@ -332,7 +332,7 @@ const CashReceiptJournalTable = () => {
           </select>
         </div>
 
-       {/* New Fields: Account Class, Account Type, Receipt Type */}
+     
 <div className="form-row">
   <input
     type="text"
