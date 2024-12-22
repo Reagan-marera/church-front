@@ -289,99 +289,129 @@ const ChartOfAccountsTable = () => {
     </div>
   );
 };
-
-// Styles
 const styles = {
   container: {
     margin: '0 auto',
-    padding: '20px',
+    padding: '30px',
     maxWidth: '1200px',
-    backgroundColor: '#fff',
-    borderRadius: '8px',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+    backgroundColor: '#ffffff',
+    borderRadius: '10px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+    fontFamily: 'Helvetica, Arial, sans-serif', // World Bank typical font family
   },
   heading: {
     textAlign: 'center',
-    marginBottom: '20px',
-    fontSize: '2rem',
-    color: '#333',
+    marginBottom: '30px',
+    fontSize: '2.2rem',
+    fontWeight: '600',
+    color: '#005f87', // World Bank blue shade
   },
   form: {
-    marginBottom: '20px',
+    marginBottom: '30px',
   },
   formGroup: {
-    marginBottom: '10px',
+    marginBottom: '15px',
   },
   label: {
     display: 'block',
-    fontWeight: 'bold',
-    marginBottom: '5px',
+    fontWeight: '500',
+    marginBottom: '8px',
+    fontSize: '1.1rem',
+    color: '#333', // Dark grey for readability
   },
   input: {
     width: '100%',
-    padding: '10px',
+    padding: '12px 15px',
     fontSize: '1rem',
-    borderRadius: '4px',
-    border: '1px solid #ddd',
+    borderRadius: '5px',
+    border: '1px solid #d1e0e9', // Light blue-gray border
+    outline: 'none',
+    transition: 'border 0.3s ease',
+  },
+  inputFocus: {
+    border: '1px solid #005f87', // World Bank blue on focus
   },
   button: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#005f87', // World Bank blue
     color: 'white',
     border: 'none',
-    padding: '10px 20px',
+    padding: '12px 20px',
     fontSize: '1rem',
-    borderRadius: '4px',
+    borderRadius: '5px',
     cursor: 'pointer',
+    transition: 'background-color 0.3s ease',
+  },
+  buttonHover: {
+    backgroundColor: '#003f5c', // Darker blue on hover
   },
   addButton: {
-    backgroundColor: '#007BFF',
+    backgroundColor: '#007bff', // Slightly lighter blue for add action
     color: 'white',
     border: 'none',
-    padding: '10px 20px',
+    padding: '12px 20px',
     fontSize: '1rem',
-    borderRadius: '4px',
+    borderRadius: '5px',
     cursor: 'pointer',
+    transition: 'background-color 0.3s ease',
   },
   removeButton: {
-    backgroundColor: '#FF6347',
+    backgroundColor: '#f0ad4e', // Light orange for remove
     color: 'white',
     border: 'none',
-    padding: '5px 10px',
-    fontSize: '0.8rem',
-    borderRadius: '4px',
+    padding: '8px 12px',
+    fontSize: '0.9rem',
+    borderRadius: '5px',
     cursor: 'pointer',
     marginTop: '5px',
+    transition: 'background-color 0.3s ease',
   },
   deleteButton: {
-    backgroundColor: '#DC3545',
+    backgroundColor: '#d9534f', // Red for delete action
     color: 'white',
     border: 'none',
-    padding: '5px 10px',
-    fontSize: '0.8rem',
-    borderRadius: '4px',
+    padding: '8px 12px',
+    fontSize: '0.9rem',
+    borderRadius: '5px',
     cursor: 'pointer',
+    transition: 'background-color 0.3s ease',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
-    marginTop: '20px',
+    marginTop: '30px',
   },
   tableHeader: {
-    backgroundColor: '#f8f8f8',
-    color: '#333',
-    padding: '12px 15px',
-    border: '1px solid #ddd',
+    backgroundColor: '#f0f8ff', // Light blue-gray for table headers
+    color: '#003f5c', // World Bank dark blue
+    padding: '15px 20px',
+    border: '1px solid #e0e7f1',
     textAlign: 'left',
     fontSize: '1rem',
+    fontWeight: '600',
   },
   tableRow: {
-    borderBottom: '1px solid #ddd',
+    borderBottom: '1px solid #e0e7f1',
   },
   tableCell: {
-    padding: '12px 15px',
+    padding: '15px 20px',
     textAlign: 'left',
-    fontSize: '0.9rem',
+    fontSize: '1rem',
+    color: '#333', // Standard dark text for readability
+  },
+  tableCellActions: {
+    padding: '15px 20px',
+    textAlign: 'center',
+    fontSize: '1rem',
+  },
+  alert: {
+    padding: '10px 15px',
+    backgroundColor: '#f8d7da', // Light red background for alerts
+    color: '#721c24',
+    borderRadius: '5px',
+    marginTop: '15px',
+    marginBottom: '15px',
   },
 };
+
 
 export default ChartOfAccountsTable;

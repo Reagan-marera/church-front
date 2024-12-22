@@ -4,7 +4,7 @@ import "./InvoicesTable.css"; // Import the external CSS file
 const InvoiceTable = () => {
   const [invoices, setInvoices] = useState([]);
   const [coa, setCoa] = useState([]);
-  const [subAccountData, setSubAccountData] = useState([]); // Changed to an array
+  const [subAccountData, setSubAccountData] = useState({});
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     invoice_number: "",
@@ -86,35 +86,20 @@ const InvoiceTable = () => {
   };
 
   const handleSubAccountChange = (index, field, value) => {
-    const updatedSubAccounts = [...subAccountData];
-    
-    // Update subaccount field (either name or amount)
-    updatedSubAccounts[index] = {
-      ...updatedSubAccounts[index],
+    const updatedSubAccounts = { ...subAccountData };
+
+    updatedSubAccounts[`account_${index + 1}`] = {
+      ...updatedSubAccounts[`account_${index + 1}`],
       [field]: field === "amount" ? parseFloat(value) || 0 : value,
     };
-  
-    // Validate subaccount name (case-insensitive, trim spaces)
-    if (field === "name") {
-      const trimmedValue = value.trim().toLowerCase();
-      const isValidSubAccount = coa.some(account => account.account_name.trim().toLowerCase() === trimmedValue);
-      
-      if (!isValidSubAccount) {
-        setError(`Subaccount "${value}" is not valid.`);
-      } else {
-        setError(""); // Clear error if subaccount is valid
-      }
-    }
-  
     setSubAccountData(updatedSubAccounts);
-  
-    // Ensure that the total amounts match
-    const totalSubAccounts = updatedSubAccounts.reduce(
+
+    const totalSubAccounts = Object.values(updatedSubAccounts).reduce(
       (sum, acc) => sum + (acc.amount || 0),
       0
     );
     const totalMain = parseFloat(formData.amount) || 0;
-  
+
     if (totalMain !== totalSubAccounts) {
       setError("Subaccount totals must match the combined total.");
     } else {
@@ -123,18 +108,20 @@ const InvoiceTable = () => {
   };
 
   const handleAddSubAccount = () => {
-    setSubAccountData([
-      ...subAccountData,
-      { name: "", amount: 0 },
-    ]);
+    const newSubAccountIndex = Object.keys(subAccountData).length + 1;
+    setSubAccountData((prev) => ({
+      ...prev,
+      [`account_${newSubAccountIndex}`]: { name: "", amount: 0 },
+    }));
   };
 
   const handleRemoveSubAccount = (index) => {
-    const updatedSubAccounts = subAccountData.filter((_, i) => i !== index);
+    const updatedSubAccounts = { ...subAccountData };
+    delete updatedSubAccounts[`account_${index + 1}`];
     setSubAccountData(updatedSubAccounts);
 
     const totalMain = parseFloat(formData.amount) || 0;
-    const totalSubAccounts = updatedSubAccounts.reduce(
+    const totalSubAccounts = Object.values(updatedSubAccounts).reduce(
       (sum, acc) => sum + (acc.amount || 0),
       0
     );
@@ -150,7 +137,8 @@ const InvoiceTable = () => {
     e.preventDefault();
     try {
       // Check if all subaccount names are valid when submitting the form
-      for (let subAccount of subAccountData) {
+      for (let key in subAccountData) {
+        const subAccount = subAccountData[key];
         const isValidAccount = coa.some(account => account.account_name === subAccount.name);
         if (!isValidAccount) {
           setError(`Subaccount "${subAccount.name}" is not valid.`);
@@ -158,7 +146,7 @@ const InvoiceTable = () => {
         }
       }
 
-      const totalSubAccounts = subAccountData.reduce(
+      const totalSubAccounts = Object.values(subAccountData).reduce(
         (sum, acc) => sum + (acc.amount || 0),
         0
       );
@@ -172,7 +160,7 @@ const InvoiceTable = () => {
         ...formData,
         account_credited: formData.account_credited || null,
         account_debited: formData.account_debited || null,
-        sub_accounts: subAccountData, // Send the subaccount data in the correct structure
+        sub_accounts: subAccountData,
       };
       const token = localStorage.getItem("token");
       if (!token) {
@@ -198,7 +186,7 @@ const InvoiceTable = () => {
         grn_number: "",
         parent_account: "",
       });
-      setSubAccountData([]); // Reset subaccount data
+      setSubAccountData({});
       fetchInvoices();
     } catch (err) {
       setError(err.message);
@@ -335,6 +323,7 @@ const InvoiceTable = () => {
               </div>
             ))}
           </div>
+
           <select
             name="parent_account"
             value={formData.parent_account}
@@ -343,9 +332,9 @@ const InvoiceTable = () => {
             className="form-input"
           >
             <option value="">Select Parent Account</option>
-            {coa.map((account, index) => (
-              <option key={index} value={account.parent_account}>
-                {account.parent_account}
+            {getUniqueAccounts().map((accountName, index) => (
+              <option key={index} value={accountName}>
+                {accountName}
               </option>
             ))}
           </select>
@@ -362,35 +351,31 @@ const InvoiceTable = () => {
           />
         </div>
 
+        {/* Subaccounts Form */}
         <div>
           <h3>Subaccounts</h3>
-          {subAccountData.map((subAccount, index) => (
-            <div key={index} className="form-row">
-              {/* Autocomplete Subaccount Name */}
-              <input
-                type="text"
-                value={subAccount.name}
+          {Object.keys(subAccountData).map((key, index) => (
+            <div key={key} className="form-row">
+              <select
+                name={`subaccount_${index + 1}`}
+                value={subAccountData[key].name}
                 onChange={(e) => handleSubAccountChange(index, 'name', e.target.value)}
-                placeholder={`Subaccount ${index + 1} Name`}
                 className="form-input"
-              />
-              <div className="autocomplete-dropdown">
-                {coa
-                  .filter(account => account.account_name.toLowerCase().includes(subAccount.name.toLowerCase()))
-                  .map((account, idx) => (
-                    <div
-                      key={idx}
-                      className="autocomplete-item"
-                      onClick={() => handleSubAccountChange(index, 'name', account.account_name)}
-                    >
-                      {account.account_name}
-                    </div>
-                  ))}
-              </div>
-
+              >
+                <option value="">Select Subaccount</option>
+                {coa.map((account) => (
+                  account.sub_account_details && account.sub_account_details.length > 0 ? (
+                    account.sub_account_details.map((subAccount, subIndex) => (
+                      <option key={`${account.id}-${subIndex}`} value={subAccount.name}>
+                        {subAccount.name}
+                      </option>
+                    ))
+                  ) : null
+                ))}
+              </select>
               <input
                 type="number"
-                value={subAccount.amount}
+                value={subAccountData[key].amount}
                 onChange={(e) => handleSubAccountChange(index, 'amount', e.target.value)}
                 placeholder={`Amount for Subaccount ${index + 1}`}
                 className="form-input"
@@ -463,10 +448,10 @@ const InvoiceTable = () => {
             .filter((invoice) => invoice.id === viewingSubAccounts)
             .map((invoice) => (
               <div key={invoice.id}>
-                {invoice.sub_accounts && invoice.sub_accounts.map((subAccount, index) => (
-                  <div key={index} className="subaccount-row">
-                    <div>Name: {subAccount.name}</div>
-                    <div>Amount: {subAccount.amount}</div>
+                {invoice.sub_accounts && Object.keys(invoice.sub_accounts).map((key) => (
+                  <div key={key} className="subaccount-row">
+                    <div>Name: {invoice.sub_accounts[key].name}</div>
+                    <div>Amount: {invoice.sub_accounts[key].amount}</div>
                   </div>
                 ))}
               </div>
