@@ -4,7 +4,7 @@ import "./CashReceiptJournalTable.css";
 const CashReceiptJournalTable = () => {
   const [journals, setJournals] = useState([]);
   const [coa, setCoa] = useState([]);
-  const [subAccounts, setSubAccounts] = useState([]);
+  const [subAccounts, setSubAccounts] = useState([]);  // Store valid subaccounts for selected parent
   const [viewingSubAccounts, setViewingSubAccounts] = useState(null);
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
@@ -54,12 +54,11 @@ const CashReceiptJournalTable = () => {
       setError(err.message);
     }
   };
+
   const toggleSubAccountsView = (journalId) => {
-    setViewingSubAccounts(
-      viewingSubAccounts === journalId ? null : journalId
-    );
+    setViewingSubAccounts(viewingSubAccounts === journalId ? null : journalId);
   };
-  
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     const newFormData = { ...formData, [name]: value };
@@ -71,44 +70,42 @@ const CashReceiptJournalTable = () => {
 
     setFormData(newFormData);
 
-    // Load subaccounts dynamically
+    // Load subaccounts dynamically when parent_account is selected
     if (name === "parent_account") {
       fetchSubAccounts(value);
     }
   };
-
+  const handleDelete = async (journalId) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("User is not authenticated");
+  
+      const response = await fetch(`http://localhost:5000/cash-receipt-journals/${journalId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+  
+      if (!response.ok) throw new Error(await response.text());
+  
+      // Refresh the journals after deletion
+      fetchJournals();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  
   const handleAddSubAccount = () => {
     setSubAccountData({
       ...subAccountData,
       [`subaccount_${Object.keys(subAccountData).length + 1}`]: { name: "", amount: 0 },
     });
   };
-  
-  const handleDelete = async (journalId) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("User is not authenticated");
-      const response = await fetch(
-        `http://localhost:5000/cash-receipt-journals/${journalId}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      if (!response.ok) throw new Error(await response.text());
-      await fetchJournals(); // Refresh journal list
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-  
 
   const handleRemoveSubAccount = (index) => {
     const updatedSubAccounts = { ...subAccountData };
     delete updatedSubAccounts[index];
     setSubAccountData(updatedSubAccounts);
   };
-  
 
   const handleSubAccountChange = (index, field, value) => {
     setSubAccountData({
@@ -119,7 +116,8 @@ const CashReceiptJournalTable = () => {
       },
     });
   };
-  
+
+  // Fetch valid subaccounts for selected parent account
   const fetchSubAccounts = async (parentAccountId) => {
     try {
       const token = localStorage.getItem("token");
@@ -133,14 +131,28 @@ const CashReceiptJournalTable = () => {
       );
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
-      setSubAccounts(data);
+      setSubAccounts(data);  // Store valid subaccounts
     } catch (err) {
       setError(err.message);
     }
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate selected subaccounts against valid subaccounts for the parent account
+    const invalidSubaccounts = Object.values(subAccountData).some(
+      (sub) =>
+        !subAccounts.find(
+          (validSubaccount) => validSubaccount.name === sub.name
+        )
+    );
+
+    if (invalidSubaccounts) {
+      setError("One or more subaccounts are invalid for the selected parent account.");
+      return;
+    }
+
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
@@ -212,9 +224,9 @@ const CashReceiptJournalTable = () => {
             required
             className="form-input"
           />
-        </div >
-        <div >
-         <i> <label>CASHBOOK</label></i>
+        </div>
+        <div>
+          <i> <label>CASHBOOK</label></i>
           <input
             type="text"
             name="cashbook"
@@ -258,7 +270,6 @@ const CashReceiptJournalTable = () => {
         </div>
 
         <div className="form-row">
-        <div className="form-row">
           <input
             type="text"
             name="account_class"
@@ -270,7 +281,7 @@ const CashReceiptJournalTable = () => {
           />
         </div>
 
-          <div className="form-row">
+        <div className="form-row">
           <input
             type="text"
             name="account_type"
@@ -282,7 +293,6 @@ const CashReceiptJournalTable = () => {
           />
         </div>
 
-        </div>
         <div className="form-row">
           <input
             type="text"
@@ -294,37 +304,37 @@ const CashReceiptJournalTable = () => {
             className="form-input"
           />
         </div>
+
         <div className="form-row">
-        <select
-  name="account_debited"
-  value={formData.account_debited}
-  onChange={handleInputChange}
-  required={formData.account_credited ? false : true} // Only require one
-  className="form-input"
->
-  <option value="">Select Account Debited (Optional)</option>
-  {coa.map((account, index) => (
-    <option key={index} value={account.account_name}>
-      {account.account_name}
-    </option>
-  ))}
-</select>
+          <select
+            name="account_debited"
+            value={formData.account_debited}
+            onChange={handleInputChange}
+            required={formData.account_credited ? false : true} // Only require one
+            className="form-input"
+          >
+            <option value="">Select Account Debited (Optional)</option>
+            {coa.map((account, index) => (
+              <option key={index} value={account.account_name}>
+                {account.account_name}
+              </option>
+            ))}
+          </select>
 
-<select
-  name="account_credited"
-  value={formData.account_credited}
-  onChange={handleInputChange}
-  required={formData.account_debited ? false : true} // Only require one
-  className="form-input"
->
-  <option value="">Select Account Credited (Optional)</option>
-  {coa.map((account, index) => (
-    <option key={index} value={account.account_name}>
-      {account.account_name}
-    </option>
-  ))}
-</select>
-
+          <select
+            name="account_credited"
+            value={formData.account_credited}
+            onChange={handleInputChange}
+            required={formData.account_debited ? false : true} // Only require one
+            className="form-input"
+          >
+            <option value="">Select Account Credited (Optional)</option>
+            {coa.map((account, index) => (
+              <option key={index} value={account.account_name}>
+                {account.account_name}
+              </option>
+            ))}
+          </select>
 
           <select
             name="parent_account"
@@ -373,30 +383,30 @@ const CashReceiptJournalTable = () => {
         <div>
           <h3>Subaccounts</h3>
           {Object.keys(subAccountData).map((key, index) => (
-  <div key={key} className="form-row">
-    <input
-      type="text"
-      value={subAccountData[key].name}
-      onChange={(e) => handleSubAccountChange(key, 'name', e.target.value)}
-      placeholder={`Subaccount ${index + 1} Name`}
-      className="form-input"
-    />
-    <input
-      type="number"
-      value={subAccountData[key].amount}
-      onChange={(e) => handleSubAccountChange(key, 'amount', e.target.value)}
-      placeholder={`Amount for Subaccount ${index + 1}`}
-      className="form-input"
-    />
-    <button
-      type="button"
-      onClick={() => handleRemoveSubAccount(key)}
-      className="remove-subaccount-btn"
-    >
-      Remove
-    </button>
-  </div>
-))}
+            <div key={key} className="form-row">
+              <input
+                type="text"
+                value={subAccountData[key].name}
+                onChange={(e) => handleSubAccountChange(key, 'name', e.target.value)}
+                placeholder={`Subaccount ${index + 1} Name`}
+                className="form-input"
+              />
+              <input
+                type="number"
+                value={subAccountData[key].amount}
+                onChange={(e) => handleSubAccountChange(key, 'amount', e.target.value)}
+                placeholder={`Amount for Subaccount ${index + 1}`}
+                className="form-input"
+              />
+              <button
+                type="button"
+                onClick={() => handleRemoveSubAccount(key)}
+                className="remove-subaccount-btn"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
 
           <button type="button" onClick={handleAddSubAccount} className="add-subaccount-btn">
             Add Subaccount
@@ -412,7 +422,7 @@ const CashReceiptJournalTable = () => {
       <table className="journal-table">
         <thead>
           <tr>
-          <th>Receipt No</th>
+            <th>Receipt No</th>
             <th>Reference No</th>
             <th>Receipt Date</th>
             <th>From Whom</th>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const ChartOfAccountsTable = () => {
   const [accounts, setAccounts] = useState([]);
@@ -10,7 +10,7 @@ const ChartOfAccountsTable = () => {
     parent_account: '',
     account_name: '',
     account_type: '',
-    sub_account_details: '',
+    sub_account_details: [{ name: '' }], // Removed description
   });
 
   // Handle input change for the form
@@ -19,6 +19,33 @@ const ChartOfAccountsTable = () => {
     setFormData({
       ...formData,
       [name]: value,
+    });
+  };
+
+  // Handle subaccount input change (for multiple subaccounts)
+  const handleSubAccountChange = (index, field, value) => {
+    const newSubAccounts = [...formData.sub_account_details];
+    newSubAccounts[index][field] = value;
+    setFormData({
+      ...formData,
+      sub_account_details: newSubAccounts,
+    });
+  };
+
+  // Add a new subaccount input field
+  const handleAddSubAccount = () => {
+    setFormData({
+      ...formData,
+      sub_account_details: [...formData.sub_account_details, { name: '' }], // Removed description
+    });
+  };
+
+  // Remove a subaccount input field
+  const handleRemoveSubAccount = (index) => {
+    const newSubAccounts = formData.sub_account_details.filter((_, i) => i !== index);
+    setFormData({
+      ...formData,
+      sub_account_details: newSubAccounts,
     });
   };
 
@@ -52,9 +79,38 @@ const ChartOfAccountsTable = () => {
         parent_account: '',
         account_name: '',
         account_type: '',
-        sub_account_details: '',
+        sub_account_details: [{ name: '' }], // Reset subaccount details
       });
       alert(newAccount.message); // Show success message
+    } catch (error) {
+      setError(error.message);
+    }
+  };
+
+  // Handle deletion of an account
+  const handleDelete = async (accountId) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Authentication token is missing.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/chart-of-accounts/${accountId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete account');
+      }
+
+      // Remove the deleted account from the local state
+      setAccounts(accounts.filter(account => account.id !== accountId));
+      alert('Account deleted successfully');
     } catch (error) {
       setError(error.message);
     }
@@ -119,7 +175,6 @@ const ChartOfAccountsTable = () => {
       {/* Form to create a new account */}
       <form onSubmit={handleFormSubmit} style={styles.form}>
         <div style={styles.formGroup}>
-        <div style={styles.formGroup}>
           <label style={styles.label}>Account Type:</label>
           <input
             type="text"
@@ -131,7 +186,7 @@ const ChartOfAccountsTable = () => {
           />
         </div>
         <div style={styles.formGroup}>
-          <label style={styles.label}>Account class:</label>
+          <label style={styles.label}>Account Class:</label>
           <input
             type="text"
             name="account_name"
@@ -141,7 +196,7 @@ const ChartOfAccountsTable = () => {
             style={styles.input}
           />
         </div>
-       
+        <div style={styles.formGroup}>
           <label style={styles.label}>Parent Account:</label>
           <input
             type="text"
@@ -152,17 +207,36 @@ const ChartOfAccountsTable = () => {
             style={styles.input}
           />
         </div>
-       
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Sub Account Details:</label>
-          <input
-            type="text"
-            name="sub_account_details"
-            value={formData.sub_account_details}
-            onChange={handleInputChange}
-            style={styles.input}
-          />
+
+        {/* Subaccount details */}
+        <div>
+          <h3>Subaccounts</h3>
+          {formData.sub_account_details.map((subAccount, index) => (
+            <div key={index} style={styles.formGroup}>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Subaccount Name:</label>
+                <input
+                  type="text"
+                  value={subAccount.name}
+                  onChange={(e) => handleSubAccountChange(index, 'name', e.target.value)}
+                  placeholder={`Subaccount ${index + 1} Name`}
+                  style={styles.input}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => handleRemoveSubAccount(index)}
+                style={styles.removeButton}
+              >
+                Remove Subaccount
+              </button>
+            </div>
+          ))}
+          <button type="button" onClick={handleAddSubAccount} style={styles.addButton}>
+            Add Subaccount
+          </button>
         </div>
+
         <button type="submit" style={styles.button}>Add Account</button>
       </form>
 
@@ -170,17 +244,18 @@ const ChartOfAccountsTable = () => {
       <table style={styles.table}>
         <thead>
           <tr>
-          <th style={styles.tableHeader}>ID</th>
-          <th style={styles.tableHeader}>Account Type</th>
-          <th style={styles.tableHeader}>Account Class</th>
-          <th style={styles.tableHeader}>Parent Account</th>
-          <th style={styles.tableHeader}>Sub Account Details</th>
+            <th style={styles.tableHeader}>ID</th>
+            <th style={styles.tableHeader}>Account Type</th>
+            <th style={styles.tableHeader}>Account Class</th>
+            <th style={styles.tableHeader}>Parent Account</th>
+            <th style={styles.tableHeader}>Sub Account Details</th>
+            <th style={styles.tableHeader}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {accounts.length === 0 ? (
             <tr>
-              <td colSpan="5" style={styles.tableCell}>No accounts available.</td>
+              <td colSpan="6" style={styles.tableCell}>No accounts available.</td>
             </tr>
           ) : (
             accounts.map(account => (
@@ -189,7 +264,23 @@ const ChartOfAccountsTable = () => {
                 <td style={styles.tableCell}>{account.account_type}</td>
                 <td style={styles.tableCell}>{account.account_name}</td>
                 <td style={styles.tableCell}>{account.parent_account}</td>
-                <td style={styles.tableCell}>{account.sub_account_details}</td>
+                <td style={styles.tableCell}>
+                  {account.sub_account_details && account.sub_account_details.length > 0
+                    ? account.sub_account_details.map((sub, idx) => (
+                        <div key={idx}>
+                          <strong>{sub.name}</strong>
+                        </div>
+                      ))
+                    : 'No subaccounts'}
+                </td>
+                <td style={styles.tableCell}>
+                  <button
+                    onClick={() => handleDelete(account.id)}
+                    style={styles.deleteButton}
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))
           )}
@@ -239,6 +330,34 @@ const styles = {
     border: 'none',
     padding: '10px 20px',
     fontSize: '1rem',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  addButton: {
+    backgroundColor: '#007BFF',
+    color: 'white',
+    border: 'none',
+    padding: '10px 20px',
+    fontSize: '1rem',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  removeButton: {
+    backgroundColor: '#FF6347',
+    color: 'white',
+    border: 'none',
+    padding: '5px 10px',
+    fontSize: '0.8rem',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    marginTop: '5px',
+  },
+  deleteButton: {
+    backgroundColor: '#DC3545',
+    color: 'white',
+    border: 'none',
+    padding: '5px 10px',
+    fontSize: '0.8rem',
     borderRadius: '4px',
     cursor: 'pointer',
   },

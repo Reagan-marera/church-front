@@ -4,7 +4,7 @@ import "./InvoicesTable.css"; // Import the external CSS file
 const InvoiceTable = () => {
   const [invoices, setInvoices] = useState([]);
   const [coa, setCoa] = useState([]);
-  const [subAccountData, setSubAccountData] = useState({});
+  const [subAccountData, setSubAccountData] = useState([]); // Changed to an array
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     invoice_number: "",
@@ -17,9 +17,13 @@ const InvoiceTable = () => {
     grn_number: "",
     parent_account: "",
   });
-
   const [viewingSubAccounts, setViewingSubAccounts] = useState(null);
+  const [filteredAccounts, setFilteredAccounts] = useState({
+    debited: [],
+    credited: [],
+  });
 
+  // Fetching invoices and COA
   const fetchInvoices = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -52,28 +56,65 @@ const InvoiceTable = () => {
     }
   };
 
+  // Helper function to get unique account names from the chart of accounts
+  const getUniqueAccounts = () => {
+    const accountNames = coa.map(account => account.account_name);
+    return [...new Set(accountNames)];
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => {
       const updated = { ...prev, [name]: value };
       return updated;
     });
+
+    // Handle autocomplete filtering for debited and credited accounts
+    if (name === "account_debited") {
+      const filtered = coa.filter(account => 
+        account.account_name.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredAccounts((prev) => ({ ...prev, debited: filtered }));
+    }
+
+    if (name === "account_credited") {
+      const filtered = coa.filter(account => 
+        account.account_name.toLowerCase().includes(value.toLowerCase())
+      );
+      setFilteredAccounts((prev) => ({ ...prev, credited: filtered }));
+    }
   };
 
   const handleSubAccountChange = (index, field, value) => {
-    const updatedSubAccounts = { ...subAccountData };
-    updatedSubAccounts[`account_${index + 1}`] = {
-      ...updatedSubAccounts[`account_${index + 1}`],
+    const updatedSubAccounts = [...subAccountData];
+    
+    // Update subaccount field (either name or amount)
+    updatedSubAccounts[index] = {
+      ...updatedSubAccounts[index],
       [field]: field === "amount" ? parseFloat(value) || 0 : value,
     };
+  
+    // Validate subaccount name (case-insensitive, trim spaces)
+    if (field === "name") {
+      const trimmedValue = value.trim().toLowerCase();
+      const isValidSubAccount = coa.some(account => account.account_name.trim().toLowerCase() === trimmedValue);
+      
+      if (!isValidSubAccount) {
+        setError(`Subaccount "${value}" is not valid.`);
+      } else {
+        setError(""); // Clear error if subaccount is valid
+      }
+    }
+  
     setSubAccountData(updatedSubAccounts);
-
-    const totalSubAccounts = Object.values(updatedSubAccounts).reduce(
+  
+    // Ensure that the total amounts match
+    const totalSubAccounts = updatedSubAccounts.reduce(
       (sum, acc) => sum + (acc.amount || 0),
       0
     );
     const totalMain = parseFloat(formData.amount) || 0;
-
+  
     if (totalMain !== totalSubAccounts) {
       setError("Subaccount totals must match the combined total.");
     } else {
@@ -82,20 +123,18 @@ const InvoiceTable = () => {
   };
 
   const handleAddSubAccount = () => {
-    const nextIndex = Object.keys(subAccountData).length + 1;
-    setSubAccountData({
+    setSubAccountData([
       ...subAccountData,
-      [`account_${nextIndex}`]: { name: "", amount: 0 },
-    });
+      { name: "", amount: 0 },
+    ]);
   };
 
   const handleRemoveSubAccount = (index) => {
-    const updatedSubAccounts = { ...subAccountData };
-    delete updatedSubAccounts[`account_${index + 1}`];
+    const updatedSubAccounts = subAccountData.filter((_, i) => i !== index);
     setSubAccountData(updatedSubAccounts);
 
     const totalMain = parseFloat(formData.amount) || 0;
-    const totalSubAccounts = Object.values(updatedSubAccounts).reduce(
+    const totalSubAccounts = updatedSubAccounts.reduce(
       (sum, acc) => sum + (acc.amount || 0),
       0
     );
@@ -110,7 +149,16 @@ const InvoiceTable = () => {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
-      const totalSubAccounts = Object.values(subAccountData).reduce(
+      // Check if all subaccount names are valid when submitting the form
+      for (let subAccount of subAccountData) {
+        const isValidAccount = coa.some(account => account.account_name === subAccount.name);
+        if (!isValidAccount) {
+          setError(`Subaccount "${subAccount.name}" is not valid.`);
+          return;
+        }
+      }
+
+      const totalSubAccounts = subAccountData.reduce(
         (sum, acc) => sum + (acc.amount || 0),
         0
       );
@@ -124,7 +172,7 @@ const InvoiceTable = () => {
         ...formData,
         account_credited: formData.account_credited || null,
         account_debited: formData.account_debited || null,
-        sub_accounts: subAccountData,
+        sub_accounts: subAccountData, // Send the subaccount data in the correct structure
       };
       const token = localStorage.getItem("token");
       if (!token) {
@@ -150,7 +198,7 @@ const InvoiceTable = () => {
         grn_number: "",
         parent_account: "",
       });
-      setSubAccountData({});
+      setSubAccountData([]); // Reset subaccount data
       fetchInvoices();
     } catch (err) {
       setError(err.message);
@@ -246,35 +294,47 @@ const InvoiceTable = () => {
         </div>
 
         <div className="form-row">
-  <select
-    name="account_debited"
-    value={formData.account_debited}
-    onChange={handleInputChange}
-    className="form-input"
-  >
-    <option value="">Select Account Debited</option>
-    {coa.map((account, index) => (
-      <option key={index} value={account.account_name}>
-        {account.account_name}
-      </option>
-    ))}
-  </select>
+          {/* Debited Account Autocomplete */}
+          <input
+            type="text"
+            name="account_debited"
+            value={formData.account_debited}
+            onChange={handleInputChange}
+            placeholder="Account Debited"
+            className="form-input"
+          />
+          <div className="autocomplete-suggestions">
+            {filteredAccounts.debited.map((account, index) => (
+              <div
+                key={index}
+                className="autocomplete-suggestion"
+                onClick={() => setFormData({ ...formData, account_debited: account.account_name })}
+              >
+                {account.account_name}
+              </div>
+            ))}
+          </div>
 
-  <select
-    name="account_credited"
-    value={formData.account_credited}
-    onChange={handleInputChange}
-    className="form-input"
-  >
-    <option value="">Select Account Credited</option>
-    {coa.map((account, index) => (
-      <option key={index} value={account.account_name}>
-        {account.account_name}
-      </option>
-    ))}
-  </select>
-
-
+          {/* Credited Account Autocomplete */}
+          <input
+            type="text"
+            name="account_credited"
+            value={formData.account_credited}
+            onChange={handleInputChange}
+            placeholder="Account Credited"
+            className="form-input"
+          />
+          <div className="autocomplete-suggestions">
+            {filteredAccounts.credited.map((account, index) => (
+              <div
+                key={index}
+                className="autocomplete-suggestion"
+                onClick={() => setFormData({ ...formData, account_credited: account.account_name })}
+              >
+                {account.account_name}
+              </div>
+            ))}
+          </div>
           <select
             name="parent_account"
             value={formData.parent_account}
@@ -300,23 +360,37 @@ const InvoiceTable = () => {
             placeholder="GRN Number (optional)"
             className="form-input"
           />
-          </div>
+        </div>
 
-        {/* Subaccounts Form */}
         <div>
           <h3>Subaccounts</h3>
-          {Object.keys(subAccountData).map((key, index) => (
-            <div key={key} className="form-row">
+          {subAccountData.map((subAccount, index) => (
+            <div key={index} className="form-row">
+              {/* Autocomplete Subaccount Name */}
               <input
                 type="text"
-                value={subAccountData[key].name}
+                value={subAccount.name}
                 onChange={(e) => handleSubAccountChange(index, 'name', e.target.value)}
                 placeholder={`Subaccount ${index + 1} Name`}
                 className="form-input"
               />
+              <div className="autocomplete-dropdown">
+                {coa
+                  .filter(account => account.account_name.toLowerCase().includes(subAccount.name.toLowerCase()))
+                  .map((account, idx) => (
+                    <div
+                      key={idx}
+                      className="autocomplete-item"
+                      onClick={() => handleSubAccountChange(index, 'name', account.account_name)}
+                    >
+                      {account.account_name}
+                    </div>
+                  ))}
+              </div>
+
               <input
                 type="number"
-                value={subAccountData[key].amount}
+                value={subAccount.amount}
                 onChange={(e) => handleSubAccountChange(index, 'amount', e.target.value)}
                 placeholder={`Amount for Subaccount ${index + 1}`}
                 className="form-input"
@@ -344,41 +418,30 @@ const InvoiceTable = () => {
       <table className="invoice-table">
         <thead>
           <tr>
-          <th>Date Issued</th>
-          <th>Account Type</th>
-          <th>Account Class</th>
-          <th>GRN Number</th>
+            <th>Date Issued</th>
+            <th>Account Type</th>
+            <th>Account Class</th>
+            <th>GRN Number</th>
             <th>Invoice No</th>
             <th>Parent Account</th>
             <th>Account Credited</th>
             <th>Account Debited</th>
             <th>Amount</th>
-            
-           
-           
-            
-            
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {invoices.map((invoice) => (
             <tr key={invoice.id}>
-                 <td>{invoice.date_issued}</td>
-                 <td>{invoice.account_type}</td>
-                 <td>{invoice.account_class}</td>
-                 <td>{invoice.grn_number}</td>
+              <td>{invoice.date_issued}</td>
+              <td>{invoice.account_type}</td>
+              <td>{invoice.account_class}</td>
+              <td>{invoice.grn_number}</td>
               <td>{invoice.invoice_number}</td>
               <td>{invoice.parent_account}</td>
               <td>{invoice.account_credited}</td>
               <td>{invoice.account_debited}</td>
               <td>{invoice.amount}</td>
-             
-             
-              
-              
-              
-             
               <td>
                 <button onClick={() => toggleSubAccountsView(invoice.id)}>
                   {viewingSubAccounts === invoice.id ? 'Hide Subaccounts' : 'View Subaccounts'}
@@ -400,10 +463,10 @@ const InvoiceTable = () => {
             .filter((invoice) => invoice.id === viewingSubAccounts)
             .map((invoice) => (
               <div key={invoice.id}>
-                {invoice.sub_accounts && Object.keys(invoice.sub_accounts).map((key) => (
-                  <div key={key} className="subaccount-row">
-                    <div>Name: {invoice.sub_accounts[key].name}</div>
-                    <div>Amount: {invoice.sub_accounts[key].amount}</div>
+                {invoice.sub_accounts && invoice.sub_accounts.map((subAccount, index) => (
+                  <div key={index} className="subaccount-row">
+                    <div>Name: {subAccount.name}</div>
+                    <div>Amount: {subAccount.amount}</div>
                   </div>
                 ))}
               </div>
