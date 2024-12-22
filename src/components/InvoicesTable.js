@@ -3,8 +3,7 @@ import "./InvoicesTable.css"; // Import the external CSS file
 
 const InvoiceTable = () => {
   const [invoices, setInvoices] = useState([]);
-  const [coa, setCoa] = useState([]);
-  const [subAccountData, setSubAccountData] = useState({});
+  const [coa, setCoa] = useState([]);  // Store Chart of Accounts
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     invoice_number: "",
@@ -14,16 +13,36 @@ const InvoiceTable = () => {
     account_class: "",
     account_debited: "",
     account_credited: "",
-    grn_number: "",
+    grn_number: "", // Added grn_number here
     parent_account: "",
   });
-  const [viewingSubAccounts, setViewingSubAccounts] = useState(null);
-  const [filteredAccounts, setFilteredAccounts] = useState({
-    debited: [],
-    credited: [],
-  });
+  const [subAccountData, setSubAccountData] = useState([]);
+  const [subaccountsForInvoice, setSubaccountsForInvoice] = useState(null); // New state for subaccounts
 
-  // Fetching invoices and COA
+  // Fetch COA (Chart of Accounts)
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("User is not authenticated");
+          return;
+        }
+        const response = await fetch("http://localhost:5000/invoices", {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        });
+        if (!response.ok) throw new Error(await response.text());
+        setInvoices(await response.json()); // This will update the state and render the invoices
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+  
+    fetchInvoices();  // Call fetchInvoices when the component mounts
+  }, []);  // Empty dependency array ensures this runs only once on mount
+  
+  // Fetch invoices
   const fetchInvoices = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -42,183 +61,118 @@ const InvoiceTable = () => {
     }
   };
 
-  const fetchCOA = async () => {
+  const handleDelete = async (invoiceId) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/chart-of-accounts", {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      if (!token) {
+        setError("User is not authenticated");
+        return;
+      }
+
+      const response = await fetch(`http://localhost:5000/invoices/${invoiceId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
+
       if (!response.ok) throw new Error(await response.text());
-      setCoa(await response.json());
+
+      // After successful deletion, refresh the invoice list
+      setInvoices(invoices.filter((invoice) => invoice.id !== invoiceId));
     } catch (err) {
       setError(err.message);
     }
-  };
-
-  // Helper function to get unique account names from the chart of accounts
-  const getUniqueAccounts = () => {
-    const accountNames = coa.map(account => account.account_name);
-    return [...new Set(accountNames)];
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => {
-      const updated = { ...prev, [name]: value };
-      return updated;
-    });
-
-    // Handle autocomplete filtering for debited and credited accounts
-    if (name === "account_debited") {
-      const filtered = coa.filter(account => 
-        account.account_name.toLowerCase().includes(value.toLowerCase())
-      );
-      setFilteredAccounts((prev) => ({ ...prev, debited: filtered }));
-    }
-
-    if (name === "account_credited") {
-      const filtered = coa.filter(account => 
-        account.account_name.toLowerCase().includes(value.toLowerCase())
-      );
-      setFilteredAccounts((prev) => ({ ...prev, credited: filtered }));
-    }
-  };
-
-  const handleSubAccountChange = (index, field, value) => {
-    const updatedSubAccounts = { ...subAccountData };
-
-    updatedSubAccounts[`account_${index + 1}`] = {
-      ...updatedSubAccounts[`account_${index + 1}`],
-      [field]: field === "amount" ? parseFloat(value) || 0 : value,
-    };
-    setSubAccountData(updatedSubAccounts);
-
-    const totalSubAccounts = Object.values(updatedSubAccounts).reduce(
-      (sum, acc) => sum + (acc.amount || 0),
-      0
-    );
-    const totalMain = parseFloat(formData.amount) || 0;
-
-    if (totalMain !== totalSubAccounts) {
-      setError("Subaccount totals must match the combined total.");
-    } else {
-      setError("");
-    }
-  };
-
-  const handleAddSubAccount = () => {
-    const newSubAccountIndex = Object.keys(subAccountData).length + 1;
-    setSubAccountData((prev) => ({
+    setFormData((prev) => ({
       ...prev,
-      [`account_${newSubAccountIndex}`]: { name: "", amount: 0 },
+      [name]: value,
     }));
   };
 
-  const handleRemoveSubAccount = (index) => {
-    const updatedSubAccounts = { ...subAccountData };
-    delete updatedSubAccounts[`account_${index + 1}`];
-    setSubAccountData(updatedSubAccounts);
+  const handleAddSubAccount = () => {
+    setSubAccountData([...subAccountData, { name: "", amount: 0 }]);
+  };
 
-    const totalMain = parseFloat(formData.amount) || 0;
-    const totalSubAccounts = Object.values(updatedSubAccounts).reduce(
-      (sum, acc) => sum + (acc.amount || 0),
-      0
+  const handleSubAccountChange = (index, field, value) => {
+    const updatedSubAccounts = subAccountData.map((sub, i) =>
+      i === index ? { ...sub, [field]: value } : sub
     );
+    setSubAccountData(updatedSubAccounts);
+  };
 
-    if (totalMain !== totalSubAccounts) {
-      setError("Subaccount totals must match the combined total.");
-    } else {
-      setError("");
-    }
+  const handleRemoveSubAccount = (index) => {
+    const updatedSubAccounts = subAccountData.filter((_, i) => i !== index);
+    setSubAccountData(updatedSubAccounts);
   };
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    try {
-      // Check if all subaccount names are valid when submitting the form
-      for (let key in subAccountData) {
-        const subAccount = subAccountData[key];
-        const isValidAccount = coa.some(account => account.account_name === subAccount.name);
-        if (!isValidAccount) {
-          setError(`Subaccount "${subAccount.name}" is not valid.`);
-          return;
+
+    // Validate that the subaccounts exist and their total matches the invoice amount
+    const totalSubAccountAmount = subAccountData.reduce(
+      (acc, subAccount) => acc + parseFloat(subAccount.amount || 0),
+      0
+    );
+
+    if (totalSubAccountAmount !== parseFloat(formData.amount)) {
+      setError("The total of subaccounts must match the invoice amount.");
+      return;
+    }
+
+    // Construct the payload to send
+    const payload = {
+      ...formData,
+      amount: parseFloat(formData.amount), // Ensure amount is a number
+      sub_accounts: subAccountData.reduce((acc, subAccount) => {
+        // Construct sub_accounts as an object
+        if (subAccount.name && subAccount.amount) {
+          acc[subAccount.name] = parseFloat(subAccount.amount || 0);
         }
-      }
+        return acc;
+      }, {}),
+      account_credited: formData.account_credited || undefined, // Use undefined instead of null
+    };
 
-      const totalSubAccounts = Object.values(subAccountData).reduce(
-        (sum, acc) => sum + (acc.amount || 0),
-        0
-      );
+    // Send the payload as a JSON string
+    const token = localStorage.getItem("token");
+    const response = await fetch("http://localhost:5000/invoices", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
 
-      if (parseFloat(formData.amount) !== totalSubAccounts) {
-        setError("Subaccount totals must match the combined total.");
-        return;
-      }
+    if (!response.ok) throw new Error(await response.text());
 
-      const payload = {
-        ...formData,
-        account_credited: formData.account_credited || null,
-        account_debited: formData.account_debited || null,
-        sub_accounts: subAccountData,
-      };
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("User is not authenticated");
-        return;
-      }
+    // Reset form fields after successful submission
+    setFormData({
+      invoice_number: "",
+      date_issued: "",
+      account_type: "",
+      amount: 0,
+      account_class: "",
+      account_debited: "",
+      account_credited: "",
+      grn_number: "", // Reset grn_number
+      parent_account: "",
+    });
+    setSubAccountData([]);
+    fetchInvoices(); // Refresh invoices list
+  };
 
-      const response = await fetch("http://localhost:5000/invoices", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) throw new Error(await response.text());
-
-      setFormData({
-        invoice_number: "",
-        date_issued: "",
-        account_type: "",
-        amount: 0,
-        account_class: "",
-        account_debited: "",
-        account_credited: "",
-        grn_number: "",
-        parent_account: "",
-      });
-      setSubAccountData({});
-      fetchInvoices();
-    } catch (err) {
-      setError(err.message);
+  const handleViewSubaccounts = (invoiceId) => {
+    const invoice = invoices.find((invoice) => invoice.id === invoiceId);
+    if (invoice) {
+      setSubaccountsForInvoice(invoice.sub_accounts); // Display subaccounts for the selected invoice
     }
   };
-
-  const toggleSubAccountsView = (id) => {
-    setViewingSubAccounts(viewingSubAccounts === id ? null : id);
-  };
-
-  const handleDelete = async (id) => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        setError("User is not authenticated");
-        return;
-      }
-      const response = await fetch(`http://localhost:5000/invoices/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error(await response.text());
-      fetchInvoices();
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  useEffect(() => {
-    fetchInvoices();
-    fetchCOA();
-  }, []);
 
   return (
     <div className="container">
@@ -227,7 +181,6 @@ const InvoiceTable = () => {
       {error && <p className="error">{error}</p>}
 
       <form className="form" onSubmit={handleFormSubmit}>
-        {/* Form for invoice details */}
         <div className="form-row">
           <input
             type="text"
@@ -282,48 +235,41 @@ const InvoiceTable = () => {
         </div>
 
         <div className="form-row">
-          {/* Debited Account Autocomplete */}
-          <input
-            type="text"
+          {/* Dropdown for Account Debited */}
+          <select
             name="account_debited"
             value={formData.account_debited}
             onChange={handleInputChange}
-            placeholder="Account Debited"
             className="form-input"
-          />
-          <div className="autocomplete-suggestions">
-            {filteredAccounts.debited.map((account, index) => (
-              <div
-                key={index}
-                className="autocomplete-suggestion"
-                onClick={() => setFormData({ ...formData, account_debited: account.account_name })}
-              >
-                {account.account_name}
-              </div>
+          >
+            <option value="">Select Account Debited</option>
+            {coa.map((account, index) => (
+              account.sub_account_details?.map((subAccount, subIndex) => (
+                <option key={subIndex} value={subAccount.name}>
+                  {subAccount.name}
+                </option>
+              ))
             ))}
-          </div>
+          </select>
 
-          {/* Credited Account Autocomplete */}
-          <input
-            type="text"
+          {/* Dropdown for Account Credited */}
+          <select
             name="account_credited"
             value={formData.account_credited}
             onChange={handleInputChange}
-            placeholder="Account Credited"
             className="form-input"
-          />
-          <div className="autocomplete-suggestions">
-            {filteredAccounts.credited.map((account, index) => (
-              <div
-                key={index}
-                className="autocomplete-suggestion"
-                onClick={() => setFormData({ ...formData, account_credited: account.account_name })}
-              >
-                {account.account_name}
-              </div>
+          >
+            <option value="">Select Account Credited</option>
+            {coa.map((account, index) => (
+              account.sub_account_details?.map((subAccount, subIndex) => (
+                <option key={subIndex} value={subAccount.name}>
+                  {subAccount.name}
+                </option>
+              ))
             ))}
-          </div>
+          </select>
 
+          {/* Dropdown for Parent Account */}
           <select
             name="parent_account"
             value={formData.parent_account}
@@ -332,9 +278,9 @@ const InvoiceTable = () => {
             className="form-input"
           >
             <option value="">Select Parent Account</option>
-            {getUniqueAccounts().map((accountName, index) => (
-              <option key={index} value={accountName}>
-                {accountName}
+            {coa.map((account, index) => (
+              <option key={index} value={account.parent_account}>
+                {account.parent_account}
               </option>
             ))}
           </select>
@@ -343,40 +289,37 @@ const InvoiceTable = () => {
         <div className="form-row">
           <input
             type="text"
-            name="grn_number"
+            name="grn_number" // Added grn_number input
             value={formData.grn_number}
             onChange={handleInputChange}
-            placeholder="GRN Number (optional)"
+            placeholder="GRN Number"
+            required
             className="form-input"
           />
         </div>
 
-        {/* Subaccounts Form */}
         <div>
           <h3>Subaccounts</h3>
-          {Object.keys(subAccountData).map((key, index) => (
-            <div key={key} className="form-row">
+          {subAccountData.map((subAccount, index) => (
+            <div key={index} className="form-row">
               <select
-                name={`subaccount_${index + 1}`}
-                value={subAccountData[key].name}
-                onChange={(e) => handleSubAccountChange(index, 'name', e.target.value)}
+                value={subAccount.name}
+                onChange={(e) => handleSubAccountChange(index, "name", e.target.value)}
                 className="form-input"
               >
                 <option value="">Select Subaccount</option>
                 {coa.map((account) => (
-                  account.sub_account_details && account.sub_account_details.length > 0 ? (
-                    account.sub_account_details.map((subAccount, subIndex) => (
-                      <option key={`${account.id}-${subIndex}`} value={subAccount.name}>
-                        {subAccount.name}
-                      </option>
-                    ))
-                  ) : null
+                  account.sub_account_details?.map((sub, subIndex) => (
+                    <option key={subIndex} value={sub.name}>
+                      {sub.name}
+                    </option>
+                  ))
                 ))}
               </select>
               <input
                 type="number"
-                value={subAccountData[key].amount}
-                onChange={(e) => handleSubAccountChange(index, 'amount', e.target.value)}
+                value={subAccount.amount}
+                onChange={(e) => handleSubAccountChange(index, "amount", e.target.value)}
                 placeholder={`Amount for Subaccount ${index + 1}`}
                 className="form-input"
               />
@@ -389,7 +332,11 @@ const InvoiceTable = () => {
               </button>
             </div>
           ))}
-          <button type="button" onClick={handleAddSubAccount} className="add-subaccount-btn">
+          <button
+            type="button"
+            onClick={handleAddSubAccount}
+            className="add-subaccount-btn"
+          >
             Add Subaccount
           </button>
         </div>
@@ -402,7 +349,7 @@ const InvoiceTable = () => {
       {/* Invoice Table */}
       <table className="invoice-table">
         <thead>
-          <tr>
+        <tr>
             <th>Date Issued</th>
             <th>Account Type</th>
             <th>Account Class</th>
@@ -413,6 +360,7 @@ const InvoiceTable = () => {
             <th>Account Debited</th>
             <th>Amount</th>
             <th>Actions</th>
+            <th>Subaccounts</th> {/* New column for View Subaccounts button */}
           </tr>
         </thead>
         <tbody>
@@ -428,35 +376,49 @@ const InvoiceTable = () => {
               <td>{invoice.account_debited}</td>
               <td>{invoice.amount}</td>
               <td>
-                <button onClick={() => toggleSubAccountsView(invoice.id)}>
-                  {viewingSubAccounts === invoice.id ? 'Hide Subaccounts' : 'View Subaccounts'}
+                <button
+                  onClick={() => handleDelete(invoice.id)}
+                  className="delete-btn"
+                >
+                  Delete
                 </button>
               </td>
               <td>
-                <button onClick={() => handleDelete(invoice.id)}>Delete</button>
+                <button
+                  onClick={() => handleViewSubaccounts(invoice.id)}
+                  className="view-subaccounts-btn"
+                >
+                  View Subaccounts
+                </button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Display Subaccounts */}
-      {viewingSubAccounts && (
-        <div className="subaccount-container">
-          <h4>Subaccounts</h4>
-          {invoices
-            .filter((invoice) => invoice.id === viewingSubAccounts)
-            .map((invoice) => (
-              <div key={invoice.id}>
-                {invoice.sub_accounts && Object.keys(invoice.sub_accounts).map((key) => (
-                  <div key={key} className="subaccount-row">
-                    <div>Name: {invoice.sub_accounts[key].name}</div>
-                    <div>Amount: {invoice.sub_accounts[key].amount}</div>
-                  </div>
-                ))}
-              </div>
-            ))}
-        </div>
+    
+
+ {subaccountsForInvoice && (
+ <div className="subaccounts-modal">
+    <h3>Subaccounts for Invoice</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Subaccount</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {Object.entries(subaccountsForInvoice).map(([name, amount]) => (
+          <tr key={name}>
+            <td>{name}</td>
+            <td>{amount}</td>  {/* Directly displaying amount */}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <button onClick={() => setSubaccountsForInvoice(null)}>Close</button>
+  </div>
       )}
     </div>
   );
