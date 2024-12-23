@@ -63,11 +63,23 @@ function DisbursementForm() {
     const { name, value } = e.target;
     setFormData((prevData) => {
       const updatedData = { ...prevData, [name]: value };
-      if (name === 'cash' || name === 'bank') calculateTotal(updatedData.cash, updatedData.bank);
+      
+      // Recalculate total whenever cash or bank changes
+      if (name === 'cash' || name === 'bank') {
+        const newTotal = calculateTotal(updatedData.cash, updatedData.bank);
+        updatedData.total = newTotal;  // Update the total in the form data
+      }
+  
       return updatedData;
     });
   };
-
+  
+  const calculateTotal = (cash, bank, subAccounts = []) => {
+    // Calculate the total amount
+    const subAccountTotal = subAccounts.reduce((sum, subAccount) => sum + parseFloat(subAccount.amount || 0), 0);
+    return parseFloat(cash || 0) + parseFloat(bank || 0) + subAccountTotal;
+  };
+  
   const handleSubAccountChange = (index, name, value) => {
     const updatedSubAccounts = [...subAccountData];
     updatedSubAccounts[index] = { ...updatedSubAccounts[index], [name]: value };
@@ -84,45 +96,52 @@ function DisbursementForm() {
     calculateTotal(formData.cash, formData.bank, updatedSubAccounts);
   };
 
-  const calculateTotal = (cash = formData.cash, bank = formData.bank, subAccounts = subAccountData) => {
-    const totalAmount = parseFloat(cash) + parseFloat(bank) + subAccounts.reduce((sum, sub) => sum + parseFloat(sub.amount || 0), 0);
-    setFormData((prevData) => ({
-      ...prevData,
-      total: isNaN(totalAmount) ? 0.0 : totalAmount,
-    }));
-  };
-
   const fetchSubAccountsForDisbursement = (disbursementId) => {
     const selectedDisbursement = disbursements.find((disbursement) => disbursement.id === disbursementId);
     if (selectedDisbursement && selectedDisbursement.sub_accounts) {
       setSubAccountData(Object.entries(selectedDisbursement.sub_accounts).map(([name, amount]) => ({ name, amount })));
     }
   };
-
+  const handleDelete = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`http://localhost:5000/cash-disbursement-journals/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+  
+      if (!response.ok) throw new Error('Failed to delete the disbursement');
+      setDisbursements(disbursements.filter((item) => item.id !== id));
+      alert('Disbursement deleted successfully!');
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
   
-    // Validate total matches the subaccounts total
     const subTotal = subAccountData.reduce((sum, sub) => sum + parseFloat(sub.amount || 0), 0);
     if (formData.total !== subTotal) {
       setErrorMessage('Total amount does not match the sum of sub-accounts.');
       return;
     }
-
+  
     const formattedSubAccounts = subAccountData.reduce((acc, { name, amount }) => {
       if (name && amount) acc[name] = parseFloat(amount);
       return acc;
     }, {});
-
+  
     const formattedDate = new Date(formData.disbursement_date).toISOString().split('T')[0];
-
+  
     const payload = {
       ...formData,
       disbursement_date: formattedDate,
       sub_accounts: formattedSubAccounts,
     };
-
+    
+    console.log("Payload being sent:", JSON.stringify(payload, null, 2));
+    
     try {
       const response = await fetch('http://localhost:5000/cash-disbursement-journals', {
         method: 'POST',
@@ -132,29 +151,48 @@ function DisbursementForm() {
         },
         body: JSON.stringify(payload),
       });
+    
+      if (!response.ok) {
+        const errorDetails = await response.json();
+        console.error('Error details from server:', errorDetails);
+        throw new Error(errorDetails.message || 'Failed to submit data');
+      }
+    
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Failed to submit data');
+      alert('Disbursement added successfully!');
+      setDisbursements([...disbursements, result]);
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+    
+    // Log the payload to the console
+    console.log("Payload being sent:", JSON.stringify(payload, null, 2));
+  
+    try {
+      const response = await fetch('http://localhost:5000/cash-disbursement-journals', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+  
+      // Check if the response is OK, otherwise throw an error
+      if (!response.ok) {
+        const errorDetails = await response.json();
+        console.error('Error details from server:', errorDetails);
+        throw new Error(errorDetails.message || 'Failed to submit data');
+      }
+  
+      const result = await response.json();
       alert('Disbursement added successfully!');
       setDisbursements([...disbursements, result]);
     } catch (error) {
       setErrorMessage(error.message);
     }
   };
-
-  const handleDelete = async (id) => {
-    const token = localStorage.getItem('token');
-    try {
-      const response = await fetch(`http://localhost:5000/cash-disbursement-journals/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) throw new Error('Failed to delete the disbursement');
-      setDisbursements(disbursements.filter((item) => item.id !== id));
-      alert('Disbursement deleted successfully!');
-    } catch (error) {
-      setErrorMessage(error.message);
-    }
-  };
+  
 
   return (
     <div className="disbursement-form-container">
@@ -181,7 +219,7 @@ function DisbursementForm() {
           </select>
         </div>
 
-       {/* Account Credited Dropdown */}
+   {/* Account Credited Dropdown */}
 <div className="form-group">
   <label>Account Credited:</label>
   <select
@@ -222,6 +260,7 @@ function DisbursementForm() {
     ))}
   </select>
 </div>
+
 
 
         {Object.entries(formData).map(([key, value]) => {
