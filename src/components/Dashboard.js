@@ -11,7 +11,7 @@ const Dashboard = () => {
   // Fetch users from the API
   const getUsers = async () => {
     try {
-      const response = await fetch('http://localhost:5000/users', {
+      const response = await fetch('htps://finance.boogiecoin.com/users', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -36,7 +36,7 @@ const Dashboard = () => {
   const getTransactions = async () => {
     setLoadingTransactions(true);
     try {
-      const response = await fetch('http://localhost:5000/transactions', {
+      const response = await fetch('htps://finance.boogiecoin.com/transactions', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -68,7 +68,7 @@ const Dashboard = () => {
   // Handle creating a new user
   const handleCreateUser = async () => {
     try {
-      const response = await fetch('http://localhost:5000/users', {
+      const response = await fetch('htps://finance.boogiecoin.com/users', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -89,7 +89,7 @@ const Dashboard = () => {
   // Handle creating a new transaction
   const handleCreateTransaction = async () => {
     try {
-      const response = await fetch('http://localhost:5000/transactions', {
+      const response = await fetch('htps://finance.boogiecoin.com/transactions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

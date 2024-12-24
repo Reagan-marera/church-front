@@ -59,7 +59,7 @@ const ChartOfAccountsTable = () => {
     }
 
     try {
-      const response = await fetch('htps://finance.boogiecoin.com/chart-of-accounts', {
+      const response = await fetch('https://finance.boogiecoin.com/chart-of-accounts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ const ChartOfAccountsTable = () => {
     }
 
     try {
-      const response = await fetch(`htps://finance.boogiecoin.com/chart-of-accounts/${accountId}`, {
+      const response = await fetch(`https://finance.boogiecoin.com/chart-of-accounts/${accountId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +129,7 @@ const ChartOfAccountsTable = () => {
     }
 
     try {
-      const response = await fetch('htps://finance.boogiecoin.com/chart-of-accounts', {
+      const response = await fetch('https://finance.boogiecoin.com/chart-of-accounts', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

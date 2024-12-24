@@ -21,7 +21,7 @@ const Register = () => {
     };
 
     try {
-      const response = await fetch('htps://finance.boogiecoin.com /register', {
+      const response = await fetch('https://finance.boogiecoin.com /register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -17,7 +17,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
     };
 
     try {
-      const response = await fetch('htps://finance.boogiecoin.com /login', {
+      const response = await fetch('https://finance.boogiecoin.com /login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,7 +50,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
   // Fetch all transactions if the user is a CEO
   const fetchTransactions = async (token) => {
     try {
-      const response = await fetch('htps://finance.boogiecoin.com /transactions', {
+      const response = await fetch('https://finance.boogiecoin.com /transactions', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
