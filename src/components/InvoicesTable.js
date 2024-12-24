@@ -140,7 +140,7 @@ const InvoiceTable = () => {
 
     // Send the payload as a JSON string
     const token = localStorage.getItem("token");
-    const response = await fetch("htps://finance.boogiecoin.com/invoices", {
+    const response = await fetch("https://finance.boogiecoin.com/invoices", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

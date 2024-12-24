@@ -62,7 +62,7 @@ const CashReceiptJournalTable = () => {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
       const response = await fetch(
-        `htps://finance.boogiecoin.com/${parentAccountId}`,
+        `https://finance.boogiecoin.com/${parentAccountId}`,
         {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
