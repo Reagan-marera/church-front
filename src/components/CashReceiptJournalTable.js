@@ -33,7 +33,7 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("http://localhost:5000/cash-receipt-journals", {
+      const response = await fetch("htps://finance.boogiecoin.com/cash-receipt-journals", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error(await response.text());
@@ -47,7 +47,7 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("http://localhost:5000/chart-of-accounts", {
+      const response = await fetch("htps://finance.boogiecoin.com/chart-of-accounts", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error(await response.text());
@@ -62,7 +62,7 @@ const CashReceiptJournalTable = () => {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
       const response = await fetch(
-        `http://localhost:5000/sub-accounts/${parentAccountId}`,
+        `htps://finance.boogiecoin.com/${parentAccountId}`,
         {
           method: "GET",
           headers: { Authorization: `Bearer ${token}` },
@@ -122,7 +122,7 @@ const CashReceiptJournalTable = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/cash-receipt-journals", {
+      const response = await fetch("hhtps://finance.boogiecoin.com/cash-receipt-journals", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -194,7 +194,7 @@ const CashReceiptJournalTable = () => {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
 
-      const response = await fetch(`http://localhost:5000/cash-receipt-journals/${journalId}`, {
+      const response = await fetch(`hhtps://finance.boogiecoin.com/cash-receipt-journals/${journalId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
