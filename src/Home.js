@@ -1,21 +1,20 @@
 import React from 'react';
+import { Link } from 'react-router-dom'; // Import the Link component
 import './Home.css';
 
 function Home() {
   return (
     <div className="App">
       {/* Navigation Bar */}
-     
-        <div className="navbar-brand">InstitutionFinance</div>
-       
-      
+      <div className="navbar-brand">InstitutionFinance</div>
 
       {/* Hero Section */}
       <header className="hero">
         <div className="hero-content">
           <h1>Institutional Finance Management</h1>
           <p>Manage your invoices, disbursements, receipts, and transactions all in one place.</p>
-          <button className="cta-button">Get Started</button>
+          {/* Replace the button with a Link */}
+          <Link to="/login" className="cta-button">Get Started</Link>
         </div>
       </header>
 
@@ -50,7 +49,6 @@ function Home() {
             <p>"This platform has streamlined our financial operations and reduced errors in accounting."</p>
             <span>- Finance Director, Moses Ngaruya.</span>
           </div>
-          
         </div>
       </section>
 
