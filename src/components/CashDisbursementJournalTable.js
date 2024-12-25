@@ -31,7 +31,7 @@ function DisbursementForm() {
       const token = localStorage.getItem('token');
       try {
         if (!token) throw new Error('Unauthorized: Missing token.');
-        const response = await fetch('htps://finance.boogiecoin.com/chart-of-accounts', {
+        const response = await fetch('http://localhost:5000/chart-of-accounts', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         const data = await response.json();
@@ -47,7 +47,7 @@ function DisbursementForm() {
     const fetchDisbursements = async () => {
       const token = localStorage.getItem('token');
       try {
-        const response = await fetch('htps://finance.boogiecoin.com/cash-disbursement-journals', {
+        const response = await fetch('http://localhost:5000/cash-disbursement-journals', {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         const data = await response.json();
@@ -105,7 +105,7 @@ function DisbursementForm() {
   const handleDelete = async (id) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch(`htps://finance.boogiecoin.com/cash-disbursement-journals/${id}`, {
+      const response = await fetch(`http://localhost:5000/cash-disbursement-journals/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
@@ -169,7 +169,7 @@ function DisbursementForm() {
     console.log("Payload being sent:", JSON.stringify(payload, null, 2));
   
     try {
-      const response = await fetch('htps://finance.boogiecoin.com/cash-disbursement-journals', {
+      const response = await fetch('http://localhost:5000/cash-disbursement-journals', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
