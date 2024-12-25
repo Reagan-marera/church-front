@@ -9,6 +9,7 @@ import CashReceiptJournalTable from './components/CashReceiptJournalTable';
 import CashDisbursementJournalTable from './components/CashDisbursementJournalTable';
 import Navbar from './components/Navbar'; // Import the Navbar
 import Dashboard from './components/Dashboard'; // Import Dashboard component
+import Home from './Home';
 
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
@@ -36,11 +37,14 @@ function App() {
           <Route path="/login" element={<Login setToken={setToken} setRole={setRole} />} />
 
           {/* Protected Routes (only accessible if logged in) */}
-          <Route path="/" element={token ? <UsersTable /> : <Login setToken={setToken} setRole={setRole} />} />
+          <Route path="/usertransaction" element={token ? <UsersTable /> : <Login setToken={setToken} setRole={setRole} />} />
           <Route path="/chart-of-accounts" element={token ? <ChartOfAccountsTable /> : <Login setToken={setToken} setRole={setRole} />} />
           <Route path="/invoices" element={token ? <InvoicesTable /> : <Login setToken={setToken} setRole={setRole} />} />
           <Route path="/cash-receipt-journal" element={token ? <CashReceiptJournalTable /> : <Login setToken={setToken} setRole={setRole} />} />
           <Route path="/cash-disbursement-journal" element={token ? <CashDisbursementJournalTable /> : <Login setToken={setToken} setRole={setRole} />} />
+          
+          {/* Home Route */}
+          <Route path="/" element={<Home />} />
 
           {/* Dashboard Route (protected) */}
           <Route path="/dashboard" element={token ? <Dashboard /> : <Login setToken={setToken} setRole={setRole} />} />

@@ -17,7 +17,11 @@ const Navbar = ({ token, role }) => {
   return (
     <nav style={styles.navbar}>
       <ul style={styles.navList}>
+        {/* Home Link */}
         <li><Link to="/" style={styles.navLink}>Home</Link></li>
+
+        {/* Other navigation links */}
+        <li><Link to="/usertransaction" style={styles.navLink}>TRANSACTIONS</Link></li>
         <li><Link to="/chart-of-accounts" style={styles.navLink}>Chart of Accounts</Link></li>
         <li><Link to="/invoices" style={styles.navLink}>Invoices</Link></li>
         <li><Link to="/cash-receipt-journal" style={styles.navLink}>Cash Receipt Journal</Link></li>
