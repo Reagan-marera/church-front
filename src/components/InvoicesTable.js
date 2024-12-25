@@ -28,7 +28,7 @@ const InvoiceTable = () => {
           setError("User is not authenticated");
           return;
         }
-        const response = await fetch("http://localhost:5000/invoices", {
+        const response = await fetch("/invoices", {
           method: "GET",
           headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         });
@@ -50,7 +50,7 @@ const InvoiceTable = () => {
         setError("User is not authenticated");
         return;
       }
-      const response = await fetch("htps://finance.boogiecoin.com /invoices", {
+      const response = await fetch("/invoices", {
         method: "GET",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
@@ -69,7 +69,7 @@ const InvoiceTable = () => {
         return;
       }
 
-      const response = await fetch(`htps://finance.boogiecoin.com /invoices/${invoiceId}`, {
+      const response = await fetch(`https://finance.boogiecoin.com/invoices/${invoiceId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -140,7 +140,7 @@ const InvoiceTable = () => {
 
     // Send the payload as a JSON string
     const token = localStorage.getItem("token");
-    const response = await fetch("htps://finance.boogiecoin.com /invoices", {
+    const response = await fetch("https://finance.boogiecoin.com/invoices", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -151,7 +151,7 @@ const InvoiceTable = () => {
 
     if (!response.ok) throw new Error(await response.text());
 
-    // Reset form fields after successful submission
+    
     setFormData({
       invoice_number: "",
       date_issued: "",
@@ -160,11 +160,10 @@ const InvoiceTable = () => {
       account_class: "",
       account_debited: "",
       account_credited: "",
-      grn_number: "", // Reset grn_number
-      parent_account: "",
+      grn_number: "", 
     });
     setSubAccountData([]);
-    fetchInvoices(); // Refresh invoices list
+    fetchInvoices(); 
   };
 
   const handleViewSubaccounts = (invoiceId) => {
@@ -360,7 +359,7 @@ const InvoiceTable = () => {
             <th>Account Debited</th>
             <th>Amount</th>
             <th>Actions</th>
-            <th>Subaccounts</th> {/* New column for View Subaccounts button */}
+            <th>Subaccounts</th> 
           </tr>
         </thead>
         <tbody>
@@ -412,7 +411,7 @@ const InvoiceTable = () => {
         {Object.entries(subaccountsForInvoice).map(([name, amount]) => (
           <tr key={name}>
             <td>{name}</td>
-            <td>{amount}</td>  {/* Directly displaying amount */}
+            <td>{amount}</td>  
           </tr>
         ))}
       </tbody>
