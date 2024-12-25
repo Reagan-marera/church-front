@@ -31,7 +31,7 @@ const InvoiceTable = () => {
         setError("User is not authenticated");
         return;
       }
-      const response = await fetch("http://localhost:5000/invoices", {
+      const response = await fetch("https://finance.boogiecoin.com/invoices", {
         method: "GET",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
@@ -45,7 +45,7 @@ const InvoiceTable = () => {
   const fetchCOA = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/chart-of-accounts", {
+      const response = await fetch("https://finance.boogiecoin.com/chart-of-accounts", {
         method: "GET",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
@@ -135,46 +135,47 @@ const InvoiceTable = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+  
+    // Ensure subAccountData is an object, if it's not an array
+    if (typeof subAccountData !== "object") {
+      setError("Subaccount data is invalid.");
+      return;
+    }
+  
+    // Calculate the total amount of subaccounts (by iterating over the object)
+    const totalSubAccountAmount = Object.values(subAccountData).reduce(
+      (acc, subAccount) => acc + parseFloat(subAccount.amount || 0),
+      0
+    );
+  
+    // Check if the total of subaccounts matches the invoice amount
+    if (totalSubAccountAmount !== parseFloat(formData.amount)) {
+      setError("The total of subaccounts must match the invoice amount.");
+      return;
+    }
+  
+    // Construct the payload to send to the server
+    const payload = {
+      ...formData,
+      amount: parseFloat(formData.amount), // Ensure amount is a number
+      sub_accounts: subAccountData, // Send the subaccounts as they are (as an object)
+      account_credited: formData.account_credited || undefined, // Use undefined instead of null
+    };
+  
     try {
-      // Check if all subaccount names are valid when submitting the form
-      for (let key in subAccountData) {
-        const subAccount = subAccountData[key];
-        const isValidAccount = coa.some(account => account.account_name === subAccount.name);
-        if (!isValidAccount) {
-          setError(`Subaccount "${subAccount.name}" is not valid.`);
-          return;
-        }
-      }
-
-      const totalSubAccounts = Object.values(subAccountData).reduce(
-        (sum, acc) => sum + (acc.amount || 0),
-        0
-      );
-
-      if (parseFloat(formData.amount) !== totalSubAccounts) {
-        setError("Subaccount totals must match the combined total.");
-        return;
-      }
-
-      const payload = {
-        ...formData,
-        account_credited: formData.account_credited || null,
-        account_debited: formData.account_debited || null,
-        sub_accounts: subAccountData,
-      };
       const token = localStorage.getItem("token");
-      if (!token) {
-        setError("User is not authenticated");
-        return;
-      }
-
-      const response = await fetch("http://localhost:5000/invoices", {
+      const response = await fetch("https://finance.boogiecoin.com/invoices", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(payload),
       });
+  
       if (!response.ok) throw new Error(await response.text());
-
+  
+      // Reset form data after successful submission
       setFormData({
         invoice_number: "",
         date_issued: "",
@@ -184,14 +185,14 @@ const InvoiceTable = () => {
         account_debited: "",
         account_credited: "",
         grn_number: "",
-        parent_account: "",
       });
-      setSubAccountData({});
-      fetchInvoices();
+      setSubAccountData({}); // Clear subaccount data (as an object)
+      fetchInvoices(); // Fetch updated invoices list
     } catch (err) {
       setError(err.message);
     }
   };
+  
 
   const toggleSubAccountsView = (id) => {
     setViewingSubAccounts(viewingSubAccounts === id ? null : id);
@@ -204,7 +205,7 @@ const InvoiceTable = () => {
         setError("User is not authenticated");
         return;
       }
-      const response = await fetch(`http://localhost:5000/invoices/${id}`, {
+      const response = await fetch(`https://finance.boogiecoin.com/invoices/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
