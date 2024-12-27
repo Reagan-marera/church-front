@@ -6,15 +6,17 @@ function Home() {
   return (
     <div className="App">
       {/* Navigation Bar */}
-      <div className="navbar-brand">InstitutionFinance</div>
-
+     <i><div className="navbar-brand">YOUMING TECHNOLOGIES</div></i> 
+     
       {/* Hero Section */}
       <header className="hero">
         <div className="hero-content">
-          <h1>Institutional Finance Management</h1>
+        
+          <h1>Non-Profit Making Organizations Financial Management tool kit</h1>
+          <h2>for schools,churches and N.G.O'S</h2>
           <p>Manage your invoices, disbursements, receipts, and transactions all in one place.</p>
           {/* Replace the button with a Link */}
-          <Link to="/login" className="cta-button">Get Started</Link>
+          <Link to="/register" className="cta-button">Get Started</Link>
         </div>
       </header>
 
