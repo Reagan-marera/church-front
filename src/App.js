@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Register from './components/Register';
 import Login from './components/Login';
 import UsersTable from './components/UsersTable';
@@ -10,12 +10,24 @@ import CashDisbursementJournalTable from './components/CashDisbursementJournalTa
 import Navbar from './components/Navbar'; // Import the Navbar
 import Dashboard from './components/Dashboard'; // Import Dashboard component
 import Home from './Home';
+import MemberInfo from './components/MemberInfo';
+import CreatePledge from './components/CreatePledge';
 
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
   const [role, setRole] = useState(null); // Manage the user role
+  const [username, setUsername] = useState('');
 
-  // Check if user is logged in on app load
+  // Fetch username and token from localStorage
+  useEffect(() => {
+    const storedUsername = localStorage.getItem('username');
+    if (storedUsername) {
+      setUsername(storedUsername);
+    } else {
+      console.log('No username found');
+    }
+  }, []);
+
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const storedRole = localStorage.getItem('role');
@@ -24,6 +36,14 @@ function App() {
       setRole(storedRole);
     }
   }, []);
+
+  // ProtectedRoute component to wrap around routes that require authentication
+  const ProtectedRoute = ({ children }) => {
+    if (!token) {
+      return <Navigate to="/login" replace />;
+    }
+    return children;
+  };
 
   return (
     <Router>
@@ -37,17 +57,26 @@ function App() {
           <Route path="/login" element={<Login setToken={setToken} setRole={setRole} />} />
 
           {/* Protected Routes (only accessible if logged in) */}
-          <Route path="/usertransaction" element={token ? <UsersTable /> : <Login setToken={setToken} setRole={setRole} />} />
-          <Route path="/chart-of-accounts" element={token ? <ChartOfAccountsTable /> : <Login setToken={setToken} setRole={setRole} />} />
-          <Route path="/invoices" element={token ? <InvoicesTable /> : <Login setToken={setToken} setRole={setRole} />} />
-          <Route path="/cash-receipt-journal" element={token ? <CashReceiptJournalTable /> : <Login setToken={setToken} setRole={setRole} />} />
-          <Route path="/cash-disbursement-journal" element={token ? <CashDisbursementJournalTable /> : <Login setToken={setToken} setRole={setRole} />} />
+          <Route path="/usertransaction" element={<ProtectedRoute><UsersTable /></ProtectedRoute>} />
+          <Route path="/chart-of-accounts" element={<ProtectedRoute><ChartOfAccountsTable /></ProtectedRoute>} />
+          <Route path="/invoices" element={<ProtectedRoute><InvoicesTable /></ProtectedRoute>} />
+          <Route path="/cash-receipt-journal" element={<ProtectedRoute><CashReceiptJournalTable /></ProtectedRoute>} />
+          <Route path="/cash-disbursement-journal" element={<ProtectedRoute><CashDisbursementJournalTable /></ProtectedRoute>} />
           
           {/* Home Route */}
           <Route path="/" element={<Home />} />
 
           {/* Dashboard Route (protected) */}
-          <Route path="/dashboard" element={token ? <Dashboard /> : <Login setToken={setToken} setRole={setRole} />} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+
+          {/* Member Info Route (protected) */}
+          <Route path="/member/:user_id" element={<ProtectedRoute><MemberInfo /></ProtectedRoute>} />
+
+          {/* Create Pledge Route (protected) */}
+          <Route 
+            path="/create-pledge" 
+            element={<ProtectedRoute><CreatePledge username={username} /></ProtectedRoute>} 
+          />
         </Routes>
       </div>
     </Router>

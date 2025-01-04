@@ -5,6 +5,12 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('User');
+  const [churchName, setChurchName] = useState('');
+  const [residence, setResidence] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [occupation, setOccupation] = useState('');
+  const [memberNumber, setMemberNumber] = useState('');
+  const [churchData, setChurchData] = useState({ name: '', address: '', phoneNumber: '', churchEmail: '' });
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
@@ -12,39 +18,67 @@ const Register = () => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
-
+  
+    // Construct the user data to send in the request
     const userData = {
       username,
       email,
       password,
       role,
+      church: role === 'Church CEO' ? {
+        name: churchData.name,  // Correctly sending church name
+        address: churchData.address,  // Correctly sending church address
+        phone_number: churchData.phoneNumber,  // Correctly sending phone number
+        email: churchData.churchEmail  // Correctly sending church email
+      } : undefined,
+  
+      // Send additional fields for the "Member" role
+      ...(role === 'Member' && {
+        residence,
+        phone_number: phoneNumber,
+        occupation,
+        member_number: memberNumber,
+        church_name: churchName,
+      })
     };
-
+  
+    console.log('Sending user data:', userData);  // Log the data for debugging
+  
     try {
-      const response = await fetch('https://finance.boogiecoin.com/register', {
+      const response = await fetch('http://127.0.0.1:5000/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(userData),
       });
-
+  
       if (response.ok) {
         setSuccessMessage('User registered successfully');
+        // Reset the form fields after successful registration
         setUsername('');
         setEmail('');
         setPassword('');
         setRole('User');
+        setChurchName('');
+        setResidence('');
+        setPhoneNumber('');
+        setOccupation('');
+        setMemberNumber('');
+        setChurchData({ name: '', address: '', phoneNumber: '', churchEmail: '' });
       } else {
         const data = await response.json();
-        setErrorMessage(data.message || 'Registration failed');
+        setErrorMessage(data.error || 'Registration failed');
+        console.log('Sending user data:', userData);  // Log the user data before sending
+
       }
     } catch (error) {
       console.error('Error:', error);
-      setErrorMessage('error in registering');
+      setErrorMessage('Error in registering');
     }
   };
-
+  
+  
   return (
     <div style={styles.container}>
       <h2 style={styles.heading}>Register</h2>
@@ -82,10 +116,113 @@ const Register = () => {
         <div style={styles.formGroup}>
           <label>Role:</label>
           <select value={role} onChange={(e) => setRole(e.target.value)} style={styles.select}>
-            <option value="User">User</option>
-            <option value="CEO">CEO</option>
+            <option value="Church CEO">Church Exucutive</option>
+            <option value="Member">church Member</option>
           </select>
         </div>
+
+        {role === 'Church CEO' && (
+          <div>
+            <h3>Church Information</h3>
+            <div style={styles.formGroup}>
+              <label>Church Name:</label>
+              <input
+                type="text"
+                value={churchData.name}
+                onChange={(e) => setChurchData({ ...churchData, name: e.target.value })}
+                required
+                style={styles.input}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label>Church Address:</label>
+              <input
+                type="text"
+                value={churchData.address}
+                onChange={(e) => setChurchData({ ...churchData, address: e.target.value })}
+                required
+                style={styles.input}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label>Church Phone Number:</label>
+              <input
+                type="text"
+                value={churchData.phoneNumber}
+                onChange={(e) => setChurchData({ ...churchData, phoneNumber: e.target.value })}
+                required
+                style={styles.input}
+              />
+            </div>
+            <div style={styles.formGroup}>
+              <label>Church Email:</label>
+              <input
+                type="email"
+                value={churchData.churchEmail}
+                onChange={(e) => setChurchData({ ...churchData, churchEmail: e.target.value })}
+                required
+                style={styles.input}
+              />
+            </div>
+          </div>
+        )}
+
+{role === 'Member' && (
+  <>
+    <div style={styles.formGroup}>
+      <label>Residence:</label>
+      <input
+        type="text"
+        value={residence}
+        onChange={(e) => setResidence(e.target.value)}
+        required
+        style={styles.input}
+      />
+    </div>
+    <div style={styles.formGroup}>
+      <label>Phone Number:</label>
+      <input
+        type="text"
+        value={phoneNumber}
+        onChange={(e) => setPhoneNumber(e.target.value)}
+        required
+        style={styles.input}
+      />
+    </div>
+    <div style={styles.formGroup}>
+      <label>Occupation:</label>
+      <input
+        type="text"
+        value={occupation}
+        onChange={(e) => setOccupation(e.target.value)}
+        required
+        style={styles.input}
+      />
+    </div>
+    <div style={styles.formGroup}>
+      <label>Member Number:</label>
+      <input
+        type="text"
+        value={memberNumber}
+        onChange={(e) => setMemberNumber(e.target.value)}
+        required
+        style={styles.input}
+      />
+    </div>
+    <div style={styles.formGroup}>
+      <label>Church Name:</label>
+      <input
+        type="text"
+        value={churchName}
+        onChange={(e) => setChurchName(e.target.value)}
+        required
+        style={styles.input}
+      />
+    </div>
+  </>
+)}
+
+
         {errorMessage && <p style={styles.error}>{errorMessage}</p>}
         {successMessage && <p style={styles.success}>{successMessage}</p>}
         <button type="submit" style={styles.button}>Register</button>
@@ -94,7 +231,7 @@ const Register = () => {
   );
 };
 
-// Styles
+// Styles (unchanged)
 const styles = {
   container: {
     maxWidth: '500px',
@@ -133,9 +270,6 @@ const styles = {
     outline: 'none',
     transition: 'border-color 0.3s',
   },
-  inputFocus: {
-    borderColor: '#007bff',
-  },
   select: {
     padding: '12px',
     fontSize: '1rem',
@@ -154,10 +288,6 @@ const styles = {
     cursor: 'pointer',
     transition: 'background-color 0.3s, transform 0.2s',
   },
-  buttonHover: {
-    backgroundColor: '#0056b3',
-    transform: 'scale(1.05)',
-  },
   error: {
     color: '#e74c3c',
     fontSize: '1rem',
@@ -169,18 +299,5 @@ const styles = {
     marginTop: '10px',
   },
 };
-
-// Adding dynamic styling for input focus effect
-document.addEventListener('focusin', (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
-    e.target.style.borderColor = '#007bff';
-  }
-});
-
-document.addEventListener('focusout', (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
-    e.target.style.borderColor = '#ced4da';
-  }
-});
 
 export default Register;

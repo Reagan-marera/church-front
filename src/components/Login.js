@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode'; // Use named import
 
 const Login = ({ setToken, setRole, setTransactions }) => {
   const [username, setUsername] = useState('');
@@ -17,7 +18,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
     };
 
     try {
-      const response = await fetch('https://finance.boogiecoin.com/login', {
+      const response = await fetch('http://127.0.0.1:5000/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -27,14 +28,18 @@ const Login = ({ setToken, setRole, setTransactions }) => {
 
       if (response.ok) {
         const data = await response.json();
+
+        // Decode the JWT token to get the username
+        const decodedToken = jwtDecode(data.token); // Use jwtDecode
+        const decodedUsername = decodedToken.username;
+
+        console.log('Decoded username:', decodedUsername); // Check the decoded username
+
         setToken(data.token);  // Set the token in the parent component
         setRole(data.role);    // Set the role in the parent component
         localStorage.setItem('token', data.token);  // Save token to localStorage
-
-        // If the role is 'CEO', fetch all transactions
-        if (data.role === 'CEO') {
-          fetchTransactions(data.token);  // Fetch all transactions
-        }
+        localStorage.setItem('userId', data.userId); // Save userId to localStorage
+        localStorage.setItem('username', decodedUsername); // Save decoded username to localStorage
 
         navigate('/'); // Redirect to home page after successful login
       } else {
@@ -44,28 +49,6 @@ const Login = ({ setToken, setRole, setTransactions }) => {
     } catch (error) {
       console.error('Error:', error);
       setErrorMessage('An error occurred during login');
-    }
-  };
-
-  // Fetch all transactions if the user is a CEO
-  const fetchTransactions = async (token) => {
-    try {
-      const response = await fetch('https://finance.boogiecoin.com/transactions', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setTransactions(data);  // Set transactions in the parent component
-      } else {
-        console.error('Failed to fetch transactions');
-      }
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
     }
   };
 
@@ -100,7 +83,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
   );
 };
 
-// Styles
+// Styles (same as previous)
 const styles = {
   container: {
     maxWidth: '500px',
