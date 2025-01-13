@@ -19,20 +19,19 @@ const Register = () => {
     setErrorMessage('');
     setSuccessMessage('');
   
-    // Construct the user data to send in the request
     const userData = {
       username,
       email,
       password,
       role,
       church: role === 'Church CEO' ? {
-        name: churchData.name,  // Correctly sending church name
-        address: churchData.address,  // Correctly sending church address
-        phone_number: churchData.phoneNumber,  // Correctly sending phone number
-        email: churchData.churchEmail  // Correctly sending church email
+        name: churchData.name,  
+        address: churchData.address,  
+        phone_number: churchData.phoneNumber,  
+        email: churchData.churchEmail  
       } : undefined,
   
-      // Send additional fields for the "Member" role
+      
       ...(role === 'Member' && {
         residence,
         phone_number: phoneNumber,
@@ -125,15 +124,18 @@ const Register = () => {
           <div>
             <h3>Church Information</h3>
             <div style={styles.formGroup}>
-              <label>Church Name:</label>
-              <input
-                type="text"
-                value={churchData.name}
-                onChange={(e) => setChurchData({ ...churchData, name: e.target.value })}
-                required
-                style={styles.input}
-              />
-            </div>
+  <label>Church Name:</label>
+  <input
+    type="text"
+    value={churchData.name}
+    onChange={(e) =>
+      setChurchData({ ...churchData, name: e.target.value.toLowerCase() })  // Convert to lowercase
+    }
+    required
+    style={styles.input}
+  />
+</div>
+
             <div style={styles.formGroup}>
               <label>Church Address:</label>
               <input
@@ -210,15 +212,16 @@ const Register = () => {
       />
     </div>
     <div style={styles.formGroup}>
-      <label>Church Name:</label>
-      <input
-        type="text"
-        value={churchName}
-        onChange={(e) => setChurchName(e.target.value)}
-        required
-        style={styles.input}
-      />
-    </div>
+  <label>Church Name:</label>
+  <input
+    type="text"
+    value={churchName}
+    onChange={(e) => setChurchName(e.target.value.toLowerCase())} 
+    required
+    style={styles.input}
+  />
+</div>
+
   </>
 )}
 

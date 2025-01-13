@@ -4,13 +4,14 @@ const ChartOfAccountsTable = () => {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [editingAccountId, setEditingAccountId] = useState(null); // Track editing state
 
   // State for the form inputs
   const [formData, setFormData] = useState({
     parent_account: '',
     account_name: '',
     account_type: '',
-    sub_account_details: [{ name: '' }], // Removed description
+    sub_account_details: [{ id: '', name: '', opening_balance: '', balance_type: 'debit' }],
   });
 
   // Handle input change for the form
@@ -36,7 +37,10 @@ const ChartOfAccountsTable = () => {
   const handleAddSubAccount = () => {
     setFormData({
       ...formData,
-      sub_account_details: [...formData.sub_account_details, { name: '' }], // Removed description
+      sub_account_details: [
+        ...formData.sub_account_details,
+        { id: '', name: '', opening_balance: '', balance_type: 'debit' }, // New subaccount without an ID
+      ],
     });
   };
 
@@ -49,18 +53,35 @@ const ChartOfAccountsTable = () => {
     });
   };
 
+  // Function to generate unique ID for subaccounts that don't have one
+  const generateSubAccountId = (subAccount) => {
+    if (!subAccount.id) {
+      subAccount.id = `subaccount-${Date.now()}`; // Generate unique ID using current timestamp
+    }
+  };
+
   // Handle form submission
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+
+    // Ensure each subaccount has an ID
+    formData.sub_account_details.forEach(generateSubAccountId);
+
     const token = localStorage.getItem('token');
     if (!token) {
       setError('Authentication token is missing.');
       return;
     }
 
+    const url = editingAccountId
+      ? `http://127.0.0.1:5000/chart-of-accounts/${editingAccountId}` // For updating
+      : 'http://127.0.0.1:5000/chart-of-accounts'; // For creating new
+
+    const method = editingAccountId ? 'PUT' : 'POST'; // POST for creating, PUT for updating
+
     try {
-      const response = await fetch('https://finance.boogiecoin.com/chart-of-accounts', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
@@ -69,25 +90,69 @@ const ChartOfAccountsTable = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create new account');
+        throw new Error('Failed to save data');
       }
 
-      const newAccount = await response.json();
-      // Reload accounts data after adding new account
-      fetchAccounts();
+      const result = await response.json();
+      fetchAccounts(); // Reload accounts
+      setEditingAccountId(null); // Reset editing state
+
+      // Clear the form after submission
       setFormData({
         parent_account: '',
         account_name: '',
         account_type: '',
-        sub_account_details: [{ name: '' }], // Reset subaccount details
+        sub_account_details: [{ id: '', name: '', opening_balance: '', balance_type: 'debit' }],
       });
-      alert(newAccount.message); // Show success message
+      alert(result.message); // Show success message
     } catch (error) {
       setError(error.message);
     }
   };
 
-  // Handle deletion of an account
+  // Fetch accounts from the server
+  const fetchAccounts = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Authentication token is missing.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('http://127.0.0.1:5000/chart-of-accounts', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch data');
+      }
+
+      const data = await response.json();
+      setAccounts(data); // Populate the accounts list
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle edit button click
+  const handleEdit = (account) => {
+    setEditingAccountId(account.id); // Set the ID of the account being edited
+    setFormData({
+      parent_account: account.parent_account,
+      account_name: account.account_name,
+      account_type: account.account_type,
+      sub_account_details: account.sub_account_details || [{ id: '', name: '', opening_balance: '', balance_type: 'debit' }],
+    });
+  };
+
+  // Handle delete button click
   const handleDelete = async (accountId) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -96,7 +161,7 @@ const ChartOfAccountsTable = () => {
     }
 
     try {
-      const response = await fetch(`https://finance.boogiecoin.com/chart-of-accounts/${accountId}`, {
+      const response = await fetch(`http://127.0.0.1:5000/chart-of-accounts/${accountId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -108,8 +173,7 @@ const ChartOfAccountsTable = () => {
         throw new Error('Failed to delete account');
       }
 
-      // Remove the deleted account from the local state
-      setAccounts(accounts.filter(account => account.id !== accountId));
+      setAccounts(accounts.filter((account) => account.id !== accountId)); // Update the list after deletion
       alert('Account deleted successfully');
     } catch (error) {
       setError(error.message);
@@ -117,62 +181,17 @@ const ChartOfAccountsTable = () => {
   };
 
   useEffect(() => {
-    fetchAccounts();
+    fetchAccounts(); // Fetch the accounts when the component mounts
   }, []);
 
-  const fetchAccounts = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setError('Authentication token is missing.');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await fetch('https://finance.boogiecoin.com/chart-of-accounts', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        // Check for unauthorized access (e.g., token expiration)
-        if (response.status === 401) {
-          setError('Session expired. Please log in again.');
-        } else {
-          setError('Failed to fetch data');
-        }
-        return;
-      }
-
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        setAccounts(data);
-      } else {
-        setError('The data received is not an array.');
-      }
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return <p>Loading...</p>;
-  }
-
-  if (error) {
-    return <p style={{ color: 'red' }}>Error: {error}</p>;
-  }
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p style={{ color: 'red' }}>Error: {error}</p>;
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.heading}>Chart of Accounts</h2>
+      <h2 style={styles.heading}>{editingAccountId ? 'Edit Account' : 'Add New Account'}</h2>
 
-      {/* Form to create a new account */}
+      {/* Form to create or edit an account */}
       <form onSubmit={handleFormSubmit} style={styles.form}>
         <div style={styles.formGroup}>
           <label style={styles.label}>Account Type:</label>
@@ -223,6 +242,27 @@ const ChartOfAccountsTable = () => {
                   style={styles.input}
                 />
               </div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Opening Balance:</label>
+                <input
+                  type="number"
+                  value={subAccount.opening_balance}
+                  onChange={(e) => handleSubAccountChange(index, 'opening_balance', e.target.value)}
+                  placeholder={`Enter Opening Balance ${index + 1}`}
+                  style={styles.input}
+                />
+              </div>
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Balance Type:</label>
+                <select
+                  value={subAccount.balance_type}
+                  onChange={(e) => handleSubAccountChange(index, 'balance_type', e.target.value)}
+                  style={styles.input}
+                >
+                  <option value="debit">Debit</option>
+                  <option value="credit">Credit</option>
+                </select>
+              </div>
               <button
                 type="button"
                 onClick={() => handleRemoveSubAccount(index)}
@@ -237,14 +277,15 @@ const ChartOfAccountsTable = () => {
           </button>
         </div>
 
-        <button type="submit" style={styles.button}>Add Account</button>
+        <button type="submit" style={styles.button}>
+          {editingAccountId ? 'Update Account' : 'Add Account'}
+        </button>
       </form>
 
       {/* Table for displaying accounts */}
       <table style={styles.table}>
         <thead>
           <tr>
-            <th style={styles.tableHeader}>ID</th>
             <th style={styles.tableHeader}>Account Type</th>
             <th style={styles.tableHeader}>Account Class</th>
             <th style={styles.tableHeader}>Parent Account</th>
@@ -255,12 +296,11 @@ const ChartOfAccountsTable = () => {
         <tbody>
           {accounts.length === 0 ? (
             <tr>
-              <td colSpan="6" style={styles.tableCell}>No accounts available.</td>
+              <td colSpan="5" style={styles.tableCell}>No accounts available.</td>
             </tr>
           ) : (
-            accounts.map(account => (
+            accounts.map((account) => (
               <tr key={account.id} style={styles.tableRow}>
-                <td style={styles.tableCell}>{account.id}</td>
                 <td style={styles.tableCell}>{account.account_type}</td>
                 <td style={styles.tableCell}>{account.account_name}</td>
                 <td style={styles.tableCell}>{account.parent_account}</td>
@@ -268,16 +308,18 @@ const ChartOfAccountsTable = () => {
                   {account.sub_account_details && account.sub_account_details.length > 0
                     ? account.sub_account_details.map((sub, idx) => (
                         <div key={idx}>
-                          <strong>{sub.name}</strong>
+                          <strong>{sub.name}</strong> - Opening Balance: 
+                          <span style={sub.balance_type === 'credit' ? { color: 'red' } : { color: 'green' }}>
+                            {sub.opening_balance}
+                          </span>
+                          ({sub.balance_type === 'credit' ? 'Credit' : 'Debit'})
                         </div>
                       ))
                     : 'No subaccounts'}
                 </td>
                 <td style={styles.tableCell}>
-                  <button
-                    onClick={() => handleDelete(account.id)}
-                    style={styles.deleteButton}
-                  >
+                  <button onClick={() => handleEdit(account)} style={styles.editButton}>Edit</button>
+                  <button onClick={() => handleDelete(account.id)} style={styles.deleteButton}>
                     Delete
                   </button>
                 </td>
@@ -289,129 +331,78 @@ const ChartOfAccountsTable = () => {
     </div>
   );
 };
+
 const styles = {
   container: {
-    margin: '0 auto',
-    padding: '30px',
-    maxWidth: '1200px',
-    backgroundColor: '#ffffff',
-    borderRadius: '10px',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-    fontFamily: 'Helvetica, Arial, sans-serif', // World Bank typical font family
+    padding: '20px',
   },
   heading: {
-    textAlign: 'center',
-    marginBottom: '30px',
-    fontSize: '2.2rem',
-    fontWeight: '600',
-    color: '#005f87', // World Bank blue shade
+    fontSize: '24px',
+    marginBottom: '20px',
   },
   form: {
-    marginBottom: '30px',
+    marginBottom: '20px',
   },
   formGroup: {
-    marginBottom: '15px',
+    marginBottom: '10px',
   },
   label: {
-    display: 'block',
-    fontWeight: '500',
-    marginBottom: '8px',
-    fontSize: '1.1rem',
-    color: '#333', // Dark grey for readability
+    fontWeight: 'bold',
   },
   input: {
     width: '100%',
-    padding: '12px 15px',
-    fontSize: '1rem',
-    borderRadius: '5px',
-    border: '1px solid #d1e0e9', // Light blue-gray border
-    outline: 'none',
-    transition: 'border 0.3s ease',
-  },
-  inputFocus: {
-    border: '1px solid #005f87', // World Bank blue on focus
-  },
-  button: {
-    backgroundColor: '#005f87', // World Bank blue
-    color: 'white',
-    border: 'none',
-    padding: '12px 20px',
-    fontSize: '1rem',
-    borderRadius: '5px',
-    cursor: 'pointer',
-    transition: 'background-color 0.3s ease',
-  },
-  buttonHover: {
-    backgroundColor: '#003f5c', // Darker blue on hover
+    padding: '8px',
+    marginTop: '5px',
+    borderRadius: '4px',
+    border: '1px solid #ccc',
   },
   addButton: {
-    backgroundColor: '#007bff', // Slightly lighter blue for add action
+    backgroundColor: '#4CAF50',
     color: 'white',
+    padding: '10px 15px',
     border: 'none',
-    padding: '12px 20px',
-    fontSize: '1rem',
-    borderRadius: '5px',
     cursor: 'pointer',
-    transition: 'background-color 0.3s ease',
+    marginTop: '10px',
   },
   removeButton: {
-    backgroundColor: '#f0ad4e', // Light orange for remove
+    backgroundColor: '#f44336',
     color: 'white',
+    padding: '5px 10px',
     border: 'none',
-    padding: '8px 12px',
-    fontSize: '0.9rem',
-    borderRadius: '5px',
     cursor: 'pointer',
-    marginTop: '5px',
-    transition: 'background-color 0.3s ease',
+    marginTop: '10px',
   },
-  deleteButton: {
-    backgroundColor: '#d9534f', // Red for delete action
+  button: {
+    backgroundColor: '#4CAF50',
     color: 'white',
+    padding: '10px 15px',
     border: 'none',
-    padding: '8px 12px',
-    fontSize: '0.9rem',
-    borderRadius: '5px',
     cursor: 'pointer',
-    transition: 'background-color 0.3s ease',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
-    marginTop: '30px',
+    marginTop: '20px',
   },
   tableHeader: {
-    backgroundColor: '#f0f8ff', // Light blue-gray for table headers
-    color: '#003f5c', // World Bank dark blue
-    padding: '15px 20px',
-    border: '1px solid #e0e7f1',
+    backgroundColor: '#f2f2f2',
+    padding: '10px',
     textAlign: 'left',
-    fontSize: '1rem',
-    fontWeight: '600',
-  },
-  tableRow: {
-    borderBottom: '1px solid #e0e7f1',
   },
   tableCell: {
-    padding: '15px 20px',
-    textAlign: 'left',
-    fontSize: '1rem',
-    color: '#333', // Standard dark text for readability
+    padding: '10px',
+    border: '1px solid #ccc',
   },
-  tableCellActions: {
-    padding: '15px 20px',
-    textAlign: 'center',
-    fontSize: '1rem',
+  tableRow: {
+    backgroundColor: '#ffffff',
   },
-  alert: {
-    padding: '10px 15px',
-    backgroundColor: '#f8d7da', // Light red background for alerts
-    color: '#721c24',
-    borderRadius: '5px',
-    marginTop: '15px',
-    marginBottom: '15px',
+  deleteButton: {
+    backgroundColor: '#f44336',
+    color: 'white',
+    padding: '5px 10px',
+    border: 'none',
+    cursor: 'pointer',
   },
 };
-
 
 export default ChartOfAccountsTable;

@@ -6,6 +6,11 @@ const Login = ({ setToken, setRole, setTransactions }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [email, setEmail] = useState(''); // For Forgot Password
+  const [otp, setOtp] = useState(''); // For OTP verification
+  const [newPassword, setNewPassword] = useState(''); // For resetting the password
+  const [showForgotPassword, setShowForgotPassword] = useState(false); // To toggle the Forgot Password form
+  const [showOtpVerification, setShowOtpVerification] = useState(false); // To toggle OTP verification
   const navigate = useNavigate(); // Use navigate hook
 
   const handleSubmit = async (e) => {
@@ -52,6 +57,96 @@ const Login = ({ setToken, setRole, setTransactions }) => {
     }
   };
 
+  const handleForgotPasswordSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+
+    if (!email) {
+      setErrorMessage('Please enter your email.');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://127.0.0.1:5000/request_reset_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (response.ok) {
+        alert('OTP sent to your email. Please check your inbox.');
+        setShowOtpVerification(true); // Show OTP form
+        setShowForgotPassword(false); // Hide forgot password form
+      } else {
+        const data = await response.json();
+        setErrorMessage(data.error || 'Failed to send OTP');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setErrorMessage('An error occurred during password reset request');
+    }
+  };
+
+  const handleOtpVerificationSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+
+    if (!otp || !email) {
+      setErrorMessage('Please enter the OTP and email.');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://127.0.0.1:5000/verify_otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp }),
+      });
+
+      if (response.ok) {
+        alert('OTP verified successfully!');
+        setShowOtpVerification(false);
+        setShowForgotPassword(false);
+        // Proceed to reset password form
+      } else {
+        const data = await response.json();
+        setErrorMessage(data.error || 'Invalid OTP');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setErrorMessage('An error occurred during OTP verification');
+    }
+  };
+
+  const handlePasswordResetSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+
+    if (!newPassword || !email || !otp) {
+      setErrorMessage('Please enter your new password, email, and OTP.');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://127.0.0.1:5000/reset_password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp, new_password: newPassword }),
+      });
+
+      if (response.ok) {
+        alert('Password reset successfully!');
+        navigate('/'); // Redirect to login or home page
+      } else {
+        const data = await response.json();
+        setErrorMessage(data.error || 'Failed to reset password');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setErrorMessage('An error occurred during password reset');
+    }
+  };
+
   return (
     <div style={styles.container}>
       <h2 style={styles.heading}>Login</h2>
@@ -79,11 +174,60 @@ const Login = ({ setToken, setRole, setTransactions }) => {
         {errorMessage && <p style={styles.error}>{errorMessage}</p>}
         <button type="submit" style={styles.button}>Login</button>
       </form>
+
+      {/* Forgot Password link */}
+      <p style={styles.forgotPassword} onClick={() => setShowForgotPassword(true)}>Forgot Password?</p>
+
+      {/* Forgot Password form */}
+      {showForgotPassword && (
+        <div style={styles.forgotPasswordModal}>
+          <h3>Forgot Password</h3>
+          <input
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={styles.input}
+          />
+          <button onClick={handleForgotPasswordSubmit} style={styles.button}>Send OTP</button>
+          <p style={styles.cancel} onClick={() => setShowForgotPassword(false)}>Cancel</p>
+        </div>
+      )}
+
+      {/* OTP Verification form */}
+      {showOtpVerification && (
+        <div style={styles.forgotPasswordModal}>
+          <h3>Verify OTP</h3>
+          <input
+            type="text"
+            placeholder="Enter OTP"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            style={styles.input}
+          />
+          <button onClick={handleOtpVerificationSubmit} style={styles.button}>Verify OTP</button>
+        </div>
+      )}
+
+      {/* Reset Password form */}
+      {showOtpVerification && (
+        <div style={styles.forgotPasswordModal}>
+          <h3>Reset Password</h3>
+          <input
+            type="password"
+            placeholder="Enter New Password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            style={styles.input}
+          />
+          <button onClick={handlePasswordResetSubmit} style={styles.button}>Reset Password</button>
+        </div>
+      )}
     </div>
   );
 };
 
-// Styles (same as previous)
+// Styles (same as previous, with additions for Forgot Password)
 const styles = {
   container: {
     maxWidth: '500px',
@@ -142,6 +286,25 @@ const styles = {
   error: {
     color: '#e74c3c',
     fontSize: '1rem',
+    marginTop: '10px',
+  },
+  forgotPassword: {
+    color: '#007bff',
+    cursor: 'pointer',
+    textAlign: 'center',
+    marginTop: '15px',
+  },
+  forgotPasswordModal: {
+    marginTop: '20px',
+    padding: '20px',
+    backgroundColor: '#f7f9fc',
+    borderRadius: '10px',
+    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+  },
+  cancel: {
+    textAlign: 'center',
+    color: '#007bff',
+    cursor: 'pointer',
     marginTop: '10px',
   },
 };

@@ -32,6 +32,11 @@ const Navbar = ({ token, role }) => {
         <li><Link to="/cash-receipt-journal" style={styles.navLink}>Cash Receipt Journal</Link></li>
         <li><Link to="/cash-disbursement-journal" style={styles.navLink}>Cash Disbursement Journal</Link></li>
 
+        {/* Financial Report Link (protected) */}
+        {storedToken && (
+          <li><Link to="/financial-report" style={styles.navLink}>Financial Report</Link></li>
+        )}
+
         {/* Show the Dashboard link only if the user is logged in */}
         {storedToken && (
           <li><Link to="/dashboard" style={styles.navLink}>Dashboard</Link></li>
@@ -51,6 +56,11 @@ const Navbar = ({ token, role }) => {
             <li><Link to="/create-pledge" style={styles.navLink}>Create Pledge</Link></li>
             <li><Link to={`/member/${storedUserId}`} style={styles.navLink}>Member Info</Link></li>
           </>
+        )}
+
+        {/* Show Payment link only if the user is logged in */}
+        {storedToken && (
+          <li><Link to="/payment-form" style={styles.navLink}>Payment</Link></li>
         )}
 
         {/* Show Logout link only for logged-in users */}

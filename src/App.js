@@ -12,6 +12,8 @@ import Dashboard from './components/Dashboard'; // Import Dashboard component
 import Home from './Home';
 import MemberInfo from './components/MemberInfo';
 import CreatePledge from './components/CreatePledge';
+import PaymentForm from './components/Stk';
+import FinancialReport from './components/FinancialReport';
 
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
@@ -21,16 +23,15 @@ function App() {
   // Fetch username and token from localStorage
   useEffect(() => {
     const storedUsername = localStorage.getItem('username');
+    const storedToken = localStorage.getItem('token');
+    const storedRole = localStorage.getItem('role');
+    
     if (storedUsername) {
       setUsername(storedUsername);
     } else {
       console.log('No username found');
     }
-  }, []);
 
-  useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    const storedRole = localStorage.getItem('role');
     if (storedToken) {
       setToken(storedToken);
       setRole(storedRole);
@@ -62,7 +63,7 @@ function App() {
           <Route path="/invoices" element={<ProtectedRoute><InvoicesTable /></ProtectedRoute>} />
           <Route path="/cash-receipt-journal" element={<ProtectedRoute><CashReceiptJournalTable /></ProtectedRoute>} />
           <Route path="/cash-disbursement-journal" element={<ProtectedRoute><CashDisbursementJournalTable /></ProtectedRoute>} />
-          
+
           {/* Home Route */}
           <Route path="/" element={<Home />} />
 
@@ -70,12 +71,43 @@ function App() {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
           {/* Member Info Route (protected) */}
-          <Route path="/member/:user_id" element={<ProtectedRoute><MemberInfo /></ProtectedRoute>} />
+          <Route
+            path="/member/:user_id"
+            element={
+              <ProtectedRoute>
+                <MemberInfo />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Create Pledge Route (protected) */}
-          <Route 
-            path="/create-pledge" 
-            element={<ProtectedRoute><CreatePledge username={username} /></ProtectedRoute>} 
+          <Route
+            path="/create-pledge"
+            element={
+              <ProtectedRoute>
+                <CreatePledge username={username} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Payment Form Route (protected) */}
+          <Route
+            path="/payment-form"
+            element={
+              <ProtectedRoute>
+                <PaymentForm />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Financial Report Route (protected) */}
+          <Route
+            path="/financial-report"
+            element={
+              <ProtectedRoute>
+                <FinancialReport />
+              </ProtectedRoute>
+            }
           />
         </Routes>
       </div>
