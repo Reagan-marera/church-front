@@ -37,6 +37,9 @@ const Navbar = ({ token, role }) => {
           <li><Link to="/financial-report" style={styles.navLink}>Financial Report</Link></li>
         )}
 
+        {/* Show General Report link to all users, no token required */}
+        <li><Link to="/general-report" style={styles.navLink}>General Report</Link></li>
+
         {/* Show the Dashboard link only if the user is logged in */}
         {storedToken && (
           <li><Link to="/dashboard" style={styles.navLink}>Dashboard</Link></li>

@@ -14,6 +14,7 @@ import MemberInfo from './components/MemberInfo';
 import CreatePledge from './components/CreatePledge';
 import PaymentForm from './components/Stk';
 import FinancialReport from './components/FinancialReport';
+import GeneralReport from './components/GeneralReport'; // Add the import for GeneralReport
 
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
@@ -41,6 +42,14 @@ function App() {
   // ProtectedRoute component to wrap around routes that require authentication
   const ProtectedRoute = ({ children }) => {
     if (!token) {
+      return <Navigate to="/login" replace />;
+    }
+    return children;
+  };
+
+  // ProtectedRouteWithRole component for role-based protection (admin, user, etc.)
+  const ProtectedRouteWithRole = ({ children, allowedRoles }) => {
+    if (!token || !allowedRoles.includes(role)) {
       return <Navigate to="/login" replace />;
     }
     return children;
@@ -109,6 +118,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+<Route
+          path="/general-report"
+          element={
+            <ProtectedRoute>
+              <GeneralReport />
+            </ProtectedRoute>
+          }
+        />
         </Routes>
       </div>
     </Router>
