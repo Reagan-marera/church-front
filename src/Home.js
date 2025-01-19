@@ -17,7 +17,15 @@ function Home() {
     <div className="App">
       {/* Loader */}
       {loading ? (
-        <div className="loader">Loading...</div>
+        <div className="loader">
+          <div className="juggler">
+            <div className="person"></div>
+            <div className="juggling-ball"></div>
+            <div className="juggling-ball"></div>
+            <div className="juggling-ball"></div>
+          </div>
+          <div className="loader-text">Loading...</div>
+        </div>
       ) : (
         <>
           {/* Navigation Bar */}
@@ -26,7 +34,7 @@ function Home() {
           {/* Hero Section */}
           <header className="hero">
             <div className="hero-content">
-              <h1>Non-Profit Making Organizations Financial Management tool kit</h1>
+              <h1>Non-Profit Making Organizations Financial Management Tool Kit</h1>
               <h2>For Schools, Churches, and NGOs</h2>
               <p>Manage your invoices, disbursements, receipts, and transactions all in one place.</p>
               <Link to="/register" className="cta-button">Get Started</Link>

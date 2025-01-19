@@ -1,0 +1,85 @@
+/* Container for the entire balance sheet */
+.balance-sheet-container {
+    width: 80%;
+    margin: 20px auto;
+    font-family: Arial, sans-serif;
+  }
+  
+  /* Title styles */
+  h1 {
+    text-align: center;
+    color: #2c3e50;
+  }
+  
+  /* Summary section for assets, liabilities, and equity */
+  .summary {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 30px;
+  }
+  
+  .summary-item {
+    background-color: #ecf0f1;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    width: 30%;
+  }
+  
+  .summary-item h3 {
+    color: #34495e;
+    margin: 0;
+  }
+  
+  .summary-item p {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 5px 0 0 0;
+  }
+  
+  /* Balance check section */
+  .balance-check {
+    margin-bottom: 30px;
+    text-align: center;
+  }
+  
+  .balance-check h4 {
+    color: #e74c3c;
+    margin: 0;
+  }
+  
+  .balance-check p {
+    font-size: 18px;
+    font-weight: bold;
+    color: #27ae60;
+  }
+  
+  /* Table styles */
+  .balance-sheet-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .balance-sheet-table th, .balance-sheet-table td {
+    padding: 12px;
+    text-align: left;
+    border: 1px solid #bdc3c7;
+  }
+  
+  .balance-sheet-table th {
+    background-color: #2c3e50;
+    color: white;
+  }
+  
+  .balance-sheet-table tbody tr:nth-child(even) {
+    background-color: #f4f6f7;
+  }
+  
+  /* Loading and error styles */
+  .loading, .error {
+    text-align: center;
+    font-size: 20px;
+    color: #e74c3c;
+  }
+  

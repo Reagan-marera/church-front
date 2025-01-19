@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './trialbalance.css'; // Import the CSS file for styling
+import IncomeStatementComponent from './IncomeStatement'; // Import the Income Statement component
+import BalanceSheet from './BalanceSheet'; // Import the Balance Sheet component
 
 const TrialBalanceComponent = () => {
   const [trialBalance, setTrialBalance] = useState([]);
@@ -7,6 +9,7 @@ const TrialBalanceComponent = () => {
   const [error, setError] = useState(null);
   const [selectedParentAccount, setSelectedParentAccount] = useState('');
   const [parentAccounts, setParentAccounts] = useState([]);
+  const [selectedReport, setSelectedReport] = useState('trialBalance'); // State to manage which report to show
   const token = 'your-token-here'; // Replace with your actual token
 
   useEffect(() => {
@@ -47,7 +50,7 @@ const TrialBalanceComponent = () => {
         console.error('Error fetching trial balance:', error);
       })
       .finally(() => {
-        clearTimeout(loaderTimeout); // Clear the timeout when data is fetched or error occurs
+        clearTimeout(loaderTimeout); // Clear timeout when data is fetched or error occurs
         setLoading(false);
       });
 
@@ -82,61 +85,86 @@ const TrialBalanceComponent = () => {
 
   return (
     <div className="financial-report">
+      {/* Report Selector */}
+      <div className="report-selector">
+        <label htmlFor="reportSelector">Select Report:</label>
+        <select
+          id="reportSelector"
+          value={selectedReport}
+          onChange={(e) => setSelectedReport(e.target.value)}
+        >
+          <option value="trialBalance">Trial Balance</option>
+          <option value="incomeStatement">Income Statement</option>
+          <option value="balanceSheet">Balance Sheet</option> {/* Added Balance Sheet option */}
+        </select>
+      </div>
+
+      {/* Show Loading Spinner or Error Message */}
       {loading && (
         <div className="loader-overlay">
           <div className="spinner"></div>
         </div>
       )}
       {error && <div className="error-message">Error: {error}</div>}
+
+      {/* Conditionally Render the Report Based on Selected Report */}
       {!loading && !error && (
         <div className="content">
-          <h2 className="section-title">Trial Balance</h2>
-          <div className="table-container">
-            <table className="trial-balance-table">
-              <thead>
-                <tr>
-                  <th>Account</th>
-                  <th>Parent Account</th>
-                  <th>Account Type</th> {/* Add Account Type column */}
-                  <th>Debit</th>
-                  <th>Credit</th>
-                  <th>Balance</th>
-                </tr>
-                {/* Parent Account Selector in the Table */}
-                <tr>
-                  <td colSpan="6">
-                    <div className="parent-account-selector">
-                      <label htmlFor="parentAccount">Select Parent Account:</label>
-                      <select
-                        id="parentAccount"
-                        value={selectedParentAccount}
-                        onChange={(e) => setSelectedParentAccount(e.target.value)}
-                      >
-                        <option value="">All Parent Accounts</option>
-                        {parentAccounts.map((parentAccount, index) => (
-                          <option key={index} value={parentAccount}>
-                            {parentAccount}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </td>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTrialBalance.map((account, index) => (
-                  <tr key={index}>
-                    <td>{account.account_name}</td>
-                    <td>{account.parent_account}</td> {/* Display Parent Account */}
-                    <td>{account.account_type}</td> {/* Display Account Type */}
-                    <td>{formatNumber(account.debit)}</td>
-                    <td>{formatNumber(account.credit)}</td>
-                    <td>{formatNumber(calculateBalance(account))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {selectedReport === 'trialBalance' ? (
+            <div>
+              <h2 className="section-title">Trial Balance</h2>
+              <div className="table-container">
+                <table className="trial-balance-table">
+                  <thead>
+                    <tr>
+                      <th>Account</th>
+                      <th>Parent Account</th>
+                      <th>Account Type</th> {/* Add Account Type column */}
+                      <th>Debit</th>
+                      <th>Credit</th>
+                      <th>Balance</th>
+                    </tr>
+                    {/* Parent Account Selector in the Table */}
+                    <tr>
+                      <td colSpan="6">
+                        <div className="parent-account-selector">
+                          <label htmlFor="parentAccount">Select Parent Account:</label>
+                          <select
+                            id="parentAccount"
+                            value={selectedParentAccount}
+                            onChange={(e) => setSelectedParentAccount(e.target.value)}
+                          >
+                            <option value="">All Parent Accounts</option>
+                            {parentAccounts.map((parentAccount, index) => (
+                              <option key={index} value={parentAccount}>
+                                {parentAccount}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </td>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTrialBalance.map((account, index) => (
+                      <tr key={index}>
+                        <td>{account.account_name}</td>
+                        <td>{account.parent_account}</td> {/* Display Parent Account */}
+                        <td>{account.account_type}</td> {/* Display Account Type */}
+                        <td>{formatNumber(account.debit)}</td>
+                        <td>{formatNumber(account.credit)}</td>
+                        <td>{formatNumber(calculateBalance(account))}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : selectedReport === 'incomeStatement' ? (
+            <IncomeStatementComponent /> // Render Income Statement
+          ) : selectedReport === 'balanceSheet' ? (
+            <BalanceSheet /> // Render Balance Sheet
+          ) : null}
         </div>
       )}
     </div>
