@@ -4,15 +4,23 @@ import './FinancialReportComponent.css'; // Import the CSS file for styling
 const FinancialReportComponent = () => {
   const [reportData, setReportData] = useState([]);
   const [totals, setTotals] = useState({
-    "10-assets": 0,
-    "50-Expenses": 0,
-    "40-Revenue": 0,
+    assetsReceived: 0,
+    assetsIssued: 0,
+    revenue: 0,
+    expenses: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedParentAccount, setSelectedParentAccount] = useState('');
+  const [parentAccounts, setParentAccounts] = useState([]);
   const token = 'your-token-here'; // Replace with your actual token
 
   useEffect(() => {
+    // Simulate loading time (e.g., 5 seconds)
+    const loaderTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 5000);
+
     fetch('http://127.0.0.1:5000/get_debited_credited_accounts', {
       method: 'GET',
       headers: {
@@ -30,33 +38,63 @@ const FinancialReportComponent = () => {
         const accountArray = data.data || [];
         setReportData(accountArray);
 
-        // Initialize totals for account types we care about
-        const accountTypes = {
-          "10-assets": 0,
-          "50-Expenses": 0,
-          "40-Revenue": 0,
-        };
+        // Collect distinct parent accounts
+        const distinctParentAccounts = [
+          ...new Set(accountArray.map((account) => account.parent_account).filter(Boolean)),
+        ];
+        setParentAccounts(distinctParentAccounts);
 
-        // Iterate over the accounts to sum totals for each account type
+        // Initialize totals for received and issued assets, revenue, and expenses
+        let assetsReceived = 0;
+        let assetsIssued = 0;
+        let revenue = 0;
+        let expenses = 0;
+
+        // Iterate over the accounts to calculate totals based on account type
         accountArray.forEach((account) => {
           const amount = Number(account.total_amount) || 0;
           const accountType = account.account_type || 'Unknown';
+          const grnNumber = account.grn_number;
 
-          // Add the amount to the respective account type if it is one of the ones we care about
-          if (accountTypes.hasOwnProperty(accountType)) {
-            accountTypes[accountType] += amount;
+          // For assets received (GRN present)
+          if (accountType === "10-assets" && grnNumber) {
+            assetsReceived += amount;
+          }
+
+          // For assets issued (GRN absent)
+          if (accountType === "10-assets" && !grnNumber) {
+            assetsIssued += amount;
+          }
+
+          // For revenue
+          if (accountType === "40-Revenue") {
+            revenue += amount;
+          }
+
+          // For expenses
+          if (accountType === "50-Expenses") {
+            expenses += amount;
           }
         });
 
-        setTotals(accountTypes); // Store the totals for each account type
+        setTotals({
+          assetsReceived,
+          assetsIssued,
+          revenue,
+          expenses,
+        });
       })
       .catch((error) => {
         setError(error.message);
         console.error('Error fetching general report:', error);
       })
       .finally(() => {
+        clearTimeout(loaderTimeout); // Clear the timeout when data is fetched or error occurs
         setLoading(false);
       });
+
+    // Cleanup timeout in case the component is unmounted before the timeout finishes
+    return () => clearTimeout(loaderTimeout);
   }, [token]);
 
   const formatDate = (dateString) => {
@@ -64,10 +102,34 @@ const FinancialReportComponent = () => {
     return date.toLocaleDateString('en-GB');
   };
 
+  // Calculate the closing balance for each asset, revenue, and expense account
+  const calculateClosingBalance = (openingBalance, receivedAssets, issuedAssets, revenue, expenses) => {
+    let closingBalance = openingBalance;
+
+    // For Assets
+    closingBalance += receivedAssets;  // Add received assets
+    closingBalance += issuedAssets;    // Subtract issued assets
+
+    // For Revenue (Add to balance)
+    closingBalance += revenue;
+
+    // For Expenses (Subtract from balance)
+    closingBalance -= expenses;
+
+    return closingBalance;
+  };
+
+  // Filter report data based on selected parent account
+  const filteredReportData = selectedParentAccount
+    ? reportData.filter(
+        (account) => account.parent_account === selectedParentAccount
+      )
+    : reportData;
+
   return (
     <div className="financial-report">
       {loading && (
-        <div className="loader">
+        <div className="loader-overlay">
           <div className="spinner"></div>
         </div>
       )}
@@ -78,130 +140,236 @@ const FinancialReportComponent = () => {
           <table className="financial-table">
             <thead>
               <tr>
-                <th>Account Type</th>
+                <th>Category</th>
                 <th>Total Amount</th>
               </tr>
             </thead>
             <tbody>
+              {/* Assets Received (GRN Present) */}
               <tr>
-                <td>10-assets</td>
-                <td>{totals["10-assets"].toFixed(2)}</td>
+                <td>Assets Received</td>
+                <td>{totals.assetsReceived.toFixed(2)}</td>
               </tr>
+
+              {/* Assets Issued (GRN Absent) */}
               <tr>
-                <td>20-Liabilities</td>
-                <td>{totals["20-Liabilities"] || 0}</td>
+                <td>Assets Issued</td>
+                <td>{totals.assetsIssued.toFixed(2)}</td>
               </tr>
+
+              {/* Revenue */}
               <tr>
-                <td>30-Equity</td>
-                <td>{totals["30-Equity"] || 0}</td>
+                <td>Revenue</td>
+                <td>{totals.revenue.toFixed(2)}</td>
               </tr>
+
+              {/* Expenses */}
               <tr>
-                <td>40-Revenue</td>
-                <td>{totals["40-Revenue"].toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td>50-Expenses</td>
-                <td>{totals["50-Expenses"].toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td>60-Cost Of Goods Sold</td>
-                <td>{totals["60-Cost Of Goods Sold"] || 0}</td>
+                <td>Expenses</td>
+                <td>{totals.expenses.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
 
-          {/* 10-Assets Transactions */}
-          <h3 className="section-title">10-Assets Transactions</h3>
+          {/* Parent Account Selector */}
+          <div className="parent-account-selector">
+            <label htmlFor="parentAccount">Select Parent Account:</label>
+            <select
+              id="parentAccount"
+              value={selectedParentAccount}
+              onChange={(e) => setSelectedParentAccount(e.target.value)}
+            >
+              <option value="">All Parent Accounts</option>
+              {parentAccounts.map((parentAccount, index) => (
+                <option key={index} value={parentAccount}>
+                  {parentAccount}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Transaction details */}
+          <h3 className="section-title">Transaction Details</h3>
+
+          {/* Assets Received (GRN Present) */}
+          <h4>Assets Received</h4>
           <table className="transaction-table">
             <thead>
               <tr>
                 <th>Cheque No</th>
                 <th>Account Debited</th>
+                <th>Account Class</th>
                 <th>Account Credited</th>
                 <th>Amount</th>
                 <th>Date</th>
                 <th>To Whom Paid</th>
+                <th>Parent Account</th>
+                <th>GRN No.</th>
+                <th>Opening Balance</th>
+                <th>Closing Balance</th>
               </tr>
             </thead>
             <tbody>
-              {reportData
+              {filteredReportData
                 .filter(
                   (account) =>
-                    account.account_type === "10-assets" &&
-                    account.total_amount > 0
+                    account.account_type === "10-assets" && account.grn_number
                 )
-                .map((account, index) => (
-                  <tr key={index}>
-                    <td>{account.cheque_no || "N/A"}</td>
-                    <td>{account.account_debited}</td>
-                    <td>{account.account_credited}</td>
-                    <td>{account.total_amount}</td>
-                    <td>{formatDate(account.date_issued || account.date)}</td>
-                    <td>{account.to_whom_paid || "N/A"}</td>
-                  </tr>
-                ))}
+                .map((account, index) => {
+                  const receivedAssets = Number(account.total_amount) || 0;
+                  const openingBalance = Number(account.opening_balance) || 0;
+                  const closingBalance = calculateClosingBalance(openingBalance, receivedAssets, 0, 0, 0);
+
+                  return (
+                    <tr key={index}>
+                      <td>{account.cheque_no || "N/A"}</td>
+                      <td>{account.account_debited}</td>
+                      <td>{account.account_class}</td>
+                      <td>{account.account_credited}</td>
+                      <td>{account.total_amount}</td>
+                      <td>{formatDate(account.date_issued || account.date)}</td>
+                      <td>{account.to_whom_paid || "N/A"}</td>
+                      <td>{account.parent_account || "N/A"}</td>
+                      <td>{account.grn_number || "N/A"}</td>
+                      <td>{account.opening_balance || "N/A"}</td>
+                      <td>{closingBalance.toFixed(2)}</td> {/* Display closing balance */}
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
 
-          {/* 50-Expenses Transactions */}
-          <h3 className="section-title">50-Expenses Transactions</h3>
+          {/* Assets Issued (GRN Absent) */}
+          <h4>Assets Issued</h4>
           <table className="transaction-table">
             <thead>
               <tr>
                 <th>Cheque No</th>
                 <th>Account Debited</th>
+                <th>Account Class</th>
                 <th>Account Credited</th>
                 <th>Amount</th>
                 <th>Date</th>
                 <th>To Whom Paid</th>
+                <th>Parent Account</th>
+                <th>Opening Balance</th>
+                <th>Closing Balance</th>
               </tr>
             </thead>
             <tbody>
-              {reportData
+              {filteredReportData
                 .filter(
                   (account) =>
-                    account.account_type === "50-Expenses" &&
-                    account.total_amount > 0
+                    account.account_type === "10-assets" && !account.grn_number
                 )
-                .map((account, index) => (
-                  <tr key={index}>
-                    <td>{account.cheque_no || "N/A"}</td>
-                    <td>{account.account_debited}</td>
-                    <td>{account.account_credited}</td>
-                    <td>{account.total_amount}</td>
-                    <td>{formatDate(account.date_issued || account.date)}</td>
-                    <td>{account.to_whom_paid || "N/A"}</td>
-                  </tr>
-                ))}
+                .map((account, index) => {
+                  const issuedAssets = Number(account.total_amount) || 0;
+                  const openingBalance = Number(account.opening_balance) || 0;
+                  const closingBalance = calculateClosingBalance(openingBalance, 0, issuedAssets, 0, 0);
+
+                  return (
+                    <tr key={index}>
+                      <td>{account.cheque_no || "N/A"}</td>
+                      <td>{account.account_debited}</td>
+                      <td>{account.account_class}</td>
+                      <td>{account.account_credited}</td>
+                      <td>{account.total_amount}</td>
+                      <td>{formatDate(account.date_issued || account.date)}</td>
+                      <td>{account.to_whom_paid || "N/A"}</td>
+                      <td>{account.parent_account || "N/A"}</td>
+                      <td>{account.opening_balance || "0"}</td>
+                      <td>{closingBalance.toFixed(2)}</td> {/* Display closing balance */}
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
 
-          {/* 40-Revenue Transactions */}
-          <h3 className="section-title">40-Revenue Transactions</h3>
+          {/* Revenue Transactions (40-Revenue) */}
+          <h4>Revenue Transactions (40-Revenue)</h4>
           <table className="transaction-table">
             <thead>
               <tr>
                 <th>Account Debited</th>
+                <th>Account Class</th>
                 <th>Account Credited</th>
                 <th>Amount</th>
                 <th>Date</th>
+                <th>Parent Account</th>
+                <th>Opening Balance</th>
+                <th>Closing Balance</th>
               </tr>
             </thead>
             <tbody>
-              {reportData
+              {filteredReportData
                 .filter(
                   (account) =>
-                    account.account_type === "40-Revenue" &&
-                    account.total_amount > 0
+                    account.account_type === "40-Revenue"
                 )
-                .map((account, index) => (
-                  <tr key={index}>
-                    <td>{account.account_debited}</td>
-                    <td>{account.account_credited}</td>
-                    <td>{account.total_amount}</td>
-                    <td>{formatDate(account.date_issued || account.date)}</td>
-                  </tr>
-                ))}
+                .map((account, index) => {
+                  const revenue = Number(account.total_amount) || 0;
+                  const openingBalance = Number(account.opening_balance) || 0;
+                  const closingBalance = calculateClosingBalance(openingBalance, 0, 0, revenue, 0);
+
+                  return (
+                    <tr key={index}>
+                      <td>{account.account_debited}</td>
+                      <td>{account.account_class}</td>
+                      <td>{account.account_credited}</td>
+                      <td>{account.total_amount}</td>
+                      <td>{formatDate(account.date_issued || account.date)}</td>
+                      <td>{account.parent_account || "N/A"}</td>
+                      <td>{account.opening_balance || "0"}</td>
+                      <td>{closingBalance.toFixed(2)}</td> {/* Display closing balance */}
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+
+          {/* Expense Transactions */}
+          <h4>Expense Transactions (50-Expenses)</h4>
+          <table className="transaction-table">
+            <thead>
+              <tr>
+                <th>Cheque No</th>
+                <th>Account Debited</th>
+                <th>Account Class</th>
+                <th>Account Credited</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>To Whom Paid</th>
+                <th>Parent Account</th>
+                <th>GRN No.</th>
+                <th>Opening Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredReportData
+                .filter(
+                  (account) =>
+                    account.account_type === "50-Expenses"
+                )
+                .map((account, index) => {
+                  const expenses = Number(account.total_amount) || 0;
+                  const openingBalance = Number(account.opening_balance) || 0;
+                  const closingBalance = calculateClosingBalance(openingBalance, 0, 0, 0, expenses);
+
+                  return (
+                    <tr key={index}>
+                      <td>{account.cheque_no || "N/A"}</td>
+                      <td>{account.account_debited}</td>
+                      <td>{account.account_class}</td>
+                      <td>{account.account_credited}</td>
+                      <td>{account.total_amount}</td>
+                      <td>{formatDate(account.date_issued || account.date)}</td>
+                      <td>{account.to_whom_paid || "N/A"}</td>
+                      <td>{account.parent_account || "N/A"}</td>
+                      <td>{account.grn_number || "N/A"}</td>
+                      <td>{account.opening_balance || "0"}</td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>

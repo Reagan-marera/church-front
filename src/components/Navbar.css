@@ -1,0 +1,100 @@
+/* Navbar.css */
+
+/* Overall navbar style */
+.navbar {
+    background-color: #003366; /* Deep Blue background */
+    padding: 0 20px; /* Remove padding from left and right */
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2); /* Deeper shadow for better focus */
+    border-radius: px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%; /* Ensure navbar takes full width */
+    max-width: 100%; /* Prevent overflow */
+    transition: all 0.3s ease-in-out; /* Smooth transition for changes */
+    animation: slideIn 0.5s ease-out; /* Navbar animation */
+    position: relative; /* To avoid it being cropped or misaligned */
+    box-sizing: border-box; /* Ensures padding and borders are included in width calculation */
+}
+
+/* Navbar list styling */
+.nav-list {
+    list-style-type: none;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    width: 100%; /* Ensure the list spans the full width */
+}
+
+/* Link styles */
+.nav-link {
+    color: #ffffff; /* White text */
+    text-decoration: none;
+    padding: 10px 20px; /* Reduce padding for smaller fonts */
+    font-size: 14px; /* Smaller font size */
+    font-family: 'Poppins', sans-serif; /* Modern font */
+    font-weight: 600; /* Bold */
+    font-style: italic; /* Italicize the text */
+    text-transform: uppercase; /* Make text uppercase */
+    letter-spacing: 0.5px; /* Slightly reduce letter spacing */
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease; /* Smooth transitions */
+}
+
+/* Underline animation for nav-links */
+.nav-link::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #ff4d4d; /* Red color */
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.nav-link:hover::before {
+    transform: scaleX(1); /* Show the underline */
+}
+
+.nav-link:hover {
+    color: #ff4d4d; /* Accent color on hover */
+    transform: scale(1.1); /* Slightly scale up */
+}
+
+/* Navbar animation */
+@keyframes slideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Media query for responsive design */
+@media (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        align-items: center;
+        width: 100%; /* Ensure it stays full width */
+        padding: 1px; /* Reduce padding for mobile view */
+    }
+
+    .nav-list {
+        flex-direction: column;
+        align-items: center;
+        width: 100%; /* Ensure it spans full width */
+    }
+
+    .nav-link {
+        padding: 10px 20px; /* Adjust padding for mobile */
+        font-size: 12px; /* Smaller font size for mobile */
+    }
+}

@@ -1,168 +1,192 @@
-/* Global Styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-  
-  body {
-    font-family: 'Arial', sans-serif;
-    background-color: #f4f7f6;
-    color: #333;
-  }
-  
-  h1, h2, h3 {
-    color: #333;
-  }
-  
-  ul {
-    list-style: none;
-  }
-  
-  a {
-    text-decoration: none;
-  }
-  
-  /* Navigation Bar */
-  .navbar {
-    display: flex;
-    justify-content: space-between;
-    padding: 1rem 2rem;
-    background-color: #0044cc;
-    color: white;
-  }
-  
-  .navbar-brand {
-    font-size: 1.5rem;
-    font-weight: bold;
-  }
-  
-  .navbar-links {
-    display: flex;
-    gap: 2rem;
-  }
-  
-  .navbar-links li {
-    cursor: pointer;
-    font-size: 1rem;
-  }
-  
-  /* Hero Section */
-  .hero {
-    background-color: #0056b3;
-    color: white;
-    padding: 6rem 2rem;
-    text-align: center;
-  }
-  
-  .hero-content h1 {
-    font-size: 3.5rem;
-    margin-bottom: 1.5rem;
-  }
-  
-  .hero-content p {
-    font-size: 1.25rem;
-    margin-bottom: 2rem;
-  }
-  
-  .cta-button {
-    background-color: #f4f7f6;
-    color: #0056b3;
-    border: none;
-    padding: 0.75rem 2rem;
-    font-size: 1rem;
-    cursor: pointer;
-    border-radius: 5px;
-  }
-  
-  .cta-button:hover {
-    background-color: #f1f1f1;
-  }
-  
-  /* Features Section */
-  .features {
-    padding: 5rem 2rem;
-    background-color: #ffffff;
-    text-align: center;
-  }
-  
-  .features h2 {
-    font-size: 2.5rem;
-    margin-bottom: 3rem;
-  }
-  
-  .feature-cards {
-    display: flex;
-    justify-content: space-around;
-    flex-wrap: wrap;
-    gap: 2rem;
-  }
-  
-  .feature-card {
-    background-color: #f4f7f6;
-    padding: 2rem;
-    width: 22%;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s;
-  }
-  
-  .feature-card:hover {
-    transform: translateY(-10px);
-  }
-  
-  .feature-card h3 {
-    font-size: 1.75rem;
-    margin-bottom: 1rem;
-  }
-  
-  .feature-card p {
-    font-size: 1rem;
-    color: #555;
-  }
-  
-  /* Testimonials Section */
-  .testimonials {
-    padding: 4rem 2rem;
-    background-color: #f4f7f6;
-    text-align: center;
-  }
-  
-  .testimonials h2 {
-    font-size: 2.5rem;
-    margin-bottom: 2rem;
-  }
-  
-  .testimonial-cards {
-    display: flex;
-    justify-content: space-around;
-    gap: 1rem;
-  }
-  
-  .testimonial-card {
-    background-color: white;
-    padding: 1.5rem;
-    width: 40%;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-  
-  .testimonial-card p {
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
-  }
-  
-  .testimonial-card span {
-    font-size: 1rem;
-    color: #777;
-  }
-  
-  /* Footer */
-  .footer {
-    background-color: #333;
-    color: white;
-    text-align: center;
-    padding: 2rem;
-    margin-top: 4rem;
-  }
-  
+/* Home.css */
+
+/* Global Styling */
+body {
+  font-family: 'Roboto', sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background-color: #f4f4f4; /* Light gray background */
+}
+
+/* Loader */
+.loader {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  font-weight: 600;
+  color: #003366;
+  text-align: center;
+  animation: fadeIn 1s ease-in-out;
+}
+
+.spinner {
+  border: 8px solid #f3f3f3; /* Light gray */
+  border-top: 8px solid #ff4d4d; /* Red color */
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+
+/* Spinner animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Navbar */
+.navbar-brand {
+  font-family: 'Poppins', sans-serif;
+  font-size: 36px;
+  color: #003366;
+  font-weight: 700;
+  text-align: center;
+  margin: 30px 0;
+}
+
+/* Hero Section */
+.hero {
+  background: linear-gradient(135deg, #003366, #ff4d4d);
+  color: white;
+  text-align: center;
+  padding: 80px 20px;
+  background-size: cover;
+  background-position: center;
+  border-bottom: 4px solid #ff4d4d;
+}
+
+.hero h1 {
+  font-size: 50px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.hero h2 {
+  font-size: 32px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.hero p {
+  font-size: 20px;
+  margin-bottom: 30px;
+}
+
+.cta-button {
+  background-color: #ff4d4d;
+  padding: 15px 40px;
+  font-size: 20px;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+  font-weight: bold;
+}
+
+.cta-button:hover {
+  background-color: #e63946;
+}
+
+/* Features Section */
+.features {
+  text-align: center;
+  padding: 80px 20px;
+  background-color: #ffffff;
+}
+
+.features h2 {
+  font-size: 36px;
+  margin-bottom: 40px;
+  color: #003366;
+  font-weight: 700;
+}
+
+.feature-cards {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.feature-card {
+  background-color: #f0f0f0;
+  padding: 30px;
+  width: 250px;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 15px 60px rgba(0, 0, 0, 0.2);
+}
+
+.feature-card h3 {
+  font-size: 24px;
+  color: #003366;
+  margin-bottom: 20px;
+}
+
+.feature-card p {
+  font-size: 16px;
+  color: #333;
+}
+
+/* Testimonials Section */
+.testimonials {
+  background-color: #f9f9f9;
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.testimonials h2 {
+  font-size: 36px;
+  margin-bottom: 40px;
+  color: #003366;
+  font-weight: 700;
+}
+
+.testimonial-cards {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+}
+
+.testimonial-card {
+  background-color: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  width: 350px;
+  font-size: 18px;
+}
+
+.testimonial-card p {
+  font-size: 18px;
+  color: #555;
+}
+
+.testimonial-card span {
+  font-size: 16px;
+  color: #003366;
+  font-style: italic;
+  display: block;
+  margin-top: 10px;
+}
+
+/* Footer Section */
+.footer {
+  background-color: #003366;
+  color: white;
+  text-align: center;
+  padding: 20px;
+}
+
+.footer p {
+  margin: 0;
+  font-size: 16px;
+}
