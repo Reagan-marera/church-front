@@ -64,6 +64,13 @@ function DisbursementForm() {
     };
     fetchDisbursements();
   }, []);
+ if (loading) {
+    return (
+      <div className="loader">
+        <div></div><div></div><div></div>
+      </div>
+    );
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -193,14 +200,15 @@ function DisbursementForm() {
       alert(formData.id ? 'Disbursement updated successfully!' : 'Disbursement added successfully!');
       setErrorMessage(""); // Clear any previous error messages
   
-      // Optionally reset the form or perform other UI updates
-      setFormData({}); // Clear the form data if needed
-      setSubAccountData([]); // Optionally clear subaccounts if needed
-  
+      // Reset the form and sub-account data
+      setFormData({}); // Reset form data to clear the fields
+      setSubAccountData([]); // Clear subaccount data
+      
     } catch (error) {
       setErrorMessage(error.message); // Display error message
     }
-  };
+};
+
   
   
   
@@ -394,7 +402,7 @@ function DisbursementForm() {
             required
             className="form-input"
           >
-            <option value="">Select Parent Account</option>
+            <option value="">Select General Ledger</option>
             {coa.map((account, index) => (
               <option key={index} value={account.parent_account}>
                 {account.parent_account}
@@ -565,7 +573,7 @@ function DisbursementForm() {
             <th>Account Type</th>
             <th>Account Credited</th>
             <th>Account Debited</th>
-            <th>Parent Account</th>
+            <th>General Ledger</th>
             <th>Payment Type</th>
             <th>Cashbook</th>
             <th>Cash</th>

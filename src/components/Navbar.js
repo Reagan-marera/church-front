@@ -27,7 +27,6 @@ const Navbar = ({ token, role }) => {
         <li><Link to="/" className="nav-link">Home</Link></li>
 
         {/* Other navigation links */}
-        <li><Link to="/usertransaction" className="nav-link">Transactions</Link></li>
         <li><Link to="/chart-of-accounts" className="nav-link">Chart of Accounts</Link></li>
         <li><Link to="/invoices" className="nav-link">Invoices</Link></li>
         <li><Link to="/cash-receipt-journal" className="nav-link">Cash Receipt Journal</Link></li>

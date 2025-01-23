@@ -29,14 +29,20 @@ function Home() {
       ) : (
         <>
           {/* Navigation Bar */}
-          <i><div className="navbar-brand">YOUMING TECHNOLOGIES</div></i> 
+          <div className="navbar">
+  <div className="navbar-brand">
+    <img src="path-to-your-logo.png" alt="Logo" className="navbar-logo" />
+    <span className="company-name">YOUMING TECHNOLOGIES</span>
+  </div>
+</div>
+
           
           {/* Hero Section */}
           <header className="hero">
             <div className="hero-content">
               <h1>Non-Profit Making Organizations Financial Management Tool Kit</h1>
               <h2>For Schools, Churches, and NGOs</h2>
-              <p>Manage your invoices, disbursements, receipts, and transactions all in one place.</p>
+              <p>Manage your invoices,receipts, disbursements, and generate accurate financial reports all in one place.</p>
               <Link to="/register" className="cta-button">Get Started</Link>
             </div>
           </header>
@@ -44,23 +50,34 @@ function Home() {
           {/* Features Section */}
           <section className="features">
             <h2>Our Core Features</h2>
+            
             <div className="feature-cards">
-              <div className="feature-card">
-                <h3>Invoice Management</h3>
-                <p>Easily generate, track, and manage your institution's invoices in real-time.</p>
+            <div className="feature-card">
+                <h3>Chart of accounts</h3>
+                <p>This template provides you with a framework that categorizes and organize all Organization's financial transactions. It will provide you with a consistent and uniforn system of grouping similar accounts together making it easier to track and analyze financial data.  .</p>
               </div>
               <div className="feature-card">
-                <h3>Disbursement Tracking</h3>
-                <p>Track and manage all disbursements made by your institution, ensuring accuracy.</p>
+                <h3>Invoice Management template</h3>
+                <p>With predefined fields and structures,This template ensure all Invoices data is captured in a consistent format,Minimize risk of human error in data entriy and improve accurate revenue Tracking.</p>
               </div>
               <div className="feature-card">
-                <h3>Receipt Management</h3>
-                <p>Store and manage receipts for all financial transactions and ensure compliance.</p>
+                <h3>Cash Receipt  template</h3>
+                <p>This template streamline data entry process and reduce time spent in recording receipt manually it is also essential for further generating accurate financial reports.</p>
               </div>
               <div className="feature-card">
-                <h3>Transaction Monitoring</h3>
-                <p>Monitor and track all financial transactions, providing transparency and reporting.</p>
+                <h3>Cash Disbursement template</h3>
+                <p>This template ensures data for outgoing cash adhere to a consistent standardized format and sets a precedence for effective analysis of financil information.</p>
               </div>
+             
+              <div className="feature-card">
+                <h3>General Ledger </h3>
+                <p>The data entry templates serves as the foundation for accurate and efficient general ledger (GL)creation.Therefor data entry templates are automatically analysed and data posted to their respective accounts in the GL,updating the balances for each accounts</p>
+              </div>
+              <div className="feature-card">
+                <h3>Financial Reports</h3>
+                <p>Ultimately,financial statements are generated to provide you with a comprehensive overview of your Organization'sfinancial health enabling informed decision-making by various stakeholders .</p>
+              </div>
+             
             </div>
           </section>
 

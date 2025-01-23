@@ -1,15 +1,23 @@
 /* Container Styling */
 .container {
-  max-width: 1200px;
+  max-width: 100px;
   margin: 0 auto;
   padding: 20px;
   font-family: Arial, sans-serif;
- 
   background-size: cover; 
   background-position: center; 
   background-repeat: no-repeat; 
   background-attachment: fixed; 
   color: #333; 
+}
+
+.success-message {
+  color: green;
+  background-color: #d4edda;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  text-align: center;
 }
 
 /* Header Styling */
@@ -67,12 +75,13 @@
 .invoice-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 40px;
+  margin-top: 20px;
+  font-size: 0.9em; /* Reduced font size for smaller table */
 }
 
 .invoice-table th,
 .invoice-table td {
-  padding: 12px;
+  padding: 8px; /* Reduced padding for compact tables */
   text-align: left;
   border-bottom: 1px solid #ddd;
 }
@@ -80,16 +89,20 @@
 .invoice-table th {
   background-color: #4CAF50;
   color: white;
-  font-size: 1.1em;
+  font-size: 1em; /* Slightly smaller header font */
 }
 
 .invoice-table tr:nth-child(even) {
   background-color: #f2f2f2;
 }
 
+.invoice-table tr:nth-child(odd) {
+  background-color: #ffffff; /* Solid white background for odd rows */
+}
+
 .invoice-table td button {
   background-color: #f44336;
-  color: white;
+  color: rgb(0, 0, 0);
   border: none;
   padding: 5px 10px;
   border-radius: 5px;
@@ -105,32 +118,34 @@
   outline: none;
 }
 
+/* Modal Table Styling */
 .subaccounts-modal table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
-  font-family: Arial, sans-serif;
+  font-size: 0.9em; /* Smaller font size */
 }
 
 .subaccounts-modal th,
 .subaccounts-modal td {
   border: 1px solid #ddd;
-  padding: 10px;
+  padding: 8px;
   text-align: left;
 }
 
 .subaccounts-modal th {
-  background-color: #f4f4f4;
+  background-color: #4CAF50; /* Solid green background for header */
+  color: white;
   font-weight: bold;
 }
 
 .subaccounts-modal td {
-  background-color: #fff;
-  font-size: 14px;
+  background-color: #ffffff; /* Solid white for even rows */
+  font-size: 0.9em; /* Reduced font size */
 }
 
 .subaccounts-modal td:nth-child(odd) {
-  background-color: #f9f9f9;
+  background-color: #f2f2f2; /* Light gray for odd rows */
 }
 
 .subaccounts-modal button {

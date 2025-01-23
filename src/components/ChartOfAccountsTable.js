@@ -202,7 +202,7 @@ const ChartOfAccountsTable = () => {
           />
         </div>
         <div style={styles.formGroup}>
-          <label style={styles.label}>Parent Account:</label>
+          <label style={styles.label}>General Ledger:</label>
           <input
             type="text"
             name="parent_account"
@@ -272,7 +272,7 @@ const ChartOfAccountsTable = () => {
           <tr>
             <th style={styles.tableHeader}>Account Type</th>
             <th style={styles.tableHeader}>Account Class</th>
-            <th style={styles.tableHeader}>Parent Account</th>
+            <th style={styles.tableHeader}>General Ledger </th>
             <th style={styles.tableHeader}>Sub Account Details</th>
             <th style={styles.tableHeader}>Actions</th>
           </tr>
@@ -325,7 +325,7 @@ const styles = {
     fontSize: '24px',
     marginBottom: '20px',
     fontWeight: 'bold',
-    color: 'black',
+    color: 'blue',
   },
   form: {
     marginBottom: '20px',
@@ -335,7 +335,7 @@ const styles = {
   },
   label: {
     fontWeight: 'bold',
-    color: 'black',
+    color: 'white',
   },
   input: {
     width: '100%',
@@ -440,13 +440,13 @@ style.innerHTML = `
       color: #0071BC; /* Blue */
     }
     50% {
-      color: #6EC1E4; /* Light Blue */
+      color: blue; /* Light Blue */
     }
     75% {
-      color: #7DCA4A; /* Green */
+      color:red; /* Green */
     }
     100% {
-      color: #003A5C; /* Dark Blue */
+      color: black; /* black*/
     }
   }
 `;

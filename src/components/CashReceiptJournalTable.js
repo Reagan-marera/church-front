@@ -389,7 +389,7 @@ return (
           required
           className="form-input"
         >
-          <option value="">Select Parent Account</option>
+          <option value="">Select General Ledger</option>
           {coa.map((account, index) => (
             <option key={index} value={account.parent_account}>
               {account.parent_account}
@@ -543,7 +543,7 @@ return (
           <th>Description</th>
           <th>Account Class</th>
           <th>Account Type</th>
-          <th>Parent Account</th>
+          <th>General Ledger</th>
           <th>Receipt Type</th>
           <th>Cashbook</th>
           <th>Account Debited</th>
@@ -572,11 +572,7 @@ return (
             <td>{journal.cash}</td>
             <td>{journal.bank}</td>
             <td>{journal.total}</td>
-            <td>
-              <button onClick={() => toggleSubAccountsView(journal.id)}>
-                {viewingSubAccounts === journal.id ? "Hide Subaccounts" : "View Subaccounts"}
-              </button>
-            </td>
+            
             <td>
               <button onClick={() => handleDelete(journal.id)}>Delete</button>
               <button onClick={() => handleEdit(journal)}>Edit</button>
@@ -586,28 +582,7 @@ return (
       </tbody>
     </table>
      
- {subaccountsForInvoice && (
- <div className="subaccounts-modal">
-    <h3>Subaccounts for Invoice</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Subaccount</th>
-          <th>Amount</th>
-        </tr>
-      </thead>
-      <tbody>
-        {Object.entries(subaccountsForInvoice).map(([name, amount]) => (
-          <tr key={name}>
-            <td>{name}</td>
-            <td>{amount}</td>  {/* Directly displaying amount */}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-    <button onClick={() => setSubaccountsForInvoice(null)}>Close</button>
-  </div>
-      )}
+
     </div>
   );
 };

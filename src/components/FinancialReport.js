@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import './trialbalance.css'; // Import the CSS file for styling
 import IncomeStatementComponent from './IncomeStatement'; // Import the Income Statement component
@@ -128,13 +129,13 @@ const TrialBalanceComponent = () => {
                     <tr>
                       <td colSpan="6">
                         <div className="parent-account-selector">
-                          <label htmlFor="parentAccount">Select Parent Account:</label>
+                          <label htmlFor="parentAccount">Select General Ledger:</label>
                           <select
                             id="parentAccount"
                             value={selectedParentAccount}
                             onChange={(e) => setSelectedParentAccount(e.target.value)}
                           >
-                            <option value="">All Parent Accounts</option>
+                            <option value="">All General Ledgers</option>
                             {parentAccounts.map((parentAccount, index) => (
                               <option key={index} value={parentAccount}>
                                 {parentAccount}
@@ -149,7 +150,7 @@ const TrialBalanceComponent = () => {
                     {filteredTrialBalance.map((account, index) => (
                       <tr key={index}>
                         <td>{account.account_name}</td>
-                        <td>{account.parent_account}</td> {/* Display Parent Account */}
+                        <td>{account.parent_account}</td> {/* Display General Ledger */}
                         <td>{account.account_type}</td> {/* Display Account Type */}
                         <td>{formatNumber(account.debit)}</td>
                         <td>{formatNumber(account.credit)}</td>

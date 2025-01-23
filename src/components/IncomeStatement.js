@@ -46,48 +46,103 @@ const IncomeStatementComponent = () => {
     return () => clearTimeout(loaderTimeout);
   }, [token]);
 
+  // Group accounts by account type
+  const groupedAccounts = incomeStatement?.details.reduce((groups, account) => {
+    if (!groups[account.account_type]) {
+      groups[account.account_type] = [];
+    }
+    groups[account.account_type].push(account);
+    return groups;
+  }, {});
+
+  // Group accounts by parent account
+  const groupedByParentAccount = (accountType) => {
+    return groupedAccounts[accountType].reduce((parents, account) => {
+      if (!parents[account.parent_account]) {
+        parents[account.parent_account] = [];
+      }
+      parents[account.parent_account].push(account);
+      return parents;
+    }, {});
+  };
+
+  // Calculate the total balance for a parent account
+  const calculateParentAccountTotal = (parentAccounts) => {
+    return parentAccounts.reduce((total, account) => {
+      return total + parseFloat(account.balance || 0);
+    }, 0).toFixed(2);
+  };
+
+  if (loading) {
+    return <div className="loading">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="error">{error}</div>;
+  }
+
   return (
     <div className="financial-report">
-      {loading && (
-        <div className="loader-overlay">
-          <div className="spinner"></div>
-        </div>
-      )}
-      {error && <div className="error-message">Error: {error}</div>}
-      {!loading && !error && incomeStatement && (
-        <div className="content">
-          <h2 className="section-title">Income Statement</h2>
-          <div className="summary">
-            <p><strong>Revenue: </strong>{incomeStatement.revenue}</p>
-            <p><strong>Expenses: </strong>{incomeStatement.expenses}</p>
-            <p><strong>Net Income: </strong>{incomeStatement.net_income}</p>
-          </div>
-          <div className="table-container">
-            <table className="income-statement-table">
-              <thead>
+      <h2 className="section-title">Income Statement</h2>
+
+      <div className="summary">
+        <p><strong>Revenue: </strong>{incomeStatement.revenue}</p>
+        <p><strong>Expenses: </strong>{incomeStatement.expenses}</p>
+        <p><strong>Net Income: </strong>{incomeStatement.net_income}</p>
+      </div>
+
+      <div className="table-container">
+        <table className="income-statement-table">
+          <thead>
+            <tr>
+             
+              <th>Account Name</th>
+             
+              <th>Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {/* Render accounts grouped by account type */}
+            {Object.keys(groupedAccounts || {}).sort().map((accountType, index) => (
+              <React.Fragment key={index}>
                 <tr>
-                  <th>Account Name</th>
-                  <th>Account Type</th>
-                  <th>Debit</th>
-                  <th>Credit</th>
-                  <th>Balance</th>
+                  <td colSpan="6" className="group-header">
+                    <strong>{accountType}</strong>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {incomeStatement.details.map((account, index) => (
-                  <tr key={index}>
-                    <td>{account.account_name}</td>
-                    <td>{account.account_type}</td>
-                    <td>{account.debit}</td>
-                    <td>{account.credit}</td>
-                    <td>{account.balance}</td>
-                  </tr>
+
+                {/* Render accounts grouped by parent account */}
+                {Object.keys(groupedByParentAccount(accountType)).sort().map((parentAccount, idx) => (
+                  <React.Fragment key={idx}>
+                    <tr>
+                      <td colSpan="6" className="parent-account-header">
+                        <strong>{parentAccount}</strong>
+                      </td>
+                    </tr>
+
+                    {/* Render individual accounts for each parent account */}
+                    {groupedByParentAccount(accountType)[parentAccount].map((account, i) => (
+                      <tr key={i}>
+                        
+                        <td>{account.account_name}</td>
+                       
+                       
+                        <td>{account.balance ? account.balance.toFixed(2) : '0.00'}</td>
+                      </tr>
+                    ))}
+
+                    {/* Display total balance for the parent account */}
+                    <tr>
+                      <td colSpan="5" className="total-label">Total for {parentAccount}:</td>
+                      <td>{calculateParentAccountTotal(groupedByParentAccount(accountType)[parentAccount])}</td>
+                    </tr>
+                  </React.Fragment>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

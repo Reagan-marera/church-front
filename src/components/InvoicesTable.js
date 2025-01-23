@@ -3,6 +3,7 @@ import "./InvoicesTable.css"; // Import the external CSS file
 
 const InvoiceTable = () => {
   const [invoices, setInvoices] = useState([]);
+  const [successMessage, setSuccessMessage] = useState(""); // Add successMessage state
   const [coa, setCoa] = useState([]);
   const [subAccountData, setSubAccountData] = useState({});
   const [error, setError] = useState("");
@@ -120,6 +121,7 @@ const InvoiceTable = () => {
       [`account_${newSubAccountIndex}`]: { name: "", amount: 0 },
     }));
   };
+ 
 
   const handleRemoveSubAccount = (index) => {
     const updatedSubAccounts = { ...subAccountData };
@@ -145,18 +147,6 @@ const InvoiceTable = () => {
     // Ensure subAccountData is an object, if it's not an array
     if (typeof subAccountData !== "object") {
       setError("Subaccount data is invalid.");
-      return;
-    }
-  
-    // Calculate the total amount of subaccounts (by iterating over the object)
-    const totalSubAccountAmount = Object.values(subAccountData).reduce(
-      (acc, subAccount) => acc + parseFloat(subAccount.amount || 0),
-      0
-    );
-  
-    // Check if the total of subaccounts matches the invoice amount
-    if (totalSubAccountAmount !== parseFloat(formData.amount)) {
-      setError("The total of subaccounts must match the invoice amount.");
       return;
     }
   
@@ -197,11 +187,15 @@ const InvoiceTable = () => {
   
       if (!response.ok) throw new Error(await response.text());
   
+      // Set success message on successful submission
+      setSuccessMessage("Invoice submitted successfully!");
+  
       // Reset form data after successful submission
       setFormData({
         invoice_number: "",
         date_issued: "",
         account_type: "",
+        invoice_type: "",
         amount: 0,
         account_class: "",
         account_debited: "",
@@ -210,11 +204,16 @@ const InvoiceTable = () => {
       });
       setSubAccountData({}); // Clear subaccount data (as an object)
       fetchInvoices(); // Fetch updated invoices list
+  
+      // Clear the success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage("");
+      }, 3000); // Reset success message after 3 seconds (optional)
+  
     } catch (err) {
       setError(err.message);
     }
   };
-  
   
 
   const toggleSubAccountsView = (id) => {
@@ -287,8 +286,9 @@ const InvoiceTable = () => {
             name="description"
             value={formData.description}
             onChange={handleInputChange}
-            
+            placeholder="description" 
             className="form-input"
+            
           />
           <input
             type="date"
@@ -298,6 +298,16 @@ const InvoiceTable = () => {
             required
             className="form-input"
           />
+        <input
+  type="text"  
+  name="invoice_type"
+  value={formData.invoice_type}
+  onChange={handleInputChange}
+  required
+  className="form-input"
+  placeholder="Enter invoice type"  
+/>
+
         </div>
     {/* Account Type Dropdown */}
     <div className="form-row">
@@ -394,7 +404,7 @@ const InvoiceTable = () => {
           required
           className="form-input"
         >
-          <option value="">Select Parent Account</option>
+          <option value="">Select General Ledger</option>
           {coa.map((account, index) => (
             <option key={index} value={account.parent_account}>
               {account.parent_account}
@@ -419,6 +429,7 @@ const InvoiceTable = () => {
       {formData.id ? "Update Invoice" : "Submit Invoice"}
     </button>
   </div>
+  {successMessage && <div className="success-message">{successMessage}</div>}
       </form>
   
       {/* Subaccounts Form */}
@@ -470,11 +481,12 @@ const InvoiceTable = () => {
           <tr>
             <th>Date Issued</th>
             <th>Account Type</th>
+            <th>Invoice Type</th>
             <th>Account Class</th>
             <th>GRN Number</th>
             <th>Description</th>
             <th>Invoice No</th>
-            <th>Parent Account</th>
+            <th>General Ledger</th>
             <th>Account Credited</th>
             <th>Account Debited</th>
             <th>Amount</th>
@@ -486,6 +498,7 @@ const InvoiceTable = () => {
             <tr key={invoice.id}>
               <td>{invoice.date_issued}</td>
               <td>{invoice.account_type}</td>
+              <td>{invoice.invoice_type}</td>
               <td>{invoice.account_class}</td>
               <td>{invoice.grn_number}</td>
               <td>{invoice.description}</td>

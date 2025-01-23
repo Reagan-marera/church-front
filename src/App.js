@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Register from './components/Register';
 import Login from './components/Login';
-import UsersTable from './components/UsersTable';
 import ChartOfAccountsTable from './components/ChartOfAccountsTable';
 import InvoicesTable from './components/InvoicesTable';
 import CashReceiptJournalTable from './components/CashReceiptJournalTable';
@@ -67,7 +66,6 @@ function App() {
           <Route path="/login" element={<Login setToken={setToken} setRole={setRole} />} />
 
           {/* Protected Routes (only accessible if logged in) */}
-          <Route path="/usertransaction" element={<ProtectedRoute><UsersTable /></ProtectedRoute>} />
           <Route path="/chart-of-accounts" element={<ProtectedRoute><ChartOfAccountsTable /></ProtectedRoute>} />
           <Route path="/invoices" element={<ProtectedRoute><InvoicesTable /></ProtectedRoute>} />
           <Route path="/cash-receipt-journal" element={<ProtectedRoute><CashReceiptJournalTable /></ProtectedRoute>} />
