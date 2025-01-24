@@ -122,24 +122,28 @@ const FinancialReportComponent = () => {
   // Render Parent Account Details and Total (Show accounts with no transactions as well)
   const renderParentAccountDetails = (parentAccount) => {
     const parentData = filteredData.filter(item => item.parent_account === parentAccount);
-
+  
     // Find all accounts including those with no transactions
     const allAccounts = filteredData.filter(item => item.parent_account === parentAccount || item.parent_account === '');
-
+  
+    // Ensure openingBalance has a valid value (0 if not found)
+    const openingBalance = allAccounts.length > 0 && allAccounts[0].opening_balance !== undefined ? allAccounts[0].opening_balance : 0;
+  
     const totalReceipts = calculateTotal(allAccounts, 'Receipt');
     const totalDisbursements = calculateTotal(allAccounts, 'Disbursement');
-
-    // Fetch Opening Balance for Parent Account (assuming first item's opening_balance is the starting balance)
-    const openingBalance = allAccounts.length > 0 ? allAccounts[0].opening_balance : 0;
-
+  
+    // Ensure total amounts are numbers (fallback to 0 if NaN)
+    const validTotalReceipts = !isNaN(totalReceipts) ? totalReceipts : 0;
+    const validTotalDisbursements = !isNaN(totalDisbursements) ? totalDisbursements : 0;
+  
     // Calculate Closing Balance
-    const closingBalance = openingBalance + totalReceipts - totalDisbursements;
-
+    const closingBalance = openingBalance + validTotalReceipts - validTotalDisbursements;
+  
     return (
       <div key={parentAccount}>
         <h4>Parent Account: {parentAccount}</h4>
         <p><strong>Opening Balance: </strong>{openingBalance.toFixed(2) || '0.00'}</p>
-
+  
         <table className="financial-table">
           <thead>
             <tr>
@@ -154,19 +158,19 @@ const FinancialReportComponent = () => {
           </thead>
           <tbody>
             {allAccounts.map(renderTransactionDetails)}
-
+  
             {/* Totals for DR and CR */}
             <tr>
               <td colSpan="5"><strong>Total Receipt Amount</strong></td>
-              <td><strong>{totalReceipts.toFixed(2) || '0.00'}</strong></td> {/* Total DR */}
+              <td><strong>{validTotalReceipts.toFixed(2) || '0.00'}</strong></td> {/* Total DR */}
               <td></td> {/* Empty column for CR */}
             </tr>
             <tr>
               <td colSpan="5"><strong>Total Disbursement Amount</strong></td>
               <td></td> {/* Empty column for DR */}
-              <td><strong>{totalDisbursements.toFixed(2) || '0.00'}</strong></td> {/* Total CR */}
+              <td><strong>{validTotalDisbursements.toFixed(2) || '0.00'}</strong></td> {/* Total CR */}
             </tr>
-
+  
             {/* Closing Balance */}
             <tr className="closing-balance-row">
               <td colSpan="5"><strong>Closing Balance</strong></td>
@@ -177,7 +181,7 @@ const FinancialReportComponent = () => {
       </div>
     );
   };
-
+  
   // Get unique parent accounts for the filter
   const uniqueParentAccounts = [...new Set(reportData.map(item => item.parent_account))];
 
