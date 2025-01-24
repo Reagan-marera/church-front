@@ -4,15 +4,14 @@ body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  background-color: #f4f4f4; /* Light gray background */
-  color: #333; /* Standard text color */
-  background-image: linear-gradient(45deg, #f4f4f4, #d1e1f0); /* Light background gradient */
-  animation: backgroundMove 10s ease infinite; 
-  background-image: url('./components/finance.jpg'); /* Replace with your desired image URL */
-  /* Subtle moving background */
+  background-color: #f0f4f8; /* Soft off-white background */
+  color: #000000; /* Darker text for better contrast */
+  background-size: cover;
+  background-position: center;
+  animation: backgroundMove 10s ease infinite;
 }
 
-/* Background Animation for Smooth Transition */
+/* Smooth Background Animation */
 @keyframes backgroundMove {
   0% {
     background-position: 0% 50%;
@@ -25,106 +24,70 @@ body {
   }
 }
 
-/* Loader */
-.loader {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  animation: fadeIn 1s ease-in-out;
-}
-
-.loader-text {
-  font-size: 24px;
-  font-weight: bold;
-  color: #003366;
-  animation: waveText 2s ease-in-out infinite;
-}
-
-/* Falling Water Tides Animation */
-@keyframes waveText {
-  0% {
-    transform: translateY(0) scaleX(1);
-    opacity: 0.8;
-    color: #003A5C; /* Dark Blue */
-  }
-  25% {
-    transform: translateY(5px) scaleX(1.1);
-    opacity: 0.9;
-    color: #0071BC; /* Blue */
-  }
-  50% {
-    transform: translateY(10px) scaleX(1.2);
-    opacity: 1;
-    color: #6EC1E4; /* Light Blue */
-  }
-  75% {
-    transform: translateY(15px) scaleX(1.1);
-    opacity: 0.9;
-    color: #7DCA4A; /* Green */
-  }
-  100% {
-    transform: translateY(20px) scaleX(1);
-    opacity: 0.8;
-    color: #003A5C; /* Dark Blue */
-  }
-}
-
 /* Navbar */
-.navbar-brand {
-  font-family: 'Poppins', sans-serif;
-  font-size: 36px;
-  color: #003366;
-  font-weight: 700;
-  text-align: center;
-  margin: 30px 0;
-  
+/* Navbar */
+.navbar {
+  background-color: #2c3e50; /* Deep Blue-Grey */
+  padding: 20px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  background-image: url('https://i.pinimg.com/736x/35/21/ac/3521ac9a2e63eb0880805d9d996f6211.jpg'); /* Optional background image */
+  color: black;
+  position: relative; /* To position the pseudo-element */
 }
 
-/* Hero Section */
-/* Global Styling */
+/* Add subtle shadow behind the background image using ::before */
+.navbar::before {
+  content: ''; /* Required to make the pseudo-element work */
+  position: absolute; /* Position it behind the content */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: inherit; /* Inherit the background image */
+  filter: blur(5px); /* Softer blur for a more subtle shadow */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Lighter, less intense shadow */
+  z-index: -1; /* Ensure the shadow stays behind the navbar content */
+}
 
-/* Loader */
-.loader {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  animation: fadeIn 1s ease-in-out;
+.navbar-logo {
+  width: 40px;
+  height: auto;
+  margin-right: 10px;
+}
+
+.company-name {
+  font-family: 'Dancing Script', cursive;
+  font-size: 32px;
+  color: #ffffff; /* Darker text for better contrast */
+  font-weight: bold;
 }
 
 /* Hero Section */
 .hero {
-  background-image: url('./components/finance.jpg'); /* Replace with your desired image URL */
-  background-size: cover; /* Ensure the image covers the whole area */
-  background-position: center; /* Center the image */
-  color: white;
+  background: linear-gradient(135deg, #003366, #ff4d4d); /* Strong Gradient for Hero Section */
+  color: rgb(255, 255, 255);
   text-align: center;
   padding: 80px 20px;
+  background-size: cover;
+  background-position: center;
   border-bottom: 4px solid #ff4d4d;
-  
+
+
 }
 
 .hero h1 {
   font-size: 50px;
   font-weight: 700;
   margin-bottom: 20px;
-  color: white;
-  animation: fadeInText 2s ease-out; /* Fade-in effect for heading */
+  color: #f1f1f1; /* Darker text for better contrast */
+  animation: fadeInText 2s ease-out;
 }
 
 .hero h2 {
   font-size: 32px;
   margin-bottom: 20px;
-  font-weight: 500;
   color: white;
 }
 
@@ -149,29 +112,11 @@ body {
   background-color: #e63946;
 }
 
-/* Hero Background Animation */
-@keyframes heroBackground {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-/* Fade-in Animation for Hero Title */
-@keyframes fadeInText {
-  0% {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Features Section */
+.features {
+  text-align: center;
+  padding: 80px 20px;
+  background-color: #ffffff;
 }
 
 /* Features Section */
@@ -179,34 +124,39 @@ body {
   text-align: center;
   padding: 80px 20px;
   background-color: #ffffff;
-  background-size: cover;
-  background-position: center;
-  animation: featureBackgroundMove 20s ease infinite;
+  display: flex;
+  flex-direction: column; /* Stacks the title and feature cards */
+  align-items: center;
 }
 
 .features h2 {
   font-size: 36px;
   margin-bottom: 40px;
-  color: #003366;
+  color: #003366; /* Dark Blue */
   font-weight: 700;
 }
 
+/* Feature Cards Flexbox Container */
 .feature-cards {
   display: flex;
   justify-content: center;
-  gap: 30px;
-  flex-wrap: wrap;
+  gap: 30px; /* Space between feature cards */
+  flex-wrap: wrap; /* Allows cards to wrap to the next line on smaller screens */
+  width: 100%; /* Ensures the container takes the full width */
+  max-width: 1200px; /* Optional: Set a max width to prevent it from being too wide */
 }
 
+/* Individual Feature Card */
 .feature-card {
-  background-color: rgba(240, 240, 240, 0.8); /* Semi-transparent background */
+  background-color: rgba(240, 240, 240, 0.9); /* Slightly more opaque cards */
   padding: 30px;
-  width: 250px;
+  width: 250px; /* Set width for feature cards */
   border-radius: 10px;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
+/* Hover effect for feature card */
 .feature-card:hover {
   transform: translateY(-10px);
   box-shadow: 0 15px 60px rgba(0, 0, 0, 0.2);
@@ -214,28 +164,121 @@ body {
 
 .feature-card h3 {
   font-size: 24px;
-  color: #003366;
+  color: #003366; /* Dark Blue */
   margin-bottom: 20px;
 }
 
 .feature-card p {
   font-size: 16px;
-  color: #000000;
+  color: #333; /* Darker text for readability */
 }
 
-/* Moving Background for Features Section */
-@keyframes featureBackgroundMove {
+/* Footer Section */
+.footer {
+  background-color: #003366;
+  color: white;
+  text-align: center;
+  padding: 20px;
+  position: relative;
+  animation: footerMove 10s ease-in-out infinite;
+}
+
+.footer p {
+  margin: 0;
+  font-size: 16px;
+}
+
+@keyframes footerMove {
   0% {
-    background-position: 0% 50%;
+    background-color: #003366;
   }
   50% {
-    background-position: 100% 50%;
+    background-color: #001f3d;
   }
   100% {
-    background-position: 0% 50%;
+    background-color: #003366;
   }
 }
 
+/* Loader Styling */
+.loader {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 1s ease-in-out;
+}
+
+.loader-text {
+  font-size: 24px;
+  font-weight: bold;
+  color: #003366;
+  animation: waveText 2s ease-in-out infinite;
+}
+
+/* Wave Effect for Loader */
+@keyframes waveText {
+  0% {
+    transform: translateY(0) scaleX(1);
+    opacity: 0.8;
+    color: #003A5C;
+  }
+  25% {
+    transform: translateY(5px) scaleX(1.1);
+    opacity: 0.9;
+    color: #0071BC;
+  }
+  50% {
+    transform: translateY(10px) scaleX(1.2);
+    opacity: 1;
+    color: #6EC1E4;
+  }
+  75% {
+    transform: translateY(15px) scaleX(1.1);
+    opacity: 0.9;
+    color: #7DCA4A;
+  }
+  100% {
+    transform: translateY(20px) scaleX(1);
+    opacity: 0.8;
+    color: #003A5C;
+  }
+}
+/* Styling for the navbar */
+.navbar {
+  background-color: #2c3e50;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Styling for the company name and logo container */
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  font-family: 'Arial', sans-serif;
+  color: white;
+  font-size: 24px;
+}
+
+/* Styling the logo image to make it bigger */
+.navbar-logo {
+  width: 170px;  /* Increase size of the logo */
+  height: 100px;  /* Maintain aspect ratio */
+  margin-right: 15px; /* Space between logo and company name */
+}
+
+/* Styling for company name text */
+.company-name {
+  font-weight: bold;
+  font-size: 32px;
+  font-style: italic;
+}
 /* Testimonials Section */
 .testimonials {
   background-color: #f9f9f9;
@@ -278,280 +321,4 @@ body {
   font-style: italic;
   display: block;
   margin-top: 10px;
-}
-
-/* Fade-in Background Animation */
-@keyframes fadeInBackground {
-  0% {
-    opacity: 0;
-    transform: translateY(50px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-/* Global Styling */
-body {
-  font-family: 'Roboto', sans-serif;
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  background-color: #f4f4f4;
-}
-
-/* Loader */
-.loader {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  animation: fadeIn 1s ease-in-out;
-}
-
-.juggler {
-  position: relative;
-  width: 100px;
-  height: 150px;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  animation: jugglerAnimation 3s ease-in-out infinite;
-}
-
-.juggler .person {
-  width: 40px;
-  height: 40px;
-  background-color: #003366;
-  border-radius: 50%;
-  margin-bottom: 20px;
-}
-
-.juggling-ball {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  background-color: #ff4d4d;
-  border-radius: 50%;
-  animation: jugglingBalls 3s ease-in-out infinite;
-}
-
-.juggling-ball:nth-child(1) {
-  animation-delay: 0s;
-  top: 0;
-  left: -40px;
-}
-
-.juggling-ball:nth-child(2) {
-  animation-delay: 0.5s;
-  top: 0;
-  left: 40px;
-}
-
-.juggling-ball:nth-child(3) {
-  animation-delay: 1s;
-  top: 0;
-  left: -40px;
-}
-
-/* Juggling Ball Animation */
-@keyframes jugglingBalls {
-  0% {
-    transform: translateY(0);
-  }
-  25% {
-    transform: translateY(-40px);
-  }
-  50% {
-    transform: translateY(0);
-  }
-  75% {
-    transform: translateY(40px);
-  }
-  100% {
-    transform: translateY(0);
-  }
-}
-
-/* Juggler Figure Animation */
-@keyframes jugglerAnimation {
-  0% {
-    transform: rotate(0deg);
-  }
-  50% {
-    transform: rotate(360deg);
-  }
-  100% {
-    transform: rotate(0deg);
-  }
-}
-
-.loader-text {
-  margin-top: 20px;
-  color: #003366;
-  font-weight: bold;
-  font-size: 18px;
-}
-
-/* Other sections (remained unchanged) */
-.navbar-brand {
-  font-family: 'Poppins', sans-serif;
-  font-size: 36px;
-  color: #003366;
-  font-weight: 700;
-  text-align: center;
-  margin: 30px 0;
-}
-
-/* Hero Section */
-.hero {
-  background: linear-gradient(135deg, #003366, #ff4d4d);
-  color: white;
-  text-align: center;
-  padding: 80px 20px;
-  background-size: cover;
-  background-position: center;
-  border-bottom: 4px solid #ff4d4d;
-}
-
-.hero h1 {
-  font-size: 50px;
-  font-weight: 700;
-  margin-bottom: 20px;
-}
-
-.hero h2 {
-  font-size: 32px;
-  margin-bottom: 20px;
-  font-weight: 500;
-}
-
-.hero p {
-  font-size: 20px;
-  margin-bottom: 30px;
-}
-
-.cta-button {
-  background-color: #ff4d4d;
-  padding: 15px 40px;
-  font-size: 20px;
-  color: white;
-  text-decoration: none;
-  border-radius: 6px;
-  transition: background-color 0.3s ease;
-  font-weight: bold;
-}
-
-.cta-button:hover {
-  background-color: #e63946;
-}
-
-/* Features Section */
-.features {
-  text-align: center;
-  padding: 80px 20px;
-  background-color: #ffffff;
-}
-
-.features h2 {
-  font-size: 36px;
-  margin-bottom: 40px;
-  color: #003366;
-  font-weight: 700;
-}
-
-.feature-cards {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  flex-wrap: wrap;
-}
-
-.feature-card {
-  background-color: #f0f0f0;
-  padding: 30px;
-  width: 250px;
-  border-radius: 10px;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.feature-card:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 15px 60px rgba(0, 0, 0, 0.2);
-}
-
-.feature-card h3 {
-  font-size: 24px;
-  color: #003366;
-  margin-bottom: 20px;
-}
-
-.feature-card p {
-  font-size: 16px;
-  color: #333;
-}
-
-/* Footer Section */
-.footer {
-  background-color: #003366;
-  color: white;
-  text-align: center;
-  padding: 20px;
-  position: relative;
-  animation: footerMove 10s ease-in-out infinite; /* Background animation for footer */
-}
-
-.footer p {
-  margin: 0;
-  font-size: 16px;
-}
-
-/* Footer Background Animation */
-@keyframes footerMove {
-  0% {
-    background-color: #003366;
-  }
-  50% {
-    background-color: #001f3d; /* Darker shade */
-  }
-  100% {
-    background-color: #003366;
-  }
-  
-}
-/* Style for the navbar */
-.navbar {
-  background-color: #2c3e50;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-/* Style for the company name and logo container */
-.navbar-brand {
-  display: flex;
-  align-items: center;
-  font-family: 'Arial', sans-serif;  /* You can choose any font you like */
-  color: white;
-  font-size: 24px;
-}
-
-/* Styling the logo */
-.navbar-logo {
-  width: 40px;  /* Adjust size as per requirement */
-  height: auto;
-  margin-right: 10px;  /* Space between logo and company name */
-}
-
-/* Style for company name text */
-.company-name {
-  font-weight: bold;
-  font-size: 32px;
-  font-style: italic;  /* Italic style as per your request */
 }

@@ -166,3 +166,25 @@ h3 {
 .search-input:focus {
   border-color: #3498db;
 }
+.closing-balance-row {
+  background-color: #f0f0f0;
+  font-weight: bold;
+  text-align: center;
+}
+
+.financial-table td,
+.financial-table th {
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+.financial-table th {
+  background-color: #f9f9f9;
+  text-align: left;
+}
+
+.financial-table .closing-balance-row td {
+  background-color: #e0f7fa; /* Light blue background */
+  color: #00796b; /* Darker text for contrast */
+  font-size: 1.1em; /* Slightly larger font size */
+}

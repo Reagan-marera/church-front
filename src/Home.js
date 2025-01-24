@@ -31,7 +31,7 @@ function Home() {
           {/* Navigation Bar */}
           <div className="navbar">
   <div className="navbar-brand">
-    <img src="path-to-your-logo.png" alt="Logo" className="navbar-logo" />
+    <img src="https://i.pinimg.com/236x/59/c2/f2/59c2f2560376e073618614fbb0d9b9ed.jpg" alt="Logo" className="navbar-logo" />
     <span className="company-name">YOUMING TECHNOLOGIES</span>
   </div>
 </div>
@@ -81,16 +81,6 @@ function Home() {
             </div>
           </section>
 
-          {/* Testimonials Section */}
-          <section className="testimonials">
-            <h2>What Our Clients Say</h2>
-            <div className="testimonial-cards">
-              <div className="testimonial-card">
-                <p>"This platform has streamlined our financial operations and reduced errors in accounting."</p>
-                <span>- Finance Director, Moses Ngaruya.</span>
-              </div>
-            </div>
-          </section>
 
           {/* Footer Section */}
           <footer className="footer">

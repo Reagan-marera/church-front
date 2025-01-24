@@ -7,6 +7,7 @@ const FinancialReportComponent = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [parentFilter, setParentFilter] = useState(''); // For filtering by parent account
+  const [searchTerm, setSearchTerm] = useState(''); // Single search term for credited and debited accounts
   const token = 'your-token-here'; // Replace with your actual token
 
   // Fetch all accounts and transactions
@@ -39,36 +40,83 @@ const FinancialReportComponent = () => {
       });
   }, [token]);
 
-  // Format date properly (Handle invalid date gracefully)
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date instanceof Date && !isNaN(date) ? date.toLocaleDateString('en-GB') : ''; // Only format if it's a valid date
-  };
-
   // Handle filtering by parent account
   const handleParentFilterChange = (event) => {
     const selectedParent = event.target.value;
     setParentFilter(selectedParent);
-
-    if (selectedParent === '') {
-      setFilteredData(reportData);
-    } else {
-      setFilteredData(reportData.filter(item => item.parent_account === selectedParent));
-    }
+    filterData(selectedParent, searchTerm);
   };
 
-  // Calculate closing balance based on account type (add for revenue, subtract for expenses)
-  const calculateClosingBalance = (item) => {
-    const amount = Number(item.total_amount) || 0; // Default to 0 if amount is missing
-    const openingBalance = Number(item.opening_balance) || 0; // Default to 0 if opening balance is missing
+  // Handle search for credited and debited accounts (single search term)
+  const handleSearchChange = (event) => {
+    const searchTerm = event.target.value;
+    setSearchTerm(searchTerm);
+    filterData(parentFilter, searchTerm);
+  };
 
-    if (item.account_type === "40-Revenue") {
-      return openingBalance + amount; // Revenue increases balance
-    } else if (item.account_type === "50-Expenses") {
-      return openingBalance - amount; // Expenses decrease balance
-    } else {
-      return openingBalance + amount; // For assets, liabilities, and other accounts
+  // Filter the data based on parent and search term for both credit and debit
+  const filterData = (parentFilter, searchTerm) => {
+    let filtered = reportData;
+
+    if (parentFilter) {
+      filtered = filtered.filter(item => item.parent_account === parentFilter);
     }
+
+    if (searchTerm) {
+      filtered = filtered.filter(item =>
+        (item.account_credited && item.account_credited.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.account_debited && item.account_debited.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    setFilteredData(filtered);
+  };
+
+  // Generalized row rendering for each transaction item
+  const renderTransactionDetails = (item) => {
+    const {
+      date,
+      account_name,
+      account_type,
+      parent_account,
+      total_amount,
+      cashbook,
+      type,
+      account_credited,
+      account_debited,
+      cheque_no,
+      to_whom_paid,
+      description,
+    } = item;
+
+    // Logic to display DR/CR in respective columns
+    const drAmount = type === 'Receipt' ? total_amount : ''; // Show amount under DR for Receipts
+    const crAmount = type === 'Disbursement' ? total_amount : ''; // Show amount under CR for Disbursements
+
+    return (
+      <tr key={item.id || Math.random()}>
+        <td>{date || 'No Date'}</td>
+        <td>{account_type || ''}</td>
+        <td>{account_name || 'No Name'}</td>
+        <td>{to_whom_paid || 'No Payee'}</td>
+        <td>{description || 'No Description'}</td>
+        <td>{drAmount || '0.00'}</td> {/* DR Column */}
+        <td>{crAmount || '0.00'}</td> {/* CR Column */}
+      </tr>
+    );
+  };
+
+  // Calculate total for Receipts (credit) and Disbursements (debit)
+  const calculateTotal = (data, type) => {
+    return data.reduce((total, item) => {
+      if (type === 'Receipt' && item.type === 'Receipt') {
+        return total + (Number(item.total_amount) || 0);
+      }
+      if (type === 'Disbursement' && item.type === 'Disbursement') {
+        return total + (Number(item.total_amount) || 0);
+      }
+      return total;
+    }, 0);
   };
 
   // Render Parent Account Details and Total (Show accounts with no transactions as well)
@@ -78,46 +126,51 @@ const FinancialReportComponent = () => {
     // Find all accounts including those with no transactions
     const allAccounts = filteredData.filter(item => item.parent_account === parentAccount || item.parent_account === '');
 
-    const total = parentData.reduce((acc, item) => acc + (Number(item.total_amount) || 0), 0);
+    const totalReceipts = calculateTotal(allAccounts, 'Receipt');
+    const totalDisbursements = calculateTotal(allAccounts, 'Disbursement');
+
+    // Fetch Opening Balance for Parent Account (assuming first item's opening_balance is the starting balance)
+    const openingBalance = allAccounts.length > 0 ? allAccounts[0].opening_balance : 0;
+
+    // Calculate Closing Balance
+    const closingBalance = openingBalance + totalReceipts - totalDisbursements;
 
     return (
       <div key={parentAccount}>
         <h4>Parent Account: {parentAccount}</h4>
+        <p><strong>Opening Balance: </strong>{openingBalance.toFixed(2) || '0.00'}</p>
+
         <table className="financial-table">
           <thead>
             <tr>
-              <th>Account Name</th>
+              <th>Date</th>
               <th>Account Type</th>
-              <th>Sub Account</th>
-              <th>Parent Account</th>
-              <th>Total Amount</th>
-              <th>Opening Balance</th>
-              <th>Closing Balance</th>
-              <th>Transactions</th> {/* New column for transactions */}
+              <th>Account Class</th>
+              <th>To Whom Paid</th>
+              <th>Description</th>
+              <th>DR</th> {/* DR Column */}
+              <th>CR</th> {/* CR Column */}
             </tr>
           </thead>
           <tbody>
-            {allAccounts.map((item, index) => {
-              // Deriving account name if missing
-              const accountName = item.account_name || item.account_credited || item.account_debited || 'No Name';
+            {allAccounts.map(renderTransactionDetails)}
 
-              return (
-                <tr key={index}>
-                  <td>{accountName}</td> {/* Display derived or fallback account name */}
-                  <td>{item.account_type || ''}</td>
-                  <td>{item.sub_account || ''}</td>
-                  <td>{item.parent_account || ''}</td>
-                  <td>{item.total_amount ? item.total_amount : '0'}</td>
-                  <td>{item.opening_balance ? item.opening_balance : '0'}</td>
-                  <td>{calculateClosingBalance(item) || '0'}</td>
-                  <td>{item.type || 'No Transactions'}</td> {/* Display transaction type if available */}
-                </tr>
-              );
-            })}
+            {/* Totals for DR and CR */}
             <tr>
-              <td colSpan="6">Total for {parentAccount}</td>
-              <td>{total.toFixed(2) || '0.00'}</td>
-              <td></td>
+              <td colSpan="5"><strong>Total Receipt Amount</strong></td>
+              <td><strong>{totalReceipts.toFixed(2) || '0.00'}</strong></td> {/* Total DR */}
+              <td></td> {/* Empty column for CR */}
+            </tr>
+            <tr>
+              <td colSpan="5"><strong>Total Disbursement Amount</strong></td>
+              <td></td> {/* Empty column for DR */}
+              <td><strong>{totalDisbursements.toFixed(2) || '0.00'}</strong></td> {/* Total CR */}
+            </tr>
+
+            {/* Closing Balance */}
+            <tr className="closing-balance-row">
+              <td colSpan="5"><strong>Closing Balance</strong></td>
+              <td colSpan="2"><strong>{closingBalance.toFixed(2) || '0.00'}</strong></td>
             </tr>
           </tbody>
         </table>
@@ -150,6 +203,16 @@ const FinancialReportComponent = () => {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Single Search Input for Credit/Debit Accounts */}
+          <div className="search-container">
+            <input
+              type="text"
+              placeholder="Search Credit/Debit Accounts"
+              value={searchTerm}
+              onChange={handleSearchChange}
+            />
           </div>
 
           {/* Render Parent Account Details with Transactions */}

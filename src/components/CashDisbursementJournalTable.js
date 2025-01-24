@@ -203,7 +203,9 @@ function DisbursementForm() {
       // Reset the form and sub-account data
       setFormData({}); // Reset form data to clear the fields
       setSubAccountData([]); // Clear subaccount data
-      
+
+      // Refresh the window to reflect changes
+      window.location.reload(); // This will refresh the page
     } catch (error) {
       setErrorMessage(error.message); // Display error message
     }
