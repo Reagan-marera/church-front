@@ -146,9 +146,16 @@ const calculateTotal = (data, type) => {
     if (type === 'Disbursement' && item.type === 'Disbursement') {
       return total + (Number(item.total_amount) || 0);
     }
+    if (type === 'Invoice Issued' && item.invoice_type === 'Invoice Issued') {
+      return total + (Number(item.total_amount) || 0);
+    }
+    if (type === 'Invoice Received' && item.invoice_type === 'Invoice Received') {
+      return total + (Number(item.total_amount) || 0);
+    }
     return total;
   }, 0);
 };
+
 
 
 
