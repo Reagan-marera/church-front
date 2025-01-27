@@ -335,7 +335,7 @@ const styles = {
   },
   label: {
     fontWeight: 'bold',
-    color: 'white',
+    color: 'blue',
   },
   input: {
     width: '100%',
