@@ -1,120 +1,114 @@
 /* Import Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Montserrat:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap');
 
 /* Basic Navbar Styling */
 .navbar {
-    background-color: #1e2a47; /* Deep blue for a sleek and professional look */
-    color: white;
-    padding: 3px 0; /* Reduced padding to prevent navbar from being too thick */
-    position: relative;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Subtle shadow for depth */
-    z-index: 1000;
-    font-family: 'Roboto', sans-serif; /* Apply new font */
+  background-color: #1e2a47; /* Deep blue background for sleekness */
+  color: white;
+  padding: 5px 15px; /* Thinner padding for a more compact navbar */
+  display: flex;
+  justify-content: space-between; /* Space items evenly */
+  align-items: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  font-family: 'Montserrat', sans-serif; /* Change font to Montserrat */
+  font-size: 14px; /* Slightly smaller font size for a more compact navbar */
+  position: relative;
 }
 
 /* Navbar List Styling */
 .nav-list {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    justify-content: space-evenly; /* Evenly distribute links across the navbar */
-    flex-wrap: wrap;
-    width: auto; /* Ensure navbar has dynamic width */
-    max-width: 1200px; /* Prevents navbar from stretching too wide */
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 8px; /* Reduced gap between items */
+  align-items: center;
 }
 
 /* Individual List Items (Links) */
 .nav-list li {
-    text-align: center;
-    margin: 0 10px; /* Reduced margin between items */
+  text-align: center;
 }
 
 /* Link Styling */
 .nav-link {
-    text-decoration: none;
-    color: #ffffff; /* White color for text */
-    padding: 10px 18px; /* Adjusted padding for better proportions */
-    font-size: 15px; /* Slightly smaller font size for a balanced look */
-    font-weight: 500;
-    letter-spacing: 0.8px; /* Slight letter spacing for clarity */
-    transition: all 0.3s ease; /* Smooth transition for hover effects */
-    display: block;
-    text-align: center;
-    border-radius: 5px; /* Rounded corners for a modern look */
-    background-color: transparent;
+  text-decoration: none;
+  color: white;
+  padding: 6px 14px; /* Reduced padding for a sleeker look */
+  font-size: 13px; /* Reduced font size for more compact look */
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase; /* Uppercase for more professional look */
+  transition: all 0.3s ease;
+  display: inline-block;
+  border-radius: 4px; /* Slight rounding for modern look */
 }
 
 /* Hover Effects */
 .nav-link:hover {
-    background-color: #f39c12; /* Golden yellow for hover */
-    color: white;
-    transform: translateY(-3px); /* Slight lift effect */
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); /* Light shadow on hover */
+  background-color: #f39c12; /* Golden yellow for hover */
+  color: white;
+  transform: translateY(-2px); /* Slight lift effect */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Soft shadow on hover */
 }
 
 /* Active Link Styling */
 .nav-link.active {
-    background-color: #3498db; /* Blue for active link */
-    color: white; /* White text on active */
-    font-weight: 600; /* Bold for active link */
-    border-radius: 5px; /* Rounded corners */
+  background-color: #3498db; /* Blue for active link */
+  color: white;
+  font-weight: 600;
+  transform: scale(1.05); /* Slight scaling effect for active link */
 }
 
-/* Unique Link Colors */
-.nav-link.home {
-    background-color: #2ecc71; /* Green for Home */
+/* "More" Button Styling */
+.nav-link.more-button {
+  background-color: #2ecc71; /* Green for 'More' button */
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  text-transform: uppercase;
+  font-weight: bold;
+  border-radius: 5px;
+  transition: background-color 0.3s, transform 0.3s;
 }
 
-.nav-link.about {
-    background-color: #e74c3c; /* Red for About */
-}
-
-.nav-link.contact {
-    background-color: #9b59b6; /* Purple for Contact */
-}
-
-.nav-link.services {
-    background-color: #16a085; /* Teal for Services */
+.nav-link.more-button:hover {
+  background-color: #27ae60; /* Darker green on hover */
+  transform: translateY(-2px); /* Lift effect */
 }
 
 /* Mobile Responsive Styling */
 @media (max-width: 768px) {
-    .navbar {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 1000;
-        background-color: #1e2a47; /* Maintain the sleek deep blue */
-        display: flex;
-        justify-content: space-evenly;
-        padding: 8px 0; /* Reduced padding for mobile */
-    }
+  .navbar {
+    flex-direction: column; /* Stack items vertically on mobile */
+    padding: 8px 15px;
+  }
 
-    .nav-list {
-        display: flex;
-        justify-content: space-evenly;
-        width: 100%;
-        flex-direction: row; /* Row layout for smaller screens */
-    }
+  .nav-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Two columns for smaller screens */
+    gap: 8px; /* Adjust gap between items */
+    width: 100%;
+  }
 
-    .nav-link {
-        padding: 12px 16px;
-        font-size: 14px; /* Smaller font for mobile */
-    }
+  .nav-link {
+    font-size: 12px; /* Smaller font for mobile */
+    padding: 6px 12px;
+  }
+
+  .nav-link.more-button {
+    font-size: 12px; /* Smaller font for the 'More' button on mobile */
+    padding: 6px 14px;
+  }
 }
 
 @media (max-width: 480px) {
-    .nav-link {
-        font-size: 13px; /* Smaller font on tiny screens */
-        padding: 8px 12px; /* Reduced padding */
-    }
+  .nav-link {
+    font-size: 11px; /* Even smaller font on tiny screens */
+    padding: 5px 10px;
+  }
 
-    .navbar {
-        padding: 6px 4px; /* Even thinner padding */
-    }
+  .navbar {
+    padding: 6px 10px; /* Adjust padding for very small screens */
+  }
 }
