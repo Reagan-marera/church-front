@@ -29,7 +29,7 @@ function Home() {
       ) : (
         <>
           {/* Navigation Bar */}
-          <div className="navbar">
+          <div className="navbarhome">
   <div className="navbar-brand">
     <img src="https://i.pinimg.com/236x/59/c2/f2/59c2f2560376e073618614fbb0d9b9ed.jpg" alt="Logo" className="navbar-logo" />
     <span className="company-name">YOUMING TECHNOLOGIES</span>

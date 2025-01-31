@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
-const ChartOfAccountsTable = () => {
-  const [accounts, setAccounts] = useState([]);
+const CustomerList = () => {
+  const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [editingAccountId, setEditingAccountId] = useState(null);
+  const [editingCustomerId, setEditingCustomerId] = useState(null);
 
   const [formData, setFormData] = useState({
     parent_account: '',
     account_name: '',
     account_type: '',
-    sub_account_details: [{ id: '', name: '' }], // Removed opening_balance and balance_type
+    sub_account_details: [{ id: '', name: '' }],
   });
 
   const handleInputChange = (e) => {
@@ -64,11 +64,11 @@ const ChartOfAccountsTable = () => {
       return;
     }
 
-    const url = editingAccountId
-      ? `http://127.0.0.1:5000/chart-of-accounts/${editingAccountId}`
-      : 'http://127.0.0.1:5000/chart-of-accounts';
+    const url = editingCustomerId
+      ? `http://127.0.0.1:5000/customer/${editingCustomerId}`
+      : 'http://127.0.0.1:5000/customer';
 
-    const method = editingAccountId ? 'PUT' : 'POST';
+    const method = editingCustomerId ? 'PUT' : 'POST';
 
     try {
       const response = await fetch(url, {
@@ -85,13 +85,13 @@ const ChartOfAccountsTable = () => {
       }
 
       const result = await response.json();
-      fetchAccounts();
-      setEditingAccountId(null);
+      fetchCustomers();
+      setEditingCustomerId(null);
       setFormData({
         parent_account: '',
         account_name: '',
         account_type: '',
-        sub_account_details: [{ id: '', name: '' }], // Reset to empty subaccounts
+        sub_account_details: [{ id: '', name: '' }],
       });
       alert(result.message);
     } catch (error) {
@@ -99,7 +99,7 @@ const ChartOfAccountsTable = () => {
     }
   };
 
-  const fetchAccounts = async () => {
+  const fetchCustomers = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
       setError('Authentication token is missing.');
@@ -108,7 +108,7 @@ const ChartOfAccountsTable = () => {
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/chart-of-accounts', {
+      const response = await fetch('http://127.0.0.1:5000/customer', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -121,13 +121,7 @@ const ChartOfAccountsTable = () => {
       }
 
       const data = await response.json();
-      // Sort accounts by parent_account in ascending order
-      const sortedAccounts = data.sort((a, b) => {
-        if (a.parent_account < b.parent_account) return -1;
-        if (a.parent_account > b.parent_account) return 1;
-        return 0;
-      });
-      setAccounts(sortedAccounts);
+      setCustomers(data);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -135,17 +129,17 @@ const ChartOfAccountsTable = () => {
     }
   };
 
-  const handleEdit = (account) => {
-    setEditingAccountId(account.id);
+  const handleEdit = (customer) => {
+    setEditingCustomerId(customer.id);
     setFormData({
-      parent_account: account.parent_account,
-      account_name: account.account_name,
-      account_type: account.account_type,
-      sub_account_details: account.sub_account_details || [{ id: '', name: '' }],
+      parent_account: customer.parent_account,
+      account_name: customer.account_name,
+      account_type: customer.account_type,
+      sub_account_details: customer.sub_account_details || [{ id: '', name: '' }],
     });
   };
 
-  const handleDelete = async (accountId) => {
+  const handleDelete = async (customerId) => {
     const token = localStorage.getItem('token');
     if (!token) {
       setError('Authentication token is missing.');
@@ -153,7 +147,7 @@ const ChartOfAccountsTable = () => {
     }
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/chart-of-accounts/${accountId}`, {
+      const response = await fetch(`http://127.0.0.1:5000/customer/${customerId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -162,18 +156,18 @@ const ChartOfAccountsTable = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete account');
+        throw new Error('Failed to delete customer');
       }
 
-      setAccounts(accounts.filter((account) => account.id !== accountId));
-      alert('Account deleted successfully');
+      setCustomers(customers.filter((customer) => customer.id !== customerId));
+      alert('Customer deleted successfully');
     } catch (error) {
       setError(error.message);
     }
   };
 
   useEffect(() => {
-    fetchAccounts();
+    fetchCustomers();
   }, []);
 
   if (loading) return <div className="loader">Loading...</div>;
@@ -182,7 +176,7 @@ const ChartOfAccountsTable = () => {
 
   return (
     <div style={styles.container}>
-      <h2 className="color-changing-words">{editingAccountId ? 'Edit Account' : 'Add New Account'}</h2>
+    <i> <h2 className="color-changing-words">{editingCustomerId ? 'Edit Customer' : 'Add New Customer'}</h2></i> 
 
       <form onSubmit={handleFormSubmit} style={styles.form}>
         <div style={styles.formGroup}>
@@ -208,7 +202,7 @@ const ChartOfAccountsTable = () => {
           />
         </div>
         <div style={styles.formGroup}>
-          <label style={styles.label}>General Ledger:</label>
+          <label style={styles.label}>General ledger</label>
           <input
             type="text"
             name="parent_account"
@@ -248,7 +242,7 @@ const ChartOfAccountsTable = () => {
         </div>
 
         <button type="submit" style={styles.button}>
-          {editingAccountId ? 'Update Account' : 'Add Account'}
+          {editingCustomerId ? 'Update Customer' : 'Add Customer'}
         </button>
       </form>
 
@@ -256,35 +250,33 @@ const ChartOfAccountsTable = () => {
         <thead>
           <tr>
             <th style={styles.tableHeader}>Account Type</th>
-            <th style={styles.tableHeader}>Account Class</th>
-            <th style={styles.tableHeader}>General Ledger</th>
+            <th style={styles.tableHeader}>Account Name</th>
+            <th style={styles.tableHeader}>Parent Account</th>
             <th style={styles.tableHeader}>Sub Account Details</th>
             <th style={styles.tableHeader}>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {accounts.length === 0 ? (
+          {customers.length === 0 ? (
             <tr>
-              <td colSpan="5" style={styles.tableCell}>No accounts available.</td>
+              <td colSpan="5" style={styles.tableCell}>No customers available.</td>
             </tr>
           ) : (
-            accounts.map((account) => (
-              <tr key={account.id} style={styles.tableRow}>
-                <td style={styles.tableCell}>{account.account_type}</td>
-                <td style={styles.tableCell}>{account.account_name}</td>
-                <td style={styles.tableCell}>{account.parent_account}</td>
+            customers.map((customer) => (
+              <tr key={customer.id} style={styles.tableRow}>
+                <td style={styles.tableCell}>{customer.account_type}</td>
+                <td style={styles.tableCell}>{customer.account_name}</td>
+                <td style={styles.tableCell}>{customer.parent_account}</td>
                 <td style={styles.tableCell}>
-                  {account.sub_account_details && account.sub_account_details.length > 0
-                    ? account.sub_account_details.map((sub, idx) => (
-                        <div key={idx}>
-                          <strong>{sub.name}</strong>
-                        </div>
+                  {customer.sub_account_details && customer.sub_account_details.length > 0
+                    ? customer.sub_account_details.map((sub, idx) => (
+                        <div key={idx}>{sub.name}</div>
                       ))
                     : 'No subaccounts'}
                 </td>
                 <td style={styles.tableCell}>
-                  <button onClick={() => handleEdit(account)} style={styles.editButton}>Edit</button>
-                  <button onClick={() => handleDelete(account.id)} style={styles.deleteButton}>
+                  <button onClick={() => handleEdit(customer)} style={styles.editButton}>Edit</button>
+                  <button onClick={() => handleDelete(customer.id)} style={styles.deleteButton}>
                     Delete
                   </button>
                 </td>
@@ -300,7 +292,13 @@ const ChartOfAccountsTable = () => {
 const styles = {
   container: {
     padding: '20px',
-    fontFamily: 'Arial Black, Impact, sans-serif',
+    fontFamily: 'Arial, sans-serif',
+  },
+  heading: {
+    fontSize: '24px',
+    marginBottom: '20px',
+    fontWeight: 'bold',
+    color: '#003366',
   },
   form: {
     marginBottom: '20px',
@@ -310,84 +308,91 @@ const styles = {
   },
   label: {
     fontWeight: 'bold',
-    color: 'blue',
+    color: '#003366',
   },
   input: {
     width: '100%',
     padding: '12px',
     marginTop: '5px',
     borderRadius: '6px',
-    border: '1px solid #333',
-    backgroundColor: '#f0f0f0',
-    fontFamily: 'Arial Black, Impact, sans-serif',
+    border: '1px solid #003366',
+    backgroundColor: '#f4f6f9',
+    color: '#333',
     fontWeight: 'bold',
-    color: 'black',
   },
   addButton: {
-    backgroundColor: 'blue',
+    backgroundColor: '#003366', 
     color: 'white',
-    padding: '10px 15px',
+    padding: '12px 18px',
     border: 'none',
     cursor: 'pointer',
-    marginTop: '10px',
     fontWeight: 'bold',
+    borderRadius: '5px',
+    marginTop: '10px',
+    transition: 'all 0.3s ease',
   },
   removeButton: {
     backgroundColor: '#e53935',
     color: 'white',
-    padding: '5px 10px',
+    padding: '8px 15px',
     border: 'none',
     cursor: 'pointer',
-    marginTop: '10px',
     fontWeight: 'bold',
+    borderRadius: '5px',
+    transition: 'all 0.3s ease',
   },
   button: {
-    backgroundColor: 'green',
+    backgroundColor: '#007bff',
     color: 'white',
-    padding: '10px 15px',
+    padding: '12px 18px',
     border: 'none',
     cursor: 'pointer',
     fontWeight: 'bold',
-    marginBottom: '5px',
+    borderRadius: '5px',
+    transition: 'background-color 0.3s, transform 0.2s',
   },
   editButton: {
-    backgroundColor: 'orange',
+    backgroundColor: '#ffbb33',
     color: 'white',
-    padding: '10px 15px',
+    padding: '12px 18px',
     border: 'none',
     cursor: 'pointer',
     fontWeight: 'bold',
-    marginBottom: '5px',
+    borderRadius: '5px',
+    transition: 'background-color 0.3s, transform 0.2s',
+  },
+  deleteButton: {
+    backgroundColor: '#e53935',
+    color: 'white',
+    padding: '12px 18px',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    borderRadius: '5px',
+    transition: 'background-color 0.3s, transform 0.2s',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
     marginTop: '20px',
-    fontFamily: 'Arial Black, Impact, sans-serif',
+    fontFamily: 'Arial, sans-serif',
   },
   tableHeader: {
     backgroundColor: '#003366',
+    color: 'white',
     padding: '12px',
     textAlign: 'left',
-    color: 'white',
     fontWeight: 'bold',
   },
   tableCell: {
     padding: '12px',
-    border: '1px solid #333',
-    color: 'black',
-    borderRadius: '5px',
+    border: '1px solid #ddd',
+    textAlign: 'left',
+    color: '#333',
+    fontWeight: 'normal',
   },
   tableRow: {
-    backgroundColor: 'white',
-  },
-  deleteButton: {
-    backgroundColor: '#e53935',
-    color: 'white',
-    padding: '5px 10px',
-    border: 'none',
-    cursor: 'pointer',
-    fontWeight: 'bold',
+    backgroundColor: '#fff',
   },
   loader: {
     textAlign: 'center',
@@ -397,34 +402,24 @@ const styles = {
   },
 };
 
-// Changing colors animation
+// Smooth Hover Animation
 const style = document.createElement('style');
 style.innerHTML = `
-  .color-changing-words {
-    font-size: 2rem;
-    font-weight: bold;
-    animation: colorChange 5s infinite;
-    color: #003A5C; /* Initial color */
+  .button:hover,
+  .removeButton:hover,
+  .editButton:hover,
+  .deleteButton:hover {
+    transform: scale(1.05);
   }
 
-  @keyframes colorChange {
-    0% {
-      color: #003A5C; /* Dark Blue */
-    }
-    25% {
-      color: #0071BC; /* Blue */
-    }
-    50% {
-      color: blue; /* Light Blue */
-    }
-    75% {
-      color: red; /* Red */
-    }
-    100% {
-      color: black; /* black */
-    }
+  .button:focus,
+  .removeButton:focus,
+  .editButton:focus,
+  .deleteButton:focus {
+    outline: none;
+    box-shadow: 0 0 5px 2px rgba(0, 123, 255, 0.6);
   }
 `;
 document.head.appendChild(style);
 
-export default ChartOfAccountsTable;
+export default CustomerList;

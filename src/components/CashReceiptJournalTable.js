@@ -336,7 +336,6 @@ return (
 
       {/* Other form inputs */}
       <div className="form-row">
-        <label htmlFor="cashbook">Cashbook</label>
         <input
           type="text"
           id="cashbook"
@@ -345,6 +344,8 @@ return (
           onChange={handleInputChange}
           required
           className="form-input"
+          placeholder="cashbook"
+
         />
       </div>
 

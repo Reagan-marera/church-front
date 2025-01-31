@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import './FinancialReportComponent.css'; // Import your CSS styles
+import './FinancialReportComponent.css';
 
-const FinancialReportComponent = () => {
+const GeneralReport = () => {
   const [reportData, setReportData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +52,20 @@ const FinancialReportComponent = () => {
     }).format(amount);
   };
 
+  // Function to format the date
+  const formatDate = (dateString) => {
+    if (!dateString) return 'No Date';
+
+    const date = new Date(dateString);
+    if (isNaN(date)) return 'Invalid Date';
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  };
+
   // Handle search for credit/debit accounts (transaction search)
   const handleSearchChange = (event) => {
     const searchTerm = event.target.value;
@@ -92,6 +106,16 @@ const FinancialReportComponent = () => {
       );
     }
 
+    // Filter by account type range (10-assets to 60-expenses)
+    filtered = filtered.filter(item => {
+      const accountType = item.account_type;
+      return (
+        (accountType && 
+         (parseInt(accountType.split('-')[0]) >= 10 && parseInt(accountType.split('-')[0]) <= 60))
+      );
+    });
+    
+
     // Set filtered data
     setFilteredData(filtered);
   };
@@ -105,63 +129,59 @@ const FinancialReportComponent = () => {
     }
     return 0;
   };
+
+  const calculateTotal = (data, type, accountType) => {
+    return data.reduce((total, item) => {
+      // Use Number() to parse the total_amount
+      const amount = Number(item.total_amount) || 0;
   
-
-const calculateClosingBalance = (accountData) => {
-  if (accountData.length === 0) {
-    return 0;
-  }
-
-  // Handle the opening balance only once (taking the first occurrence)
-  const openingBalance = accountData.reduce((sum, item) => {
-    const openingBalanceValue = item.opening_balance || item.amount;
-    const parsedOpeningBalance = parseAmount(openingBalanceValue || 0);
-    console.log("Parsed Opening Balance:", parsedOpeningBalance);
-    return sum + parsedOpeningBalance;
-  }, 0);
-
-  // Calculate the totals for debits (Receipts), credits (Disbursements), and invoices
-  const totalDR = calculateTotal(accountData, 'Receipt');
-  const totalCR = calculateTotal(accountData, 'Disbursement');
+      // Handle Liabilities separately
+      if (accountType === 'Liabilities') {
+        // For Liabilities:
+        // - DR decreases liabilities (when paid)
+        // - CR increases liabilities (when accrued)
+        if (type === 'Receipt' && item.type === 'Receipt') {
+          return total + amount; // DR increases Liabilities
+        }
+        if (type === 'Disbursement' && item.type === 'Disbursement') {
+          return total + amount; // CR increases Liabilities
+        }
+      } else {
+        // Default calculation for other account types (Assets, etc.)
+        if (type === 'Receipt' && item.type === 'Receipt') {
+          return total + amount; // DR increases assets
+        }
+        if (type === 'Disbursement' && item.type === 'Disbursement') {
+          return total + amount; // CR decreases assets
+        }
+      }
   
-  console.log("Total DR (Receipts):", totalDR);
-  console.log("Total CR (Disbursements):", totalCR);
-
-  // Invoices are 0 in your case, so let's ignore them.
-  const totalInvoicesIssued = 0;
-  const totalInvoicesReceived = 0;
-
-  // Closing balance formula
-  const closingBalance = openingBalance + totalDR - totalCR - totalInvoicesIssued - totalInvoicesReceived;
-  console.log("Calculated Closing Balance:", closingBalance);
-
-  return closingBalance;
-};
-
-const calculateTotal = (data, type) => {
-  return data.reduce((total, item) => {
-    if (type === 'Receipt' && item.type === 'Receipt') {
-      return total + (Number(item.total_amount) || 0);
-    }
-    if (type === 'Disbursement' && item.type === 'Disbursement') {
-      return total + (Number(item.total_amount) || 0);
-    }
-    if (type === 'Invoice Issued' && item.invoice_type === 'Invoice Issued') {
-      return total + (Number(item.total_amount) || 0);
-    }
-    if (type === 'Invoice Received' && item.invoice_type === 'Invoice Received') {
-      return total + (Number(item.total_amount) || 0);
-    }
-    return total;
-  }, 0);
-};
-
-
-
-
-
+      // Handling Invoices (Accrual-based):
+      // Add invoice amounts to DR (for received) or CR (for issued)
+      if (item.invoice_type === 'Invoice Received' && type === 'Receipt') {
+        return total + amount; // Invoice Received is DR
+      } else if (item.invoice_type === 'Invoice Issued' && type === 'Disbursement') {
+        return total + amount; // Invoice Issued is CR
+      }
   
-  const renderTransactionDetails = (item) => {
+      return total;
+    }, 0);
+  };
+
+  // Function to calculate closing balance
+  const calculateClosingBalance = (accountData, openingBalance, accountType) => {
+    if (accountData.length === 0) {
+      return openingBalance; // If no data, return the opening balance as the closing balance
+    }
+
+    const totalDR = calculateTotal(accountData, 'Receipt', accountType);
+    const totalCR = calculateTotal(accountData, 'Disbursement', accountType);
+
+    const closingBalance = openingBalance + totalDR - totalCR;
+    return closingBalance;
+  };
+
+  const renderTransactionDetails = (item, accountOpeningBalance) => {
     const {
       date,
       account_name,
@@ -177,25 +197,9 @@ const calculateTotal = (data, type) => {
       amount
     } = item;
 
-    const accountOpeningBalance = Number(opening_balance || amount || 0);
-
-    const formatDate = (dateString) => {
-      if (!dateString) return 'No Date';
-
-      const date = new Date(dateString);
-      if (isNaN(date)) return 'Invalid Date';
-
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-
-      return `${year}-${month}-${day}`;
-    };
-
-    const drAmount = type === 'Receipt' ? formatCurrency(total_amount) : '';
-    const crAmount = type === 'Disbursement' ? formatCurrency(total_amount) : '';
-    const invoiceAmount = invoice_type === 'Invoice Issued' ? formatCurrency(total_amount) : '';
-    const invoiceReceivedAmount = invoice_type === 'Invoice Received' ? formatCurrency(total_amount) : '';
+    // Group invoice amounts under DR (Invoice Received) or CR (Invoice Issued)
+    const drAmount = (type === 'Receipt' || invoice_type === 'Invoice Received') ? formatCurrency(total_amount) : '';
+    const crAmount = (type === 'Disbursement' || invoice_type === 'Invoice Issued') ? formatCurrency(total_amount) : '';
 
     return (
       <tr key={item.id || Math.random()}>
@@ -205,24 +209,24 @@ const calculateTotal = (data, type) => {
         <td>{account_name || sub_account || ''}</td>
         <td>{to_whom_paid || from_whom_received || 'No Payee'}</td>
         <td>{description || ''}</td>
-        <td>{drAmount || '0.00'}</td>
-        <td>{crAmount || '0.00'}</td>
-        <td>{invoiceAmount || invoiceReceivedAmount || '0.00'}</td>
-        <td>{formatCurrency(accountOpeningBalance) || '0.00'}</td>
+        <td>{drAmount || '0.00'}</td> {/* DR (Debit): Includes both Receipts and Invoice Received */}
+        <td>{crAmount || '0.00'}</td> {/* CR (Credit): Includes both Disbursements and Invoice Issued */}
+        <td>{''}</td> {/* Removed Invoice Amount column */}
+        <td>{''}</td> {/* Opening Balance will be rendered once per parent account */}
       </tr>
     );
   };
 
   const renderParentAccount = (parentAccount) => {
     const associatedData = filteredData.filter(item => item.parent_account === parentAccount);
-    
+
+    const openingBalance = associatedData.length > 0 ? associatedData[0].opening_balance || 0 : 0;
+    const accountType = associatedData.length > 0 ? associatedData[0].account_type : 'asset'; 
+
     // Calculate totals for DR, CR, and Invoices
-    const totalDR = calculateTotal(associatedData, 'Receipt');
-    const totalCR = calculateTotal(associatedData, 'Disbursement');
-    const totalInvoicesIssued = calculateTotal(associatedData, 'Invoice Issued');
-    const totalInvoicesReceived = calculateTotal(associatedData, 'Invoice Received');
-    
-    const closingBalance = calculateClosingBalance(associatedData);
+    const totalDR = calculateTotal(associatedData, 'Receipt', accountType);
+    const totalCR = calculateTotal(associatedData, 'Disbursement', accountType);
+    const closingBalance = calculateClosingBalance(associatedData, openingBalance, accountType);
 
     return (
       <div key={parentAccount}>
@@ -238,12 +242,17 @@ const calculateTotal = (data, type) => {
               <th>Description</th>
               <th>DR</th>
               <th>CR</th>
-              <th>Invoice Amount</th>
               <th>Opening Balance</th>
             </tr>
           </thead>
           <tbody>
-            {associatedData.map(renderTransactionDetails)}
+            {/* Displaying the opening balance only once */}
+            <tr className="opening-balance-row">
+              <td colSpan="8"><strong>Opening Balance</strong></td>
+              <td><strong>{formatCurrency(openingBalance)}</strong></td>
+            </tr>
+
+            {associatedData.map(item => renderTransactionDetails(item, openingBalance))}
 
             {/* Parent Account Totals */}
             <tr className="closing-balance-row">
@@ -254,14 +263,7 @@ const calculateTotal = (data, type) => {
               <td colSpan="5"><strong>Total CR (Disbursement)</strong></td>
               <td colSpan="2"><strong>{formatCurrency(totalCR) || '0.00'}</strong></td>
             </tr>
-            <tr className="closing-balance-row">
-              <td colSpan="5"><strong>Total Invoices Issued</strong></td>
-              <td colSpan="2"><strong>{formatCurrency(totalInvoicesIssued) || '0.00'}</strong></td>
-            </tr>
-            <tr className="closing-balance-row">
-              <td colSpan="5"><strong>Total Invoices Received</strong></td>
-              <td colSpan="2"><strong>{formatCurrency(totalInvoicesReceived) || '0.00'}</strong></td>
-            </tr>
+
             <tr className="closing-balance-row">
               <td colSpan="5"><strong>Closing Balance</strong></td>
               <td colSpan="2"><strong>{formatCurrency(closingBalance) || '0.00'}</strong></td>
@@ -288,7 +290,7 @@ const calculateTotal = (data, type) => {
       {error && <div className="error-message">Error: {error}</div>}
       {!loading && !error && (
         <div className="content">
-          <h2 className="section-title">Financial Report</h2>
+          <h2 className="section-title">General Report</h2>
 
           {/* Parent Account Dropdown */}
           <div className="search-container">
@@ -326,4 +328,4 @@ const calculateTotal = (data, type) => {
   );
 };
 
-export default FinancialReportComponent;
+export default GeneralReport;

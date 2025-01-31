@@ -28,7 +28,7 @@ const Navbar = ({ token, role }) => {
 
         {/* Other navigation links */}
         <li><Link to="/chart-of-accounts" className="nav-link">Chart of Accounts</Link></li>
-        <li><Link to="/invoices" className="nav-link">Invoices</Link></li>
+        <li><Link to="/invoices" className="nav-link">Invoice Issued</Link></li>
         <li><Link to="/cash-receipt-journal" className="nav-link">Cash Receipt Journal</Link></li>
         <li><Link to="/cash-disbursement-journal" className="nav-link">Cash Disbursement Journal</Link></li>
 
@@ -39,6 +39,14 @@ const Navbar = ({ token, role }) => {
 
         {/* Show General Report link to all users, no token required */}
         <li><Link to="/general-report" className="nav-link">General Ledger Accounts</Link></li>
+
+        {/* Show Customer List and Payee List links */}
+        {storedToken && (
+          <>
+            <li><Link to="/customer-list" className="nav-link">Customer List</Link></li>
+            <li><Link to="/payee-list" className="nav-link">Payee List</Link></li>
+          </>
+        )}
 
         {/* Show the Dashboard link only if the user is logged in */}
         {storedToken && (
@@ -64,6 +72,11 @@ const Navbar = ({ token, role }) => {
         {/* Show Payment link only if the user is logged in */}
         {storedToken && (
           <li><Link to="/payment-form" className="nav-link">Payment</Link></li>
+        )}
+
+        {/* Show Invoice Received link only if the user is logged in */}
+        {storedToken && (
+          <li><Link to="/invoice-received" className="nav-link">Invoice Received</Link></li>
         )}
 
         {/* Show Logout link only for logged-in users */}

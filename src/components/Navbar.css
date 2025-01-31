@@ -1,100 +1,120 @@
-/* Navbar.css */
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Montserrat:wght@400;600;700&display=swap');
 
-/* Overall navbar style */
+/* Basic Navbar Styling */
 .navbar {
-    background-color: #003366; /* Deep Blue background */
-    padding: 0 20px; /* Remove padding from left and right */
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2); /* Deeper shadow for better focus */
-    border-radius: px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%; /* Ensure navbar takes full width */
-    max-width: 100%; /* Prevent overflow */
-    transition: all 0.3s ease-in-out; /* Smooth transition for changes */
-    animation: slideIn 0.5s ease-out; /* Navbar animation */
-    position: relative; /* To avoid it being cropped or misaligned */
-    box-sizing: border-box; /* Ensures padding and borders are included in width calculation */
-}
-
-/* Navbar list styling */
-.nav-list {
-    list-style-type: none;
+    background-color: #1e2a47; /* Deep blue for a sleek and professional look */
+    color: white;
+    padding: 3px 0; /* Reduced padding to prevent navbar from being too thick */
+    position: relative;
+    width: 100%;
     display: flex;
     justify-content: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Subtle shadow for depth */
+    z-index: 1000;
+    font-family: 'Roboto', sans-serif; /* Apply new font */
+}
+
+/* Navbar List Styling */
+.nav-list {
+    list-style-type: none;
     padding: 0;
     margin: 0;
-    width: 100%; /* Ensure the list spans the full width */
+    display: flex;
+    justify-content: space-evenly; /* Evenly distribute links across the navbar */
+    flex-wrap: wrap;
+    width: auto; /* Ensure navbar has dynamic width */
+    max-width: 1200px; /* Prevents navbar from stretching too wide */
 }
 
-/* Link styles */
+/* Individual List Items (Links) */
+.nav-list li {
+    text-align: center;
+    margin: 0 10px; /* Reduced margin between items */
+}
+
+/* Link Styling */
 .nav-link {
-    color: #ffffff; /* White text */
     text-decoration: none;
-    padding: 10px 20px; /* Reduce padding for smaller fonts */
-    font-size: 14px; /* Smaller font size */
-    font-family: 'Poppins', sans-serif; /* Modern font */
-    font-weight: 600; /* Bold */
-    font-style: italic; /* Italicize the text */
-    text-transform: uppercase; /* Make text uppercase */
-    letter-spacing: 0.5px; /* Slightly reduce letter spacing */
-    border-radius: 4px;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.3s ease; /* Smooth transitions */
+    color: #ffffff; /* White color for text */
+    padding: 10px 18px; /* Adjusted padding for better proportions */
+    font-size: 15px; /* Slightly smaller font size for a balanced look */
+    font-weight: 500;
+    letter-spacing: 0.8px; /* Slight letter spacing for clarity */
+    transition: all 0.3s ease; /* Smooth transition for hover effects */
+    display: block;
+    text-align: center;
+    border-radius: 5px; /* Rounded corners for a modern look */
+    background-color: transparent;
 }
 
-/* Underline animation for nav-links */
-.nav-link::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    width: 100%;
-    height: 2px;
-    background-color: #ff4d4d; /* Red color */
-    transform: scaleX(0);
-    transition: transform 0.3s ease;
-}
-
-.nav-link:hover::before {
-    transform: scaleX(1); /* Show the underline */
-}
-
+/* Hover Effects */
 .nav-link:hover {
-    color: #ff4d4d; /* Accent color on hover */
-    transform: scale(1.1); /* Slightly scale up */
+    background-color: #f39c12; /* Golden yellow for hover */
+    color: white;
+    transform: translateY(-3px); /* Slight lift effect */
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); /* Light shadow on hover */
 }
 
-/* Navbar animation */
-@keyframes slideIn {
-    0% {
-        opacity: 0;
-        transform: translateY(-50px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
+/* Active Link Styling */
+.nav-link.active {
+    background-color: #3498db; /* Blue for active link */
+    color: white; /* White text on active */
+    font-weight: 600; /* Bold for active link */
+    border-radius: 5px; /* Rounded corners */
 }
 
-/* Media query for responsive design */
+/* Unique Link Colors */
+.nav-link.home {
+    background-color: #2ecc71; /* Green for Home */
+}
+
+.nav-link.about {
+    background-color: #e74c3c; /* Red for About */
+}
+
+.nav-link.contact {
+    background-color: #9b59b6; /* Purple for Contact */
+}
+
+.nav-link.services {
+    background-color: #16a085; /* Teal for Services */
+}
+
+/* Mobile Responsive Styling */
 @media (max-width: 768px) {
     .navbar {
-        flex-direction: column;
-        align-items: center;
-        width: 100%; /* Ensure it stays full width */
-        padding: 1px; /* Reduce padding for mobile view */
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background-color: #1e2a47; /* Maintain the sleek deep blue */
+        display: flex;
+        justify-content: space-evenly;
+        padding: 8px 0; /* Reduced padding for mobile */
     }
 
     .nav-list {
-        flex-direction: column;
-        align-items: center;
-        width: 100%; /* Ensure it spans full width */
+        display: flex;
+        justify-content: space-evenly;
+        width: 100%;
+        flex-direction: row; /* Row layout for smaller screens */
     }
 
     .nav-link {
-        padding: 10px 20px; /* Adjust padding for mobile */
-        font-size: 12px; /* Smaller font size for mobile */
+        padding: 12px 16px;
+        font-size: 14px; /* Smaller font for mobile */
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-link {
+        font-size: 13px; /* Smaller font on tiny screens */
+        padding: 8px 12px; /* Reduced padding */
+    }
+
+    .navbar {
+        padding: 6px 4px; /* Even thinner padding */
     }
 }

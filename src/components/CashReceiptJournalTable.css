@@ -99,17 +99,17 @@
 /* Table */
 .journal-table {
   width: 100%;
-  margin-top: 30px;
+  margin-top: 20px; /* Reduced margin-top */
   border-collapse: collapse;
   opacity: 0;
   animation: fadeIn 1s forwards;
 }
 
 .journal-table th, .journal-table td {
-  padding: 10px;
+  padding: 6px 8px; /* Reduced padding */
   border: 1px solid #ddd;
   text-align: left;
-  font-size: 0.9rem;
+  font-size: 0.8rem; /* Smaller font size */
 }
 
 .journal-table tr:hover {
@@ -143,6 +143,7 @@
   }
 
   .journal-table th, .journal-table td {
-    font-size: 0.8rem;
+    font-size: 0.75rem; /* Even smaller font size */
+    padding: 4px 6px; /* Reduced padding */
   }
 }

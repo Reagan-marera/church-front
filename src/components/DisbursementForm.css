@@ -1,19 +1,19 @@
 /* General container styling */
 .disbursement-form-container {
-  max-width: 1200px;
+  max-width: 1000px; /* Further reduced max width */
   margin: 0 auto;
-  padding: 20px;
+  padding: 10px; /* Further reduced padding */
   font-family: 'Arial', sans-serif;
   background-color: #fff;
   color: #333;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
 }
 
 /* Form header styling */
 .form-header {
   text-align: center;
-  font-size: 1.5rem;
-  margin-bottom: 20px;
+  font-size: 1rem; /* Smaller font size */
+  margin-bottom: 10px; /* Reduced margin */
   font-weight: bold;
   color: #333;
 }
@@ -23,22 +23,22 @@
   color: #d9534f;
   text-align: center;
   font-weight: bold;
-  margin-top: 20px;
+  margin-top: 10px; /* Reduced margin */
 }
 
 /* Form container */
 .form {
   background: #fff;
-  padding: 15px;
+  padding: 8px; /* Smaller padding */
   border: 1px solid #ddd;
-  border-radius: 4px;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.05);
-  margin-bottom: 20px;
+  border-radius: 3px; /* Slightly smaller border radius */
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.05);
+  margin-bottom: 10px; /* Reduced margin */
 }
 
 /* Form row */
 .form-row {
-  margin-bottom: 10px;
+  margin-bottom: 6px; /* Further reduced margin */
   display: flex;
   justify-content: space-between;
 }
@@ -46,16 +46,16 @@
 .form-row label {
   font-weight: normal;
   display: block;
-  width: 100px;
-  font-size: 0.9rem;
+  width: 80px; /* Reduced label width */
+  font-size: 0.75rem; /* Smaller font size */
 }
 
 .form-input {
   width: 100%;
-  padding: 8px;
+  padding: 4px 6px; /* Much smaller padding */
   border: 1px solid #ccc;
   border-radius: 3px;
-  font-size: 0.9rem;
+  font-size: 0.75rem; /* Smaller font size */
   background-color: #fff;
   color: #333;
 }
@@ -70,10 +70,10 @@
   background-color: #007bff;
   color: white;
   border: 1px solid #007bff;
-  padding: 8px 12px;
-  border-radius: 4px;
+  padding: 4px 8px; /* Much smaller padding */
+  border-radius: 3px; /* Smaller border radius */
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.75rem; /* Smaller font size */
   transition: background-color 0.3s ease;
 }
 
@@ -91,15 +91,15 @@
 .disbursement-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 20px;
+  margin-top: 10px; /* Reduced margin */
   background: #fff;
 }
 
 .disbursement-table th, .disbursement-table td {
-  padding: 8px;
-  text-align: left;
+  padding: 10px 4px; /* Much smaller padding */
+  text-align: center;
   border: 1px solid #ddd;
-  font-size: 0.9rem;
+  font-size: 0.75rem; /* Smaller font size */
 }
 
 .disbursement-table th {
@@ -125,9 +125,9 @@
 }
 
 .loader div {
-  width: 10px;
-  height: 10px;
-  margin: 3px;
+  width: 6px; /* Smaller loader size */
+  height: 6px; /* Smaller loader size */
+  margin: 2px; /* Smaller margin */
   background-color: #007bff;
   border-radius: 50%;
   animation: loader 1s infinite alternate;
@@ -157,33 +157,33 @@
   left: 50%;
   transform: translate(-50%, -50%);
   background-color: white;
-  padding: 20px;
-  border-radius: 6px;
-  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 12px; /* Smaller padding */
+  border-radius: 3px; /* Smaller border radius */
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
   z-index: 1000;
-  width: 80%;
-  max-width: 600px;
+  width: 75%; /* Further reduced width */
+  max-width: 450px; /* Reduced max width */
 }
 
 .subaccounts-modal table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 15px;
+  margin-top: 8px; /* Reduced margin */
 }
 
 .subaccounts-modal th, .subaccounts-modal td {
-  padding: 8px;
+  padding: 4px 6px; /* Much smaller padding */
   text-align: left;
   border: 1px solid #ddd;
 }
 
 .subaccounts-modal button {
-  margin-top: 15px;
+  margin-top: 8px; /* Reduced margin */
   background-color: #007bff;
   color: white;
-  padding: 10px;
+  padding: 6px;
   border: none;
-  border-radius: 4px;
+  border-radius: 3px;
   cursor: pointer;
 }
 
@@ -198,10 +198,11 @@
   }
 
   .disbursement-table th, .disbursement-table td {
-    font-size: 0.8rem;
+    font-size: 0.7rem; /* Smaller font size */
+    padding: 4px 6px; /* Smaller padding */
   }
 
   .subaccounts-modal {
-    width: 95%;
+    width: 90%; /* Adjusted for mobile screens */
   }
 }

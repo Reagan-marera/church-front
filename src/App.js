@@ -14,6 +14,9 @@ import CreatePledge from './components/CreatePledge';
 import PaymentForm from './components/Stk';
 import FinancialReport from './components/FinancialReport';
 import GeneralReport from './components/GeneralReport'; // Add the import for GeneralReport
+import CustomerList from './components/CustomerList'; // Import CustomerList
+import PayeeList from './components/PayeeList'; // Import PayeeList
+import InvoiceReceived from './components/InvoiceReceived'; // Import the InvoiceReceived component
 
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
@@ -117,14 +120,45 @@ function App() {
             }
           />
 
-<Route
-          path="/general-report"
-          element={
-            <ProtectedRoute>
-              <GeneralReport />
-            </ProtectedRoute>
-          }
-        />
+          {/* General Report Route (protected) */}
+          <Route
+            path="/general-report"
+            element={
+              <ProtectedRoute>
+                <GeneralReport />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Customer List Route (protected) */}
+          <Route
+            path="/customer-list"
+            element={
+              <ProtectedRoute>
+                <CustomerList />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Payee List Route (protected) */}
+          <Route
+            path="/payee-list"
+            element={
+              <ProtectedRoute>
+                <PayeeList />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Add Route for InvoiceReceived */}
+          <Route
+            path="/invoice-received"
+            element={
+              <ProtectedRoute>
+                <InvoiceReceived />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </div>
     </Router>

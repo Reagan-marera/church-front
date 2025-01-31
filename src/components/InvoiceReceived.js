@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-import "./InvoicesTable.css";
-
-const InvoiceIssued = () => {
+import "./InvoiceReceived.css";
+const InvoiceReceived = () => {
   // State for storing form fields
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [dateIssued, setDateIssued] = useState("");
@@ -9,7 +8,8 @@ const InvoiceIssued = () => {
   const [amount, setAmount] = useState("");
   const [accountDebited, setAccountDebited] = useState("");
   const [accountCredited, setAccountCredited] = useState("");
-
+  const [grnNumber, setGrnNumber] = useState("");
+  
   // State to manage the invoices and form visibility
   const [invoices, setInvoices] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -33,7 +33,7 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/invoices", {
+      const response = await fetch("http://127.0.0.1:5000/invoice-received", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`, // Send the token in the Authorization header
@@ -75,13 +75,14 @@ const InvoiceIssued = () => {
       invoice_number: invoiceNumber,
       date_issued: dateIssued,
       description,
-      amount: parseFloat(amount),
+      amount: parseInt(amount),
       account_debited: accountDebited,
       account_credited: accountCredited,
+      grn_number: grnNumber,
     };
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/invoices", {
+      const response = await fetch("http://127.0.0.1:5000/invoice-received", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -111,18 +112,18 @@ const InvoiceIssued = () => {
     setAmount("");
     setAccountDebited("");
     setAccountCredited("");
+    setGrnNumber("");
   };
 
   return (
-    <div className="invoice-issued">
-      <h1>Invoice Issued</h1>
+    <div className="invoice-received">
+      <h1>Invoice Received</h1>
 
-      {/* Button to toggle the form visibility */}
+      {/* Show the form to add a new invoice */}
       <button onClick={() => setShowForm(!showForm)}>
         {showForm ? "Hide Invoice Form" : "Add New Invoice"}
       </button>
 
-      {/* Form to create a new invoice */}
       {showForm && (
         <form onSubmit={handleSubmit} className="invoice-form">
           <div>
@@ -176,6 +177,14 @@ const InvoiceIssued = () => {
               onChange={(e) => setAccountCredited(e.target.value)}
             />
           </div>
+          <div>
+            <label>GRN Number:</label>
+            <input
+              type="text"
+              value={grnNumber}
+              onChange={(e) => setGrnNumber(e.target.value)}
+            />
+          </div>
           <button type="submit" disabled={loading}>
             {loading ? "Submitting..." : "Submit Invoice"}
           </button>
@@ -198,6 +207,7 @@ const InvoiceIssued = () => {
               <th>Amount</th>
               <th>Account Debited</th>
               <th>Account Credited</th>
+              <th>GRN Number</th>
             </tr>
           </thead>
           <tbody>
@@ -210,11 +220,12 @@ const InvoiceIssued = () => {
                   <td>{invoice.amount}</td>
                   <td>{invoice.account_debited}</td>
                   <td>{invoice.account_credited}</td>
+                  <td>{invoice.grn_number}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="6">No invoices found.</td>
+                <td colSpan="7">No invoices found.</td>
               </tr>
             )}
           </tbody>
@@ -224,4 +235,4 @@ const InvoiceIssued = () => {
   );
 };
 
-export default InvoiceIssued;
+export default InvoiceReceived;
