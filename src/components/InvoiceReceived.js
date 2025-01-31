@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./InvoiceReceived.css";
+
 const InvoiceReceived = () => {
   // State for storing form fields
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -9,22 +10,30 @@ const InvoiceReceived = () => {
   const [accountDebited, setAccountDebited] = useState("");
   const [accountCredited, setAccountCredited] = useState("");
   const [grnNumber, setGrnNumber] = useState("");
-  
-  // State to manage the invoices and form visibility
+
+  // State for invoices, form visibility, loading, and errors
   const [invoices, setInvoices] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Fetch invoices on component mount
+  // State for customer and chart of accounts data
+  const [customers, setCustomers] = useState([]);
+  const [chartOfAccounts, setChartOfAccounts] = useState([]);
+  const [payees, setPayees] = useState([]);  // Store payee data for account credited
+
+  // Fetch invoices, customers, and accounts data on component mount
   useEffect(() => {
     fetchInvoices();
+    fetchCustomers();
+    fetchChartOfAccounts();
+    fetchPayees();  // Fetch payee data
   }, []);
 
-  // Function to fetch invoices from the API
+  // Fetch invoices from API
   const fetchInvoices = async () => {
     setLoading(true);
-    const token = localStorage.getItem("token"); // Retrieve the token from localStorage
+    const token = localStorage.getItem("token");
 
     if (!token) {
       setError("User is not authenticated");
@@ -36,7 +45,7 @@ const InvoiceReceived = () => {
       const response = await fetch("http://127.0.0.1:5000/invoice-received", {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${token}`, // Send the token in the Authorization header
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -45,19 +54,96 @@ const InvoiceReceived = () => {
       }
 
       const data = await response.json();
-
-      if (Array.isArray(data)) {
-        setInvoices(data); // Set invoices if the response is an array
-      } else {
-        console.error("Fetched data is not an array:", data);
-        setInvoices([]); // Set empty array in case of invalid response
-      }
+      setInvoices(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error fetching invoices:", error);
       setError("Error fetching invoices");
-      setInvoices([]); // Set empty array in case of an error
+      setInvoices([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch customer data for the "Account Debited" select
+  const fetchCustomers = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("User is not authenticated");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/customer", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCustomers(data);
+      } else {
+        setError("Error fetching customers");
+      }
+    } catch (error) {
+      setError("Error fetching customers");
+    }
+  };
+
+  // Fetch chart of accounts for the "Account Debited" select
+  const fetchChartOfAccounts = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("User is not authenticated");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/chart-of-accounts", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setChartOfAccounts(data);
+      } else {
+        setError("Error fetching chart of accounts");
+      }
+    } catch (error) {
+      setError("Error fetching chart of accounts");
+    }
+  };
+
+  // Fetch payees for the "Account Credited" select
+  const fetchPayees = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("User is not authenticated");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/payee", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPayees(data);
+      } else {
+        setError("Error fetching payees");
+      }
+    } catch (error) {
+      setError("Error fetching payees");
     }
   };
 
@@ -86,20 +172,18 @@ const InvoiceReceived = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Send the token in the Authorization header
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(newInvoice),
       });
 
       if (response.ok) {
-        fetchInvoices(); // Refresh the list of invoices after submitting
+        fetchInvoices(); // Refresh the list of invoices
         resetForm(); // Reset the form fields
       } else {
-        console.error("Error creating invoice:", response.statusText);
         setError("Error creating invoice");
       }
     } catch (error) {
-      console.error("Error creating invoice:", error);
       setError("Error creating invoice");
     }
   };
@@ -119,7 +203,7 @@ const InvoiceReceived = () => {
     <div className="invoice-received">
       <h1>Invoice Received</h1>
 
-      {/* Show the form to add a new invoice */}
+      {/* Toggle to show/hide the form */}
       <button onClick={() => setShowForm(!showForm)}>
         {showForm ? "Hide Invoice Form" : "Add New Invoice"}
       </button>
@@ -163,19 +247,37 @@ const InvoiceReceived = () => {
           </div>
           <div>
             <label>Account Debited:</label>
-            <input
-              type="text"
+            <select
               value={accountDebited}
               onChange={(e) => setAccountDebited(e.target.value)}
-            />
+              required
+            >
+              <option value="">Select Debited account</option>
+              {chartOfAccounts.flatMap((account) =>
+                account.sub_account_details.map((subAccount) => (
+                  <option key={subAccount.id} value={subAccount.id}>
+                    {subAccount.name}
+                  </option>
+                ))
+              )}
+            </select>
           </div>
           <div>
             <label>Account Credited:</label>
-            <input
-              type="text"
+            <select
               value={accountCredited}
               onChange={(e) => setAccountCredited(e.target.value)}
-            />
+              required
+            >
+              <option value="">Select Credited account</option>
+              {payees.flatMap((payee) =>
+                payee.sub_account_details.map((subAccount) => (
+                  <option key={subAccount.id} value={subAccount.id}>
+                    {subAccount.name}
+                  </option>
+                ))
+              )}
+            </select>
           </div>
           <div>
             <label>GRN Number:</label>

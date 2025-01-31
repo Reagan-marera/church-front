@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./InvoicesTable.css";
 
-const InvoiceIssued = () => {
+const InvoiceIssued= () => {
   // State for storing form fields
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [dateIssued, setDateIssued] = useState("");
@@ -9,22 +9,29 @@ const InvoiceIssued = () => {
   const [amount, setAmount] = useState("");
   const [accountDebited, setAccountDebited] = useState("");
   const [accountCredited, setAccountCredited] = useState("");
-
-  // State to manage the invoices and form visibility
+  const [grnNumber, setGrnNumber] = useState("");
+  
+  // State to manage the invoices, form visibility, loading, and errors
   const [invoices, setInvoices] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Fetch invoices on component mount
+  // State for customer and chart of accounts data
+  const [customers, setCustomers] = useState([]);
+  const [chartOfAccounts, setChartOfAccounts] = useState([]);
+
+  // Fetch invoices and other data on component mount
   useEffect(() => {
     fetchInvoices();
+    fetchCustomers();
+    fetchChartOfAccounts();
   }, []);
 
   // Function to fetch invoices from the API
   const fetchInvoices = async () => {
     setLoading(true);
-    const token = localStorage.getItem("token"); // Retrieve the token from localStorage
+    const token = localStorage.getItem("token");
 
     if (!token) {
       setError("User is not authenticated");
@@ -33,10 +40,10 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/invoices", {
+      const response = await fetch("http://127.0.0.1:5000/invoice-received", {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${token}`, // Send the token in the Authorization header
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -45,19 +52,68 @@ const InvoiceIssued = () => {
       }
 
       const data = await response.json();
-
-      if (Array.isArray(data)) {
-        setInvoices(data); // Set invoices if the response is an array
-      } else {
-        console.error("Fetched data is not an array:", data);
-        setInvoices([]); // Set empty array in case of invalid response
-      }
+      setInvoices(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error("Error fetching invoices:", error);
       setError("Error fetching invoices");
-      setInvoices([]); // Set empty array in case of an error
+      setInvoices([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to fetch customer data for the "Account Debited" select
+  const fetchCustomers = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("User is not authenticated");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/customer", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCustomers(data);
+      } else {
+        setError("Error fetching customers");
+      }
+    } catch (error) {
+      setError("Error fetching customers");
+    }
+  };
+
+  // Function to fetch chart of accounts for the "Account Credited" select
+  const fetchChartOfAccounts = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("User is not authenticated");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/chart-of-accounts", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setChartOfAccounts(data);
+      } else {
+        setError("Error fetching chart of accounts");
+      }
+    } catch (error) {
+      setError("Error fetching chart of accounts");
     }
   };
 
@@ -75,30 +131,29 @@ const InvoiceIssued = () => {
       invoice_number: invoiceNumber,
       date_issued: dateIssued,
       description,
-      amount: parseFloat(amount),
+      amount: parseInt(amount),
       account_debited: accountDebited,
       account_credited: accountCredited,
+      grn_number: grnNumber,
     };
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/invoices", {
+      const response = await fetch("http://127.0.0.1:5000/invoice-received", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Send the token in the Authorization header
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(newInvoice),
       });
 
       if (response.ok) {
-        fetchInvoices(); // Refresh the list of invoices after submitting
+        fetchInvoices(); // Refresh the list of invoices
         resetForm(); // Reset the form fields
       } else {
-        console.error("Error creating invoice:", response.statusText);
         setError("Error creating invoice");
       }
     } catch (error) {
-      console.error("Error creating invoice:", error);
       setError("Error creating invoice");
     }
   };
@@ -111,18 +166,18 @@ const InvoiceIssued = () => {
     setAmount("");
     setAccountDebited("");
     setAccountCredited("");
+    setGrnNumber("");
   };
 
   return (
-    <div className="invoice-issued">
+    <div className="invoice-received">
       <h1>Invoice Issued</h1>
 
-      {/* Button to toggle the form visibility */}
+      {/* Toggle to show/hide the form */}
       <button onClick={() => setShowForm(!showForm)}>
         {showForm ? "Hide Invoice Form" : "Add New Invoice"}
       </button>
 
-      {/* Form to create a new invoice */}
       {showForm && (
         <form onSubmit={handleSubmit} className="invoice-form">
           <div>
@@ -160,22 +215,45 @@ const InvoiceIssued = () => {
               required
             />
           </div>
-          <div>
-            <label>Account Debited:</label>
-            <input
-              type="text"
-              value={accountDebited}
-              onChange={(e) => setAccountDebited(e.target.value)}
-            />
-          </div>
-          <div>
-            <label>Account Credited:</label>
-            <input
-              type="text"
-              value={accountCredited}
-              onChange={(e) => setAccountCredited(e.target.value)}
-            />
-          </div>
+          <div className="invoice-form">
+  <div>
+    <label>Account Debited:</label>
+    <select
+      value={accountDebited}
+      onChange={(e) => setAccountDebited(e.target.value)}
+      required
+    >
+      <option value="">Select Debited account</option>
+      {customers.flatMap((customer) =>
+        customer.sub_account_details.map((subAccount) => (
+          <option key={subAccount.id} value={subAccount.id}>
+            {subAccount.name}
+          </option>
+        ))
+      )}
+    </select>
+  </div>
+  
+  <div>
+    <label>Account Credited:</label>
+    <select
+      value={accountCredited}
+      onChange={(e) => setAccountCredited(e.target.value)}
+      required
+    >
+      <option value="">Select Credited account</option>
+      {chartOfAccounts.flatMap((account) =>
+        account.sub_account_details.map((subAccount) => (
+          <option key={subAccount.id} value={subAccount.id}>
+            {subAccount.name}
+          </option>
+        ))
+      )}
+    </select>
+  </div>
+</div>
+
+         
           <button type="submit" disabled={loading}>
             {loading ? "Submitting..." : "Submit Invoice"}
           </button>
@@ -214,7 +292,7 @@ const InvoiceIssued = () => {
               ))
             ) : (
               <tr>
-                <td colSpan="6">No invoices found.</td>
+                <td colSpan="7">No invoices found.</td>
               </tr>
             )}
           </tbody>

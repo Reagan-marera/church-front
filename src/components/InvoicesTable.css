@@ -161,3 +161,45 @@
 .subaccounts-modal button:hover {
   background-color: #0056b3;
 }
+/* Container for each form section */
+.invoice-form div {
+  margin-bottom: 1rem;
+}
+
+/* Style the labels to align them properly */
+.invoice-form label {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* Style for the select dropdowns */
+.invoice-form select {
+  width: 100%;
+  padding: 0.8rem;
+  margin-top: 0.3rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+}
+
+/* Focus state for the select inputs */
+.invoice-form select:focus {
+  border-color: #0056b3;
+  outline: none;
+  background-color: #fff;
+}
+
+/* Style for placeholder text */
+.invoice-form option {
+  color: #000000;
+}
+
+/* Optional: Add a margin between the two select fields */
+.invoice-form .select-container {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
