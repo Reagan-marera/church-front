@@ -35,10 +35,12 @@ const Navbar = ({ token, role }) => {
         {/* Other navigation links */}
         <li><Link to="/chart-of-accounts" className="nav-link">Chart of Accounts</Link></li>
         <li><Link to="/invoices" className="nav-link">Invoice Issued</Link></li>
-            {/* Show Invoice Received link only if the user is logged in */}
-            {storedToken && (
-              <li><Link to="/invoice-received" className="nav-link">Invoice Received</Link></li>
-            )}
+        
+        {/* Show Invoice Received link only if the user is logged in */}
+        {storedToken && (
+          <li><Link to="/invoice-received" className="nav-link">Invoice Received</Link></li>
+        )}
+
         <li><Link to="/cash-receipt-journal" className="nav-link">Cash Receipt Journal</Link></li>
         <li><Link to="/cash-disbursement-journal" className="nav-link">Cash Disbursement Journal</Link></li>
 
@@ -66,6 +68,11 @@ const Navbar = ({ token, role }) => {
             <li><Link to="/customer-list" className="nav-link">Customer List</Link></li>
             <li><Link to="/payee-list" className="nav-link">Payee List</Link></li>
 
+            {/* Show Subaccounts link */}
+            {storedToken && (
+              <li><Link to="/subaccounts" className="nav-link">Subaccounts</Link></li>
+            )}
+
             {/* Show Create Pledge and Member Info only if the user is logged in and has a userId */}
             {storedToken && storedUserId && (
               <>
@@ -77,11 +84,6 @@ const Navbar = ({ token, role }) => {
             {/* Show Payment link only if the user is logged in */}
             {storedToken && (
               <li><Link to="/payment-form" className="nav-link">Payment</Link></li>
-            )}
-
-            {/* Show Invoice Received link only if the user is logged in */}
-            {storedToken && (
-              <li><Link to="/invoice-received" className="nav-link">Invoice Received</Link></li>
             )}
           </>
         )}

@@ -10,7 +10,7 @@ const ChartOfAccountsTable = () => {
     parent_account: '',
     account_name: '',
     account_type: '',
-    sub_account_details: [{ id: '', name: '' }], // Removed opening_balance and balance_type
+    sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
   });
 
   const handleInputChange = (e) => {
@@ -23,6 +23,12 @@ const ChartOfAccountsTable = () => {
 
   const handleSubAccountChange = (index, field, value) => {
     const newSubAccounts = [...formData.sub_account_details];
+    
+    if (field === 'debit' || field === 'credit') {
+      // Ensure debit and credit are valid numbers, or set them to 0
+      value = value === '' ? '' : parseFloat(value) || 0;
+    }
+
     newSubAccounts[index][field] = value;
     setFormData({
       ...formData,
@@ -35,7 +41,7 @@ const ChartOfAccountsTable = () => {
       ...formData,
       sub_account_details: [
         ...formData.sub_account_details,
-        { id: '', name: '' },
+        { id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' },
       ],
     });
   };
@@ -56,7 +62,24 @@ const ChartOfAccountsTable = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    formData.sub_account_details.forEach(generateSubAccountId);
+
+    // Ensure all subaccounts have IDs
+    const updatedSubAccountDetails = formData.sub_account_details.map((subAccount) => {
+      generateSubAccountId(subAccount); // Make sure every subaccount has an ID
+
+      return {
+        ...subAccount,
+        opening_balance: subAccount.opening_balance || '', // Default value
+        description: subAccount.description || '',              // Default value
+        debit: subAccount.debit || 0,                          // Default value for debit
+        credit: subAccount.credit || 0,                        // Default value for credit
+      };
+    });
+
+    const updatedFormData = {
+      ...formData,
+      sub_account_details: updatedSubAccountDetails,
+    };
 
     const token = localStorage.getItem('token');
     if (!token) {
@@ -77,7 +100,7 @@ const ChartOfAccountsTable = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(updatedFormData),
       });
 
       if (!response.ok) {
@@ -91,7 +114,7 @@ const ChartOfAccountsTable = () => {
         parent_account: '',
         account_name: '',
         account_type: '',
-        sub_account_details: [{ id: '', name: '' }], // Reset to empty subaccounts
+        sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
       });
       alert(result.message);
     } catch (error) {
@@ -121,7 +144,6 @@ const ChartOfAccountsTable = () => {
       }
 
       const data = await response.json();
-      // Sort accounts by parent_account in ascending order
       const sortedAccounts = data.sort((a, b) => {
         if (a.parent_account < b.parent_account) return -1;
         if (a.parent_account > b.parent_account) return 1;
@@ -141,7 +163,7 @@ const ChartOfAccountsTable = () => {
       parent_account: account.parent_account,
       account_name: account.account_name,
       account_type: account.account_type,
-      sub_account_details: account.sub_account_details || [{ id: '', name: '' }],
+      sub_account_details: account.sub_account_details || [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
     });
   };
 

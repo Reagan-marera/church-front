@@ -17,6 +17,7 @@ import GeneralReport from './components/GeneralReport'; // Add the import for Ge
 import CustomerList from './components/CustomerList'; // Import CustomerList
 import PayeeList from './components/PayeeList'; // Import PayeeList
 import InvoiceReceived from './components/InvoiceReceived'; // Import the InvoiceReceived component
+import Subaccounts from './components/Subaccounts ';
 
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
@@ -156,6 +157,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <InvoiceReceived />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Add Subaccounts Route (protected) */}
+          <Route
+            path="/subaccounts"
+            element={
+              <ProtectedRoute>
+                <Subaccounts />
               </ProtectedRoute>
             }
           />

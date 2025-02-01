@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 
 const PayeeList = () => {
-  const [payees, setPayees] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [editingPayeeId, setEditingPayeeId] = useState(null);
+  const [editingAccountId, setEditingAccountId] = useState(null);
 
   const [formData, setFormData] = useState({
     parent_account: '',
     account_name: '',
     account_type: '',
-    sub_account_details: [{ id: '', name: '' }],
+    sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
   });
 
   const handleInputChange = (e) => {
@@ -35,7 +35,7 @@ const PayeeList = () => {
       ...formData,
       sub_account_details: [
         ...formData.sub_account_details,
-        { id: '', name: '' },
+        { id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' },
       ],
     });
   };
@@ -56,7 +56,22 @@ const PayeeList = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    formData.sub_account_details.forEach(generateSubAccountId);
+
+    // Add hidden fields for each subaccount
+    const updatedSubAccountDetails = formData.sub_account_details.map((subAccount) => {
+      return {
+        ...subAccount,
+        opening_balance: subAccount.opening_balance || '', // Default value
+        description: subAccount.description || '',              // Default value
+        debit: subAccount.debit || '',                          // Default value
+        credit: subAccount.credit || '',                        // Default value
+      };
+    });
+
+    const updatedFormData = {
+      ...formData,
+      sub_account_details: updatedSubAccountDetails,
+    };
 
     const token = localStorage.getItem('token');
     if (!token) {
@@ -64,11 +79,11 @@ const PayeeList = () => {
       return;
     }
 
-    const url = editingPayeeId
-      ? `http://127.0.0.1:5000/payee/${editingPayeeId}`
+    const url = editingAccountId
+      ? `http://127.0.0.1:5000/payee/${editingAccountId}`
       : 'http://127.0.0.1:5000/payee';
 
-    const method = editingPayeeId ? 'PUT' : 'POST';
+    const method = editingAccountId ? 'PUT' : 'POST';
 
     try {
       const response = await fetch(url, {
@@ -77,7 +92,7 @@ const PayeeList = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(updatedFormData),
       });
 
       if (!response.ok) {
@@ -85,13 +100,13 @@ const PayeeList = () => {
       }
 
       const result = await response.json();
-      fetchPayees();
-      setEditingPayeeId(null);
+      fetchAccounts();
+      setEditingAccountId(null);
       setFormData({
         parent_account: '',
         account_name: '',
         account_type: '',
-        sub_account_details: [{ id: '', name: '' }],
+        sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
       });
       alert(result.message);
     } catch (error) {
@@ -99,7 +114,7 @@ const PayeeList = () => {
     }
   };
 
-  const fetchPayees = async () => {
+  const fetchAccounts = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
       setError('Authentication token is missing.');
@@ -121,7 +136,12 @@ const PayeeList = () => {
       }
 
       const data = await response.json();
-      setPayees(data);
+      const sortedAccounts = data.sort((a, b) => {
+        if (a.parent_account < b.parent_account) return -1;
+        if (a.parent_account > b.parent_account) return 1;
+        return 0;
+      });
+      setAccounts(sortedAccounts);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -129,17 +149,17 @@ const PayeeList = () => {
     }
   };
 
-  const handleEdit = (payee) => {
-    setEditingPayeeId(payee.id);
+  const handleEdit = (account) => {
+    setEditingAccountId(account.id);
     setFormData({
-      parent_account: payee.parent_account,
-      account_name: payee.account_name,
-      account_type: payee.account_type,
-      sub_account_details: payee.sub_account_details || [{ id: '', name: '' }],
+      parent_account: account.parent_account,
+      account_name: account.account_name,
+      account_type: account.account_type,
+      sub_account_details: account.sub_account_details || [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
     });
   };
 
-  const handleDelete = async (payeeId) => {
+  const handleDelete = async (accountId) => {
     const token = localStorage.getItem('token');
     if (!token) {
       setError('Authentication token is missing.');
@@ -147,7 +167,7 @@ const PayeeList = () => {
     }
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/payee/${payeeId}`, {
+      const response = await fetch(`http://127.0.0.1:5000/payee/${accountId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -156,27 +176,27 @@ const PayeeList = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete payee');
+        throw new Error('Failed to delete account');
       }
 
-      setPayees(payees.filter((payee) => payee.id !== payeeId));
-      alert('Payee deleted successfully');
+      setAccounts(accounts.filter((account) => account.id !== accountId));
+      alert('Account deleted successfully');
     } catch (error) {
       setError(error.message);
     }
   };
 
   useEffect(() => {
-    fetchPayees();
+    fetchAccounts();
   }, []);
 
   if (loading) return <div className="loader">Loading...</div>;
 
-  if (error) return <p style={{ color: '#ff4d4d' }}>Error: {error}</p>;
+  if (error) return <p style={{ color: 'red' }}>Error: {error}</p>;
 
   return (
     <div style={styles.container}>
-      <i><h2 className="color-changing-words">{editingPayeeId ? 'Edit Payee Account' : 'Add New Payee Account'}</h2></i> 
+      <h2 className="color-changing-words">{editingAccountId ? 'Edit Account' : 'Add New Account'}</h2>
 
       <form onSubmit={handleFormSubmit} style={styles.form}>
         <div style={styles.formGroup}>
@@ -202,7 +222,7 @@ const PayeeList = () => {
           />
         </div>
         <div style={styles.formGroup}>
-          <label style={styles.label}>General ledger:</label>
+          <label style={styles.label}>General Ledger:</label>
           <input
             type="text"
             name="parent_account"
@@ -242,7 +262,7 @@ const PayeeList = () => {
         </div>
 
         <button type="submit" style={styles.button}>
-          {editingPayeeId ? 'Update Payee' : 'Add Payee'}
+          {editingAccountId ? 'Update Account' : 'Add Account'}
         </button>
       </form>
 
@@ -250,33 +270,35 @@ const PayeeList = () => {
         <thead>
           <tr>
             <th style={styles.tableHeader}>Account Type</th>
-            <th style={styles.tableHeader}>Account Name</th>
-            <th style={styles.tableHeader}>Parent Account</th>
+            <th style={styles.tableHeader}>Account Class</th>
+            <th style={styles.tableHeader}>General Ledger</th>
             <th style={styles.tableHeader}>Sub Account Details</th>
             <th style={styles.tableHeader}>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {payees.length === 0 ? (
+          {accounts.length === 0 ? (
             <tr>
-              <td colSpan="5" style={styles.tableCell}>No payee accounts available.</td>
+              <td colSpan="5" style={styles.tableCell}>No accounts available.</td>
             </tr>
           ) : (
-            payees.map((payee) => (
-              <tr key={payee.id} style={styles.tableRow}>
-                <td style={styles.tableCell}>{payee.account_type}</td>
-                <td style={styles.tableCell}>{payee.account_name}</td>
-                <td style={styles.tableCell}>{payee.parent_account}</td>
+            accounts.map((account) => (
+              <tr key={account.id} style={styles.tableRow}>
+                <td style={styles.tableCell}>{account.account_type}</td>
+                <td style={styles.tableCell}>{account.account_name}</td>
+                <td style={styles.tableCell}>{account.parent_account}</td>
                 <td style={styles.tableCell}>
-                  {payee.sub_account_details && payee.sub_account_details.length > 0
-                    ? payee.sub_account_details.map((sub, idx) => (
-                        <div key={idx}>{sub.name}</div>
+                  {account.sub_account_details && account.sub_account_details.length > 0
+                    ? account.sub_account_details.map((sub, idx) => (
+                        <div key={idx}>
+                          <strong>{sub.name}</strong>
+                        </div>
                       ))
                     : 'No subaccounts'}
                 </td>
                 <td style={styles.tableCell}>
-                  <button onClick={() => handleEdit(payee)} style={styles.editButton}>Edit</button>
-                  <button onClick={() => handleDelete(payee.id)} style={styles.deleteButton}>
+                  <button onClick={() => handleEdit(account)} style={styles.editButton}>Edit</button>
+                  <button onClick={() => handleDelete(account.id)} style={styles.deleteButton}>
                     Delete
                   </button>
                 </td>
@@ -290,180 +312,133 @@ const PayeeList = () => {
 };
 
 const styles = {
-    container: {
-      padding: '20px',
-      fontFamily: 'Arial, sans-serif',
-      backgroundColor: '#f0f8ff',
-    },
-    heading: {
-      fontSize: '24px',
-      marginBottom: '20px',
-      fontWeight: 'bold',
-      color: '#3e8e41', // Green color
-    },
-    form: {
-      marginBottom: '20px',
-    },
-    formGroup: {
-      marginBottom: '10px',
-    },
-    label: {
-      fontWeight: 'bold',
-      color: '#333', // Dark gray for readability
-    },
-    input: {
-      width: '100%',
-      padding: '12px',
-      marginTop: '5px',
-      borderRadius: '6px',
-      border: '1px solid #4CAF50', // Green border
-      backgroundColor: '#ffffff',
-      fontFamily: 'Arial, sans-serif',
-      fontWeight: 'bold',
-      color: '#333',
-    },
-    addButton: {
-      backgroundColor: '#4CAF50', // Green
-      color: 'white',
-      padding: '12px 20px',
-      border: 'none',
-      cursor: 'pointer',
-      marginTop: '10px',
-      fontWeight: 'bold',
-      borderRadius: '6px',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      transition: 'background-color 0.3s ease, transform 0.2s ease',
-    },
-    removeButton: {
-      backgroundColor: '#ff6347', // Red
-      color: 'white',
-      padding: '12px 20px',
-      border: 'none',
-      cursor: 'pointer',
-      marginTop: '10px',
-      fontWeight: 'bold',
-      borderRadius: '6px',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      transition: 'background-color 0.3s ease, transform 0.2s ease',
-    },
-    button: {
-      backgroundColor: '#4CAF50', // Green
-      color: 'white',
-      padding: '12px 20px',
-      border: 'none',
-      cursor: 'pointer',
-      fontWeight: 'bold',
-      marginBottom: '5px',
-      borderRadius: '6px',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      transition: 'background-color 0.3s ease, transform 0.2s ease',
-    },
-    editButton: {
-      backgroundColor: '#ffa500', // Orange
-      color: 'white',
-      padding: '12px 20px',
-      border: 'none',
-      cursor: 'pointer',
-      fontWeight: 'bold',
-      marginBottom: '5px',
-      borderRadius: '6px',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      transition: 'background-color 0.3s ease, transform 0.2s ease',
-    },
-    table: {
-      width: '100%',
-      borderCollapse: 'collapse',
-      marginTop: '20px',
-      fontFamily: 'Arial, sans-serif',
-    },
-    tableHeader: {
-      backgroundColor: '#008080', // Teal
-      padding: '12px',
-      textAlign: 'left',
-      color: 'white',
-      fontWeight: 'bold',
-    },
-    tableCell: {
-      padding: '12px',
-      border: '1px solid #333',
-      color: 'black',
-      borderRadius: '5px',
-    },
-    tableRow: {
-      backgroundColor: '#ffffff',
-    },
-    deleteButton: {
-      backgroundColor: '#ff6347', // Red
-      color: 'white',
-      padding: '12px 20px',
-      border: 'none',
-      cursor: 'pointer',
-      fontWeight: 'bold',
-      borderRadius: '6px',
-      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      transition: 'background-color 0.3s ease, transform 0.2s ease',
-    },
-    loader: {
-      textAlign: 'center',
-      fontSize: '20px',
-      padding: '20px',
-      color: '#333',
-    },
-    // Hover effects on buttons
-    buttonHover: {
-      ':hover': {
-        backgroundColor: '#45a049', // Slightly darker green for button hover
-        transform: 'translateY(-2px)', // Slight lift effect
-      },
-    },
-    removeButtonHover: {
-      ':hover': {
-        backgroundColor: '#ff4d30', // Slightly darker red
-        transform: 'translateY(-2px)', // Slight lift effect
-      },
-    },
-    editButtonHover: {
-      ':hover': {
-        backgroundColor: '#ff7f29', // Slightly darker orange
-        transform: 'translateY(-2px)', // Slight lift effect
-      },
-    },
-    deleteButtonHover: {
-      ':hover': {
-        backgroundColor: '#e53d29', // Slightly darker red for delete
-        transform: 'translateY(-2px)', // Slight lift effect
-      },
-    },
-  };
-  
-  const animationStyle = document.createElement('style');
-  animationStyle.innerHTML = `
-    .color-changing-words {
-      font-size: 2rem;
-      font-weight: bold;
-      animation: colorChange 5s infinite;
-      color: #003A5C; /* Initial color */
+  container: {
+    padding: '20px',
+    fontFamily: 'Arial Black, Impact, sans-serif',
+  },
+  form: {
+    marginBottom: '20px',
+  },
+  formGroup: {
+    marginBottom: '10px',
+  },
+  label: {
+    fontWeight: 'bold',
+    color: 'blue',
+  },
+  input: {
+    width: '100%',
+    padding: '12px',
+    marginTop: '5px',
+    borderRadius: '6px',
+    border: '1px solid #333',
+    backgroundColor: '#f0f0f0',
+    fontFamily: 'Arial Black, Impact, sans-serif',
+    fontWeight: 'bold',
+    color: 'black',
+  },
+  addButton: {
+    backgroundColor: 'blue',
+    color: 'white',
+    padding: '10px 15px',
+    border: 'none',
+    cursor: 'pointer',
+    marginTop: '10px',
+    fontWeight: 'bold',
+  },
+  removeButton: {
+    backgroundColor: '#e53935',
+    color: 'white',
+    padding: '5px 10px',
+    border: 'none',
+    cursor: 'pointer',
+    marginTop: '10px',
+    fontWeight: 'bold',
+  },
+  button: {
+    backgroundColor: 'green',
+    color: 'white',
+    padding: '10px 15px',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    marginBottom: '5px',
+  },
+  editButton: {
+    backgroundColor: 'orange',
+    color: 'white',
+    padding: '10px 15px',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    marginBottom: '5px',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    marginTop: '20px',
+    fontFamily: 'Arial Black, Impact, sans-serif',
+  },
+  tableHeader: {
+    backgroundColor: '#003366',
+    padding: '12px',
+    textAlign: 'left',
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  tableCell: {
+    padding: '12px',
+    border: '1px solid #333',
+    color: 'black',
+    borderRadius: '5px',
+  },
+  tableRow: {
+    backgroundColor: 'white',
+  },
+  deleteButton: {
+    backgroundColor: '#e53935',
+    color: 'white',
+    padding: '5px 10px',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+  },
+  loader: {
+    textAlign: 'center',
+    fontSize: '20px',
+    padding: '20px',
+    color: '#333',
+  },
+};
+
+// Changing colors animation
+const style = document.createElement('style');
+style.innerHTML = `
+  .color-changing-words {
+    font-size: 2rem;
+    font-weight: bold;
+    animation: colorChange 5s infinite;
+    color: #003A5C; /* Initial color */
+  }
+
+  @keyframes colorChange {
+    0% {
+      color: #003A5C; /* Dark Blue */
     }
-  
-    @keyframes colorChange {
-      0% {
-        color: #003A5C; /* Dark Blue */
-      }
-      25% {
-        color: #0071BC; /* Blue */
-      }
-      50% {
-        color: #00BFFF; /* Deep Sky Blue */
-      }
-      75% {
-        color: #FF6347; /* Tomato */
-      }
-      100% {
-        color: #2E8B57; /* Sea Green */
-      }
+    25% {
+      color: #0071BC; /* Blue */
     }
-  `;
-  
-  document.head.appendChild(animationStyle);
-  
+    50% {
+      color: blue; /* Light Blue */
+    }
+    75% {
+      color: red; /* Red */
+    }
+    100% {
+      color: black; /* black */
+    }
+  }
+`;
+document.head.appendChild(style);
+
 export default PayeeList;

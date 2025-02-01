@@ -10,7 +10,7 @@ const CustomerList = () => {
     parent_account: '',
     account_name: '',
     account_type: '',
-    sub_account_details: [{ id: '', name: '' }],
+    sub_account_details: [{ id: '', name: '', description: '', debit: '', credit: '' }],
   });
 
   const handleInputChange = (e) => {
@@ -35,7 +35,7 @@ const CustomerList = () => {
       ...formData,
       sub_account_details: [
         ...formData.sub_account_details,
-        { id: '', name: '' },
+        { id: '', name: '', description: '', debit: '', credit: '' },
       ],
     });
   };
@@ -48,15 +48,24 @@ const CustomerList = () => {
     });
   };
 
-  const generateSubAccountId = (subAccount) => {
-    if (!subAccount.id) {
-      subAccount.id = `subaccount-${Date.now()}`;
-    }
-  };
-
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    formData.sub_account_details.forEach(generateSubAccountId);
+    
+    // Ensure all subaccounts have the required fields even if not visible to the user
+    formData.sub_account_details.forEach((subaccount) => {
+      if (!subaccount.id) {
+        subaccount.id = `subaccount-${Date.now()}`;
+      }
+      if (!subaccount.description) {
+        subaccount.description = '';  // Default value if missing
+      }
+      if (!subaccount.debit) {
+        subaccount.debit = '';  // Default value if missing
+      }
+      if (!subaccount.credit) {
+        subaccount.credit = '';  // Default value if missing
+      }
+    });
 
     const token = localStorage.getItem('token');
     if (!token) {
@@ -91,7 +100,7 @@ const CustomerList = () => {
         parent_account: '',
         account_name: '',
         account_type: '',
-        sub_account_details: [{ id: '', name: '' }],
+        sub_account_details: [{ id: '', name: '', description: '', debit: '', credit: '' }],
       });
       alert(result.message);
     } catch (error) {
@@ -135,7 +144,12 @@ const CustomerList = () => {
       parent_account: customer.parent_account,
       account_name: customer.account_name,
       account_type: customer.account_type,
-      sub_account_details: customer.sub_account_details || [{ id: '', name: '' }],
+      sub_account_details: customer.sub_account_details.map(sub => ({
+        ...sub,
+        description: sub.description || '',
+        debit: sub.debit || '',
+        credit: sub.credit || '',
+      })),
     });
   };
 
@@ -176,7 +190,7 @@ const CustomerList = () => {
 
   return (
     <div style={styles.container}>
-    <i> <h2 className="color-changing-words">{editingCustomerId ? 'Edit Customer' : 'Add New Customer'}</h2></i> 
+      <i><h2 className="color-changing-words">{editingCustomerId ? 'Edit Customer' : 'Add New Customer'}</h2></i>
 
       <form onSubmit={handleFormSubmit} style={styles.form}>
         <div style={styles.formGroup}>
@@ -217,16 +231,31 @@ const CustomerList = () => {
           <h3>Subaccounts</h3>
           {formData.sub_account_details.map((subAccount, index) => (
             <div key={index} style={styles.formGroup}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Subaccount Name:</label>
-                <input
-                  type="text"
-                  value={subAccount.name}
-                  onChange={(e) => handleSubAccountChange(index, 'name', e.target.value)}
-                  placeholder={`Subaccount ${index + 1} Name`}
-                  style={styles.input}
-                />
-              </div>
+              <label style={styles.label}>Subaccount Name:</label>
+              <input
+                type="text"
+                value={subAccount.name}
+                onChange={(e) => handleSubAccountChange(index, 'name', e.target.value)}
+                placeholder={`Subaccount ${index + 1} Name`}
+                style={styles.input}
+              />
+              {/* Hidden fields */}
+              <input
+                type="hidden"
+                value={subAccount.description}
+                onChange={(e) => handleSubAccountChange(index, 'description', e.target.value)}
+              />
+              <input
+                type="hidden"
+                value={subAccount.debit}
+                onChange={(e) => handleSubAccountChange(index, 'debit', e.target.value)}
+              />
+              <input
+                type="hidden"
+                value={subAccount.credit}
+                onChange={(e) => handleSubAccountChange(index, 'credit', e.target.value)}
+              />
+
               <button
                 type="button"
                 onClick={() => handleRemoveSubAccount(index)}
@@ -270,7 +299,9 @@ const CustomerList = () => {
                 <td style={styles.tableCell}>
                   {customer.sub_account_details && customer.sub_account_details.length > 0
                     ? customer.sub_account_details.map((sub, idx) => (
-                        <div key={idx}>{sub.name}</div>
+                        <div key={idx}>
+                          {sub.name}
+                        </div>
                       ))
                     : 'No subaccounts'}
                 </td>
