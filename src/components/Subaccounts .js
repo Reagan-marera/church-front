@@ -1,245 +1,268 @@
 import React, { useState, useEffect } from 'react';
-import './Subaccounts.css';
+import './AccountSelection.css';
 
-const Subaccounts = () => {
-  const [subaccounts, setSubaccounts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [debitTotal, setDebitTotal] = useState(0);
-  const [creditTotal, setCreditTotal] = useState(0);
-  const [editIndex, setEditIndex] = useState(null); // Tracks which row is being edited
+const AccountSelection = () => {
+  const [accounts, setAccounts] = useState([]);
+  const [selectedCreditedAccount, setSelectedCreditedAccount] = useState(null);
+  const [selectedDebitedAccount, setSelectedDebitedAccount] = useState(null);
+  const [amountCredited, setAmountCredited] = useState('');
+  const [amountDebited, setAmountDebited] = useState('');
+  const [description, setDescription] = useState('');
+  const [transactions, setTransactions] = useState([]);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [currentTransactionId, setCurrentTransactionId] = useState(null);
 
-  // Fetch subaccounts data when the component mounts
   useEffect(() => {
-    fetchSubaccounts();
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("User is not authenticated");
+        }
+
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const chartOfAccountsResponse = await fetch('http://127.0.0.1:5000/chart-of-accounts', { headers });
+        const customersResponse = await fetch('http://127.0.0.1:5000/customer', { headers });
+        const payeesResponse = await fetch('http://127.0.0.1:5000/payee', { headers });
+
+        if (!chartOfAccountsResponse.ok || !customersResponse.ok || !payeesResponse.ok) {
+          throw new Error('Failed to fetch data');
+        }
+
+        const chartOfAccounts = await chartOfAccountsResponse.json();
+        const customers = await customersResponse.json();
+        const payees = await payeesResponse.json();
+
+        const allAccounts = [
+          ...chartOfAccounts.map(account => ({
+            ...account,
+            type: 'chart_of_accounts',
+            subaccounts: account.sub_account_details || [] 
+          })),
+          ...payees.map(account => ({
+            ...account,
+            type: 'payee',
+            subaccounts: account.sub_account_details || []
+          })),
+          ...customers.map(account => ({
+            ...account,
+            type: 'customer',
+            subaccounts: account.sub_account_details || []
+          }))
+        ];
+
+        setAccounts(allAccounts);
+
+        const transactionsResponse = await fetch('http://127.0.0.1:5000/get-transactions', { headers });
+        const data = await transactionsResponse.json();
+        setTransactions(data.transactions);
+      } catch (error) {
+        console.error('Error fetching data:', error.message);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  const fetchSubaccounts = async () => {
-    setLoading(true);
-    const token = localStorage.getItem('token');
+  const handleEdit = (transaction) => {
+    console.log("Editing transaction:", transaction);
+
+    setSelectedCreditedAccount(transaction.credited_account_name);
+    setSelectedDebitedAccount(transaction.debited_account_name);
+    setAmountCredited(transaction.amount_credited);
+    setAmountDebited(transaction.amount_debited);
+    setDescription(transaction.description);
+    setCurrentTransactionId(transaction.id);
+    setIsEditing(true);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validate the inputs before submitting
+    if (!amountCredited || !amountDebited || isNaN(amountCredited) || isNaN(amountDebited)) {
+      setSuccessMessage("Please enter valid amounts for credited and debited accounts.");
+      setTimeout(() => setSuccessMessage(''), 3000);  // Clear message after 3 seconds
+      return;
+    }
+
+    const transactionData = {
+      creditedAccount: selectedCreditedAccount,
+      debitedAccount: selectedDebitedAccount,
+      amountCredited: parseFloat(amountCredited), // Convert to float
+      amountDebited: parseFloat(amountDebited),   // Convert to float
+      description,
+    };
+
+    // If editing, make sure to include the 'id' of the transaction
+    if (isEditing && !currentTransactionId) {
+      console.error("Transaction ID is missing");
+      return;
+    }
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/get_subaccount_details', {
-        method: 'GET',
+      const response = await fetch(isEditing 
+        ? `http://127.0.0.1:5000/update-transaction/${currentTransactionId}` 
+        : 'http://127.0.0.1:5000/submit-transaction', {
+        method: isEditing ? 'PUT' : 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify(transactionData),
       });
 
       if (response.ok) {
         const data = await response.json();
-        setSubaccounts(data.subaccounts);
-        calculateTotals(data.subaccounts);
+        setSuccessMessage(data.message);  // Display success message
+        setIsEditing(false);  // Reset editing state
+        setCurrentTransactionId(null); // Clear current transaction ID
+
+        const updatedTransactions = isEditing
+          ? transactions.map((transaction) =>
+              transaction.id === currentTransactionId ? { ...transaction, ...transactionData } : transaction
+            )
+          : [...transactions, data.transaction];
+
+        setTransactions(updatedTransactions);
       } else {
-        console.error('Failed to fetch subaccounts');
+        throw new Error('Failed to submit or update transaction');
       }
     } catch (error) {
-      console.error('Error fetching subaccounts:', error);
+      console.error('Error:', error);
+      setSuccessMessage("Failed to submit or update transaction. Please try again.");
+      setTimeout(() => setSuccessMessage(''), 3000);  // Clear message after 3 seconds
     }
-    setLoading(false);
   };
 
-  const calculateTotals = (subaccounts) => {
-    let debit = 0;
-    let credit = 0;
-
-    subaccounts.forEach(subaccount => {
-      debit += parseFloat(subaccount.debit || 0);
-      credit += parseFloat(subaccount.credit || 0);
-    });
-
-    setDebitTotal(debit);
-    setCreditTotal(credit);
-  };
-
-  const handleUpdateSubaccount = async (subaccountName, description, debitAmount, creditAmount) => {
-    if (isNaN(debitAmount) || isNaN(creditAmount)) {
-      return alert('Please enter valid numeric values for both amounts');
-    }
-
-    const token = localStorage.getItem('token');
-
+  const handleDelete = async (id) => {
     try {
-      const response = await fetch(`http://127.0.0.1:5000/update_subaccount_details/${subaccountName}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          description: description,
-          debit_amount: debitAmount,
-          credit_amount: creditAmount,
-        }),
-      });
-
-      if (response.ok) {
-        alert('Subaccount updated successfully');
-        fetchSubaccounts(); // Refresh subaccounts list
-        setEditIndex(null); // Reset edit mode after update
-      } else {
-        console.error('Failed to update subaccount');
-      }
-    } catch (error) {
-      console.error('Error updating subaccount:', error);
-    }
-  };
-
-  const handleDeleteSubaccount = async (subaccountName) => {
-    const token = localStorage.getItem('token');
-
-    try {
-      const response = await fetch(`http://127.0.0.1:5000/delete_subaccount/${subaccountName}`, {
+      const response = await fetch(`http://127.0.0.1:5000/delete-transaction/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
       });
 
       if (response.ok) {
-        alert('Subaccount deleted successfully');
-        fetchSubaccounts(); // Refresh after deletion
+        const data = await response.json();
+        setSuccessMessage(data.message);  // Display success message
+        const updatedTransactions = transactions.filter(t => t.id !== id);
+        setTransactions(updatedTransactions);
       } else {
-        console.error('Failed to delete subaccount');
+        throw new Error('Failed to delete transaction');
       }
     } catch (error) {
-      console.error('Error deleting subaccount:', error);
+      console.error('Error:', error);
     }
-  };
-
-  const handleDescriptionChange = (index, newDescription) => {
-    const updatedSubaccounts = [...subaccounts];
-    updatedSubaccounts[index].description = newDescription;
-    setSubaccounts(updatedSubaccounts);
-  };
-
-  const handleDebitChange = (index, newDebit) => {
-    const updatedSubaccounts = [...subaccounts];
-    updatedSubaccounts[index].debit = newDebit;
-    setSubaccounts(updatedSubaccounts);
-  };
-
-  const handleCreditChange = (index, newCredit) => {
-    const updatedSubaccounts = [...subaccounts];
-    updatedSubaccounts[index].credit = newCredit;
-    setSubaccounts(updatedSubaccounts);
   };
 
   return (
-    <div className="container">
-      <h1>General Journal Management</h1>
+    <div className="account-selection-container">
+      <h2 className="form-title">Account Transaction</h2>
+      {successMessage && <div className="success-message">{successMessage}</div>}
+      <form onSubmit={handleSubmit}>
+        <div className="form-field">
+          <label className="form-label">Credited Account</label>
+          <select
+            value={selectedCreditedAccount}
+            onChange={(e) => setSelectedCreditedAccount(e.target.value)}
+            className="form-select"
+          >
+            <option value="">Select a credited account</option>
+            {accounts.map((account) =>
+              account.subaccounts.map((subaccount) => (
+                <option key={subaccount.id} value={subaccount.name}>
+                  {subaccount.name} ({account.type})
+                </option>
+              ))
+            )}
+          </select>
 
-      <h2>General Journal</h2>
+          <label className="form-label">Debited Account</label>
+          <select
+            value={selectedDebitedAccount}
+            onChange={(e) => setSelectedDebitedAccount(e.target.value)}
+            className="form-select"
+          >
+            <option value="">Select a debited account</option>
+            {accounts.map((account) =>
+              account.subaccounts.map((subaccount) => (
+                <option key={subaccount.id} value={subaccount.name}>
+                  {subaccount.name} ({account.type})
+                </option>
+              ))
+            )}
+          </select>
+        </div>
 
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <>
-          <div className="totals">
-            <p><strong>Total Debit: </strong>{debitTotal}</p>
-            <p><strong>Total Credit: </strong>{creditTotal}</p>
-          </div>
+        <div className="form-field">
+          <label className="form-label">Amount Credited</label>
+          <input
+            type="number"
+            value={amountCredited}
+            onChange={(e) => setAmountCredited(e.target.value)}
+            required
+            className="form-input"
+          />
+        </div>
 
-          <table className="subaccount-table">
-            <thead>
-              <tr>
-                <th>Debited</th>
-                <th>Description </th>
-                <th>Credited</th>
-                <th>Amount (DR)</th>
-                <th>Amount (CR)</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {subaccounts.map((subaccount, index) => (
-                <tr key={index}>
-                  {/* DR Subaccount */}
-                  <td>
-                    {subaccount.debit && editIndex !== index ? (
-                      <span>{subaccount.sub_account_name}</span>
-                    ) : (
-                      <select
-                        value={subaccount.debit || ''}
-                        onChange={(e) => handleDebitChange(index, e.target.value)}
-                      >
-                        <option value="">Select Subaccount to Debit</option>
-                        {subaccounts.map((sub, idx) => (
-                          <option key={idx} value={sub.sub_account_name}>
-                            {sub.sub_account_name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </td>
+        <div className="form-field">
+          <label className="form-label">Amount Debited</label>
+          <input
+            type="number"
+            value={amountDebited}
+            onChange={(e) => setAmountDebited(e.target.value)}
+            required
+            className="form-input"
+          />
+        </div>
 
-                  {/* DR Description */}
-                  <td>
-                    <input
-                      type="text"
-                      value={subaccount.description}
-                      onChange={(e) => handleDescriptionChange(index, e.target.value)}
-                    />
-                  </td>
+        <div className="form-field">
+          <label className="form-label">Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="form-textarea"
+            placeholder="Add a description (optional)"
+          />
+        </div>
 
-                  {/* CR Subaccount */}
-                  <td>
-                    {subaccount.credit && editIndex !== index ? (
-                      <span>{subaccount.sub_account_name}</span>
-                    ) : (
-                      <select
-                        value={subaccount.credit || ''}
-                        onChange={(e) => handleCreditChange(index, e.target.value)}
-                      >
-                        <option value="">Select Subaccount to Credit</option>
-                        {subaccounts.map((sub, idx) => (
-                          <option key={idx} value={sub.sub_account_name}>
-                            {sub.sub_account_name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </td>
+        <div>
+          <button type="submit" className="form-button">
+            {isEditing ? 'Update Transaction' : 'Submit Transaction'}
+          </button>
+        </div>
+      </form>
 
-                  
-
-                  {/* Debit Amount */}
-                  <td>
-                    <input
-                      type="number"
-                      placeholder="Enter debit amount"
-                      value={subaccount.debit || ''}
-                      onChange={(e) => handleDebitChange(index, e.target.value)}
-                    />
-                  </td>
-
-                  {/* Credit Amount */}
-                  <td>
-                    <input
-                      type="number"
-                      placeholder="Enter credit amount"
-                      value={subaccount.credit || ''}
-                      onChange={(e) => handleCreditChange(index, e.target.value)}
-                    />
-                  </td>
-
-                  <td>
-                    <button onClick={() => setEditIndex(index)}>
-                      Update
-                    </button>
-                    <button onClick={() => handleDeleteSubaccount(subaccount.sub_account_name)}>
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
+      <h3 className="form-title">Transaction History</h3>
+      <table className="transaction-table">
+        <thead>
+          <tr>
+            <th>Credited Account</th>
+            <th>Debited Account</th>
+            <th>Amount Credited</th>
+            <th>Amount Debited</th>
+            <th>Description</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {transactions.map((transaction) => (
+            <tr key={transaction.id}>
+              <td>{transaction.credited_account_name}</td>
+              <td>{transaction.debited_account_name}</td>
+              <td>{transaction.amount_credited}</td>
+              <td>{transaction.amount_debited}</td>
+              <td>{transaction.description}</td>
+              <td>
+                <button onClick={() => handleEdit(transaction)}>Edit</button>
+                <button onClick={() => handleDelete(transaction.id)}>Delete</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
 
-export default Subaccounts;
+export default AccountSelection;
