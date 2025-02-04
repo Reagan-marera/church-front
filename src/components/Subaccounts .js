@@ -67,21 +67,20 @@ const AccountSelection = () => {
   }, []);
 
   const handleEdit = (transaction) => {
-    console.log("Editing transaction:", transaction);
-
-    setSelectedCreditedAccount(transaction.credited_account_name);
-    setSelectedDebitedAccount(transaction.debited_account_name);
-    setAmountCredited(transaction.amount_credited);
-    setAmountDebited(transaction.amount_debited);
-    setDescription(transaction.description);
-    setCurrentTransactionId(transaction.id);
-    setIsEditing(true);
+    if (transaction) {
+      setSelectedCreditedAccount(transaction.credited_account_name);
+      setSelectedDebitedAccount(transaction.debited_account_name);
+      setAmountCredited(transaction.amount_credited);
+      setAmountDebited(transaction.amount_debited);
+      setDescription(transaction.description);
+      setCurrentTransactionId(transaction.id);
+      setIsEditing(true);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate the inputs before submitting
     if (!amountCredited || !amountDebited || isNaN(amountCredited) || isNaN(amountDebited)) {
       setSuccessMessage("Please enter valid amounts for credited and debited accounts.");
       setTimeout(() => setSuccessMessage(''), 3000);  // Clear message after 3 seconds
@@ -91,12 +90,11 @@ const AccountSelection = () => {
     const transactionData = {
       creditedAccount: selectedCreditedAccount,
       debitedAccount: selectedDebitedAccount,
-      amountCredited: parseFloat(amountCredited), // Convert to float
-      amountDebited: parseFloat(amountDebited),   // Convert to float
+      amountCredited: parseFloat(amountCredited),
+      amountDebited: parseFloat(amountDebited),
       description,
     };
 
-    // If editing, make sure to include the 'id' of the transaction
     if (isEditing && !currentTransactionId) {
       console.error("Transaction ID is missing");
       return;
@@ -115,10 +113,9 @@ const AccountSelection = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setSuccessMessage(data.message);  // Display success message
-        setIsEditing(false);  // Reset editing state
-        setCurrentTransactionId(null); // Clear current transaction ID
-
+        setSuccessMessage(data.message);
+        setIsEditing(false);
+        setCurrentTransactionId(null);
         const updatedTransactions = isEditing
           ? transactions.map((transaction) =>
               transaction.id === currentTransactionId ? { ...transaction, ...transactionData } : transaction
@@ -144,7 +141,7 @@ const AccountSelection = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setSuccessMessage(data.message);  // Display success message
+        setSuccessMessage(data.message);
         const updatedTransactions = transactions.filter(t => t.id !== id);
         setTransactions(updatedTransactions);
       } else {
@@ -246,19 +243,23 @@ const AccountSelection = () => {
           </tr>
         </thead>
         <tbody>
-          {transactions.map((transaction) => (
+          {transactions && transactions.length > 0 ? transactions.map((transaction) => (
             <tr key={transaction.id}>
-              <td>{transaction.credited_account_name}</td>
-              <td>{transaction.debited_account_name}</td>
-              <td>{transaction.amount_credited}</td>
-              <td>{transaction.amount_debited}</td>
-              <td>{transaction.description}</td>
+              <td>{transaction.credited_account_name || "N/A"}</td>
+              <td>{transaction.debited_account_name || "N/A"}</td>
+              <td>{transaction.amount_credited || "N/A"}</td>
+              <td>{transaction.amount_debited || "N/A"}</td>
+              <td>{transaction.description || "N/A"}</td>
               <td>
                 <button onClick={() => handleEdit(transaction)}>Edit</button>
                 <button onClick={() => handleDelete(transaction.id)}>Delete</button>
               </td>
             </tr>
-          ))}
+          )) : (
+            <tr>
+              <td colSpan="6">No transactions found</td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

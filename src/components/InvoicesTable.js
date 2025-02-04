@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
-import "./InvoicesTable.css";
+import "./InvoicesTable.css"; // Ensure this file exists for styling
 
-const InvoiceIssued= () => {
+const InvoiceIssued = () => {
   // State for storing form fields
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [dateIssued, setDateIssued] = useState("");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
-  const [accountDebited, setAccountDebited] = useState("");
+  const [accountDebited, setAccountDebited] = useState(""); // Set dynamically from COA
   const [accountCredited, setAccountCredited] = useState("");
-  const [grnNumber, setGrnNumber] = useState("");
-  
+  const [customerName, setCustomerName] = useState(""); // State for storing customer name separately
+
   // State to manage the invoices, form visibility, loading, and errors
   const [invoices, setInvoices] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -40,7 +40,7 @@ const InvoiceIssued= () => {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/invoice-received", {
+      const response = await fetch("http://127.0.0.1:5000/invoices", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -61,7 +61,7 @@ const InvoiceIssued= () => {
     }
   };
 
-  // Function to fetch customer data for the "Account Debited" select
+  // Function to fetch customer data for the "Customer Name" select
   const fetchCustomers = async () => {
     const token = localStorage.getItem("token");
 
@@ -89,7 +89,7 @@ const InvoiceIssued= () => {
     }
   };
 
-  // Function to fetch chart of accounts for the "Account Credited" select
+  // Function to fetch chart of accounts for the "Account Debited" and "Account Credited" select
   const fetchChartOfAccounts = async () => {
     const token = localStorage.getItem("token");
 
@@ -109,12 +109,60 @@ const InvoiceIssued= () => {
       if (response.ok) {
         const data = await response.json();
         setChartOfAccounts(data);
+
+        // Find the "1150-Trade Debtors  Control Account" from the fetched chart of accounts
+        const tradeDebtorsAccount = data.find(account =>
+          account.sub_account_details &&
+          account.sub_account_details.some(subAccount => subAccount.name === "1150-Trade Debtors  Control Account")
+        );
+
+        if (tradeDebtorsAccount) {
+          const subAccount = tradeDebtorsAccount.sub_account_details.find(
+            subAccount => subAccount.name === "1150-Trade Debtors  Control Account"
+          );
+          setAccountDebited(subAccount.name); // Set the account debited to the found account name
+        } else {
+          setError("1150-Trade Debtors  Control Account not found in COA");
+        }
       } else {
         setError("Error fetching chart of accounts");
       }
     } catch (error) {
       setError("Error fetching chart of accounts");
     }
+  };
+
+  // Helper function to get the name of a sub-account by its ID
+  const getSubAccountNameById = (id) => {
+    const allSubAccounts = [...customers, ...chartOfAccounts].flatMap(item =>
+      item.sub_account_details || []
+    );
+    const subAccount = allSubAccounts.find(subAccount => subAccount.id === id);
+    return subAccount ? subAccount.name : "Unknown";
+  };
+
+  // Helper function to get the customer name by sub-account ID
+  const getCustomerNameBySubAccountId = (id) => {
+    const customer = customers.find(customer =>
+      customer.sub_account_details.some(subAccount => subAccount.id === id)
+    );
+    return customer ? customer.name : "Unknown";
+  };
+
+  // Function to get all sub-account names for the "Account Credited" dropdown
+  const getSubAccountNames = () => {
+    // Filter sub-accounts where the parent account has account_type "40-Revenue"
+    const revenueSubAccounts = chartOfAccounts
+      .filter(account => account.account_type === "40-Revenue")
+      .flatMap(account => account.sub_account_details || []);
+
+    return revenueSubAccounts.map(subAccount => subAccount.name);
+  };
+
+  // Handle change of selected customer and update related sub-accounts for "Account Debited"
+  const handleCustomerChange = (e) => {
+    const selectedCustomerName = e.target.value;
+    setCustomerName(selectedCustomerName); // Set the selected customer name
   };
 
   // Function to handle form submission
@@ -129,16 +177,16 @@ const InvoiceIssued= () => {
 
     const newInvoice = {
       invoice_number: invoiceNumber,
-      date_issued: dateIssued,
+      date_issued: dateIssued, // Date should be in ISO format (YYYY-MM-DD)
       description,
       amount: parseInt(amount),
-      account_debited: accountDebited,
+      account_debited: accountDebited, // Dynamically set account debited from COA
       account_credited: accountCredited,
-      grn_number: grnNumber,
+      name: customerName, // Use the customer name separately
     };
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/invoice-received", {
+      const response = await fetch("http://127.0.0.1:5000/invoices", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -148,25 +196,24 @@ const InvoiceIssued= () => {
       });
 
       if (response.ok) {
-        fetchInvoices(); // Refresh the list of invoices
-        resetForm(); // Reset the form fields
+        fetchInvoices(); 
+        resetForm(); 
       } else {
-        setError("Error creating invoice");
+        const errorData = await response.json();
+        setError(errorData.error || "Error creating invoice");
       }
     } catch (error) {
       setError("Error creating invoice");
     }
   };
 
-  // Function to reset form fields
   const resetForm = () => {
     setInvoiceNumber("");
     setDateIssued("");
     setDescription("");
     setAmount("");
-    setAccountDebited("");
     setAccountCredited("");
-    setGrnNumber("");
+    setCustomerName(""); 
   };
 
   return (
@@ -215,45 +262,53 @@ const InvoiceIssued= () => {
               required
             />
           </div>
-          <div className="invoice-form">
-  <div>
-    <label>Account Debited:</label>
-    <select
-      value={accountDebited}
-      onChange={(e) => setAccountDebited(e.target.value)}
-      required
-    >
-      <option value="">Select Debited account</option>
-      {customers.flatMap((customer) =>
-        customer.sub_account_details.map((subAccount) => (
-          <option key={subAccount.id} value={subAccount.id}>
-            {subAccount.name}
-          </option>
-        ))
-      )}
-    </select>
-  </div>
-  
-  <div>
-    <label>Account Credited:</label>
-    <select
-      value={accountCredited}
-      onChange={(e) => setAccountCredited(e.target.value)}
-      required
-    >
-      <option value="">Select Credited account</option>
-      {chartOfAccounts.flatMap((account) =>
-        account.sub_account_details.map((subAccount) => (
-          <option key={subAccount.id} value={subAccount.id}>
-            {subAccount.name}
-          </option>
-        ))
-      )}
-    </select>
-  </div>
-</div>
 
-         
+          {/* Customer Name Selection */}
+          <div>
+            <label>Customer Name:</label>
+            <select
+              value={customerName}
+              onChange={handleCustomerChange} // Handle change to select a customer
+              required
+            >
+              <option value="">Select Customer</option>
+              {customers.flatMap((customer) =>
+                customer.sub_account_details.map((subAccount) => (
+                  <option key={subAccount.id} value={subAccount.name}>
+                    {subAccount.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          {/* Account Debited Selection */}
+          <div>
+            <label>Account Debited:</label>
+            <input
+              type="text"
+              value={accountDebited}
+              disabled // Disable the input field
+            />
+          </div>
+
+          {/* Account Credited Selection */}
+          <div>
+            <label>Account Credited:</label>
+            <select
+              value={accountCredited}
+              onChange={(e) => setAccountCredited(e.target.value)}
+              required
+            >
+              <option value="">Select Credited Account</option>
+              {getSubAccountNames().map((subAccountName) => (
+                <option key={subAccountName} value={subAccountName}>
+                  {subAccountName}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button type="submit" disabled={loading}>
             {loading ? "Submitting..." : "Submit Invoice"}
           </button>
@@ -267,7 +322,7 @@ const InvoiceIssued= () => {
       {loading ? (
         <p>Loading...</p>
       ) : (
-        <table>
+        <table className="invoices-table">
           <thead>
             <tr>
               <th>Invoice Number</th>
@@ -276,6 +331,7 @@ const InvoiceIssued= () => {
               <th>Amount</th>
               <th>Account Debited</th>
               <th>Account Credited</th>
+              <th>Customer Name</th>
             </tr>
           </thead>
           <tbody>
@@ -286,8 +342,9 @@ const InvoiceIssued= () => {
                   <td>{invoice.date_issued}</td>
                   <td>{invoice.description}</td>
                   <td>{invoice.amount}</td>
-                  <td>{invoice.account_debited}</td>
-                  <td>{invoice.account_credited}</td>
+                  <td>{getSubAccountNameById(invoice.account_debited)}</td>
+                  <td>{getSubAccountNameById(invoice.account_credited)}</td>
+                  <td>{getCustomerNameBySubAccountId(invoice.name)}</td>
                 </tr>
               ))
             ) : (

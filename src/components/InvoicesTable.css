@@ -1,205 +1,74 @@
-/* Container Styling */
-.container {
-  max-width: 100px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: Arial, sans-serif;
-  background-size: cover; 
-  background-position: center; 
-  background-repeat: no-repeat; 
-  background-attachment: fixed; 
-  color: #333; 
-}
-
-.success-message {
-  color: green;
-  background-color: #d4edda;
-  padding: 10px;
-  border-radius: 5px;
-  margin-bottom: 10px;
-  text-align: center;
-}
-
-/* Header Styling */
-.header {
-  text-align: center;
-  font-size: 2.5em;
-  margin-bottom: 20px;
-  color: #4CAF50;
-}
-
-/* Error Message Styling */
-.error {
-  color: red;
-  text-align: center;
-  font-size: 1.2em;
-}
-
-/* Form Styling */
-.form {
-  margin-bottom: 30px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-
-.form-row {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.form-input {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 1em;
-}
-
-.form-submit-btn {
-  background-color: #4CAF50;
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  font-size: 1.1em;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.form-submit-btn:hover {
-  background-color: #45a049;
-}
-
 /* Table Styling */
-.invoice-table {
+.invoices-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
-  font-size: 0.9em; /* Reduced font size for smaller table */
+  font-family: Arial, sans-serif;
 }
 
-.invoice-table th,
-.invoice-table td {
-  padding: 8px; /* Reduced padding for compact tables */
+.invoices-table th,
+.invoices-table td {
+  padding: 12px;
   text-align: left;
   border-bottom: 1px solid #ddd;
 }
 
-.invoice-table th {
-  background-color: #4CAF50;
-  color: white;
-  font-size: 1em; /* Slightly smaller header font */
+.invoices-table th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+  color: #333;
 }
 
-.invoice-table tr:nth-child(even) {
-  background-color: #f2f2f2;
+.invoices-table tbody tr:hover {
+  background-color: #f9f9f9;
 }
 
-.invoice-table tr:nth-child(odd) {
-  background-color: #ffffff; /* Solid white background for odd rows */
+.invoices-table tbody tr:nth-child(even) {
+  background-color: #fafafa;
 }
 
-.invoice-table td button {
-  background-color: #f44336;
-  color: rgb(0, 0, 0);
-  border: none;
-  padding: 5px 10px;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-.invoice-table td button:hover {
-  background-color: #d32f2f;
-}
-
-.invoice-table td button:focus {
-  outline: none;
-}
-
-/* Modal Table Styling */
-.subaccounts-modal table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  font-size: 0.9em; /* Smaller font size */
-}
-
-.subaccounts-modal th,
-.subaccounts-modal td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: left;
-}
-
-.subaccounts-modal th {
-  background-color: #4CAF50; /* Solid green background for header */
-  color: white;
+/* Error Message Styling */
+.error {
+  color: #ff0000;
+  margin-top: 10px;
   font-weight: bold;
 }
 
-.subaccounts-modal td {
-  background-color: #ffffff; /* Solid white for even rows */
-  font-size: 0.9em; /* Reduced font size */
-}
-
-.subaccounts-modal td:nth-child(odd) {
-  background-color: #f2f2f2; /* Light gray for odd rows */
-}
-
-.subaccounts-modal button {
-  margin-top: 10px;
-  padding: 8px 15px;
+/* Button Styling */
+button {
   background-color: #007bff;
   color: white;
   border: none;
-  border-radius: 4px;
+  padding: 10px 20px;
   cursor: pointer;
+  border-radius: 5px;
+  margin-bottom: 20px;
 }
 
-.subaccounts-modal button:hover {
+button:hover {
   background-color: #0056b3;
 }
-/* Container for each form section */
+
+/* Form Styling */
+.invoice-form {
+  margin-bottom: 20px;
+}
+
 .invoice-form div {
-  margin-bottom: 1rem;
+  margin-bottom: 15px;
 }
 
-/* Style the labels to align them properly */
 .invoice-form label {
-  font-weight: bold;
-  margin-bottom: 0.5rem;
   display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
 }
 
-/* Style for the select dropdowns */
+.invoice-form input,
 .invoice-form select {
   width: 100%;
-  padding: 0.8rem;
-  margin-top: 0.3rem;
-  font-size: 1rem;
+  padding: 8px;
+  box-sizing: border-box;
   border: 1px solid #ccc;
   border-radius: 4px;
-  background-color: #f9f9f9;
-  cursor: pointer;
-}
-
-/* Focus state for the select inputs */
-.invoice-form select:focus {
-  border-color: #0056b3;
-  outline: none;
-  background-color: #fff;
-}
-
-/* Style for placeholder text */
-.invoice-form option {
-  color: #000000;
-}
-
-/* Optional: Add a margin between the two select fields */
-.invoice-form .select-container {
-  display: flex;
-  gap: 2rem;
-  flex-wrap: wrap;
 }

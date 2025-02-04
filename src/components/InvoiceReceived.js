@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import "./InvoiceReceived.css";
+import "./InvoicesTable.css";
 
-const InvoiceReceived = () => {
+const InvoiceRecieved = () => {
   // State for storing form fields
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [dateIssued, setDateIssued] = useState("");
@@ -10,27 +10,26 @@ const InvoiceReceived = () => {
   const [accountDebited, setAccountDebited] = useState("");
   const [accountCredited, setAccountCredited] = useState("");
   const [grnNumber, setGrnNumber] = useState("");
+  const [payeeName, setPayeeName] = useState(""); // State for storing payee name
 
-  // State for invoices, form visibility, loading, and errors
+  // State to manage the invoices, form visibility, loading, and errors
   const [invoices, setInvoices] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // State for customer and chart of accounts data
-  const [customers, setCustomers] = useState([]);
+  // State for payee and chart of accounts data
+  const [payees, setPayees] = useState([]);
   const [chartOfAccounts, setChartOfAccounts] = useState([]);
-  const [payees, setPayees] = useState([]);  // Store payee data for account credited
 
-  // Fetch invoices, customers, and accounts data on component mount
+  // Fetch invoices and other data on component mount
   useEffect(() => {
     fetchInvoices();
-    fetchCustomers();
+    fetchPayees();
     fetchChartOfAccounts();
-    fetchPayees();  // Fetch payee data
   }, []);
 
-  // Fetch invoices from API
+  // Function to fetch invoices from the API
   const fetchInvoices = async () => {
     setLoading(true);
     const token = localStorage.getItem("token");
@@ -63,63 +62,7 @@ const InvoiceReceived = () => {
     }
   };
 
-  // Fetch customer data for the "Account Debited" select
-  const fetchCustomers = async () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setError("User is not authenticated");
-      return;
-    }
-
-    try {
-      const response = await fetch("http://127.0.0.1:5000/customer", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setCustomers(data);
-      } else {
-        setError("Error fetching customers");
-      }
-    } catch (error) {
-      setError("Error fetching customers");
-    }
-  };
-
-  // Fetch chart of accounts for the "Account Debited" select
-  const fetchChartOfAccounts = async () => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      setError("User is not authenticated");
-      return;
-    }
-
-    try {
-      const response = await fetch("http://127.0.0.1:5000/chart-of-accounts", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setChartOfAccounts(data);
-      } else {
-        setError("Error fetching chart of accounts");
-      }
-    } catch (error) {
-      setError("Error fetching chart of accounts");
-    }
-  };
-
-  // Fetch payees for the "Account Credited" select
+  // Function to fetch payee data for the "Payee Name" select
   const fetchPayees = async () => {
     const token = localStorage.getItem("token");
 
@@ -147,6 +90,56 @@ const InvoiceReceived = () => {
     }
   };
 
+  // Function to fetch chart of accounts for the "Account Debited" and "Account Credited" select
+  const fetchChartOfAccounts = async () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("User is not authenticated");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/chart-of-accounts", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setChartOfAccounts(data);
+
+        // Find the "2250-Trade Creditors Control Account" from the fetched chart of accounts
+        const tradeCreditorsAccount = data.find(account =>
+          account.sub_account_details &&
+          account.sub_account_details.some(subAccount => subAccount.name === "2250-Trade Creditors Control Account")
+        );
+
+        if (tradeCreditorsAccount) {
+          const subAccount = tradeCreditorsAccount.sub_account_details.find(
+            subAccount => subAccount.name === "2250-Trade Creditors Control Account"
+          );
+          setAccountCredited(subAccount.name); // Set the account credited to the found account name
+        } else {
+          setError("2250-Trade Creditors Control Account not found in COA");
+        }
+      } else {
+        setError("Error fetching chart of accounts");
+      }
+    } catch (error) {
+      setError("Error fetching chart of accounts");
+    }
+  };
+
+  // Handle change of selected payee and update related sub-accounts for "Account Debited"
+  const handlePayeeChange = (e) => {
+    const selectedPayeeName = e.target.value;
+    setPayeeName(selectedPayeeName); // Set the selected payee name
+    setAccountDebited(""); // Reset the account debited field
+  };
+
   // Function to handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -159,12 +152,13 @@ const InvoiceReceived = () => {
 
     const newInvoice = {
       invoice_number: invoiceNumber,
-      date_issued: dateIssued,
+      date_issued: dateIssued, // Date should be in ISO format (YYYY-MM-DD)
       description,
       amount: parseInt(amount),
       account_debited: accountDebited,
-      account_credited: accountCredited,
+      account_credited: accountCredited, // Automatically set to "2250-Trade Creditors Control Account"
       grn_number: grnNumber,
+      name: payeeName, // Use the payee name separately
     };
 
     try {
@@ -181,7 +175,8 @@ const InvoiceReceived = () => {
         fetchInvoices(); // Refresh the list of invoices
         resetForm(); // Reset the form fields
       } else {
-        setError("Error creating invoice");
+        const errorData = await response.json();
+        setError(errorData.error || "Error creating invoice");
       }
     } catch (error) {
       setError("Error creating invoice");
@@ -195,8 +190,24 @@ const InvoiceReceived = () => {
     setDescription("");
     setAmount("");
     setAccountDebited("");
-    setAccountCredited("");
     setGrnNumber("");
+    setPayeeName(""); // Reset the payee name field
+  };
+
+  // Get all sub_account_details from payees and chartOfAccounts and merge them
+  const getSubAccountNames = () => {
+    const payeeSubAccounts = payees.flatMap(payee =>
+      payee.sub_account_details.map(subAccount => subAccount.name)
+    );
+
+    const coaSubAccounts = chartOfAccounts
+      .filter(account => account.account_type !== "40-Revenue") // Exclude accounts with account_type "40-Revenue"
+      .flatMap(account =>
+        account.sub_account_details ? account.sub_account_details.map(subAccount => subAccount.name) : []
+      );
+
+    // Combine both payee and COA sub account names
+    return [...new Set([...payeeSubAccounts, ...coaSubAccounts])];
   };
 
   return (
@@ -245,6 +256,27 @@ const InvoiceReceived = () => {
               required
             />
           </div>
+
+          {/* Payee Name Selection */}
+          <div>
+            <label>Payee Name:</label>
+            <select
+              value={payeeName}
+              onChange={handlePayeeChange} // Handle change to select a payee
+              required
+            >
+              <option value="">Select Payee</option>
+              {payees.flatMap((payee) =>
+                payee.sub_account_details.map((subAccount) => (
+                  <option key={subAccount.id} value={subAccount.name}>
+                    {subAccount.name}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+
+          {/* Account Debited Selection */}
           <div>
             <label>Account Debited:</label>
             <select
@@ -252,33 +284,25 @@ const InvoiceReceived = () => {
               onChange={(e) => setAccountDebited(e.target.value)}
               required
             >
-              <option value="">Select Debited account</option>
-              {chartOfAccounts.flatMap((account) =>
-                account.sub_account_details.map((subAccount) => (
-                  <option key={subAccount.id} value={subAccount.id}>
-                    {subAccount.name}
-                  </option>
-                ))
-              )}
+              <option value="">Select Debited Account</option>
+              {getSubAccountNames().map((subAccountName) => (
+                <option key={subAccountName} value={subAccountName}>
+                  {subAccountName}
+                </option>
+              ))}
             </select>
           </div>
+
+          {/* Account Credited Selection */}
           <div>
             <label>Account Credited:</label>
-            <select
+            <input
+              type="text"
               value={accountCredited}
-              onChange={(e) => setAccountCredited(e.target.value)}
-              required
-            >
-              <option value="">Select Credited account</option>
-              {payees.flatMap((payee) =>
-                payee.sub_account_details.map((subAccount) => (
-                  <option key={subAccount.id} value={subAccount.id}>
-                    {subAccount.name}
-                  </option>
-                ))
-              )}
-            </select>
+              disabled // Disable the input field
+            />
           </div>
+
           <div>
             <label>GRN Number:</label>
             <input
@@ -287,6 +311,7 @@ const InvoiceReceived = () => {
               onChange={(e) => setGrnNumber(e.target.value)}
             />
           </div>
+
           <button type="submit" disabled={loading}>
             {loading ? "Submitting..." : "Submit Invoice"}
           </button>
@@ -309,6 +334,7 @@ const InvoiceReceived = () => {
               <th>Amount</th>
               <th>Account Debited</th>
               <th>Account Credited</th>
+              <th>Payee Name</th>
               <th>GRN Number</th>
             </tr>
           </thead>
@@ -322,12 +348,13 @@ const InvoiceReceived = () => {
                   <td>{invoice.amount}</td>
                   <td>{invoice.account_debited}</td>
                   <td>{invoice.account_credited}</td>
+                  <td>{invoice.name}</td> {/* Display the payee name */}
                   <td>{invoice.grn_number}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="7">No invoices found.</td>
+                <td colSpan="8">No invoices found.</td>
               </tr>
             )}
           </tbody>
@@ -337,4 +364,4 @@ const InvoiceReceived = () => {
   );
 };
 
-export default InvoiceReceived;
+export default InvoiceRecieved;
