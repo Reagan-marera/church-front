@@ -1,149 +1,215 @@
-/* Basic reset */
-* {
+/* General Styles */
+body {
+  font-family: 'Arial', sans-serif;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
-}
-
-/* Container */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  font-family: 'Arial', sans-serif;
-  background-color: #fff;
-  transition: all 0.3s ease-in-out;
-}
-
-/* Header */
-.header {
-  font-size: 1.8rem;
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 30px;
+  background-color: #f9f9f9;
   color: #333;
-  opacity: 0;
-  animation: fadeIn 1s forwards;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.container {
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 20px;
 }
 
-/* Error message */
 .error {
   color: red;
   font-weight: bold;
-  margin-bottom: 20px;
-  opacity: 0;
-  animation: fadeIn 1s forwards;
+  margin-bottom: 10px;
 }
 
-/* Form inputs and buttons */
-.form-input, .form-submit-btn, .add-subaccount-btn, .remove-subaccount-btn {
-  padding: 10px;
-  margin: 10px 0;
-  width: 100%;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-}
-
-.form-input:focus, .form-submit-btn:hover, .add-subaccount-btn:hover, .remove-subaccount-btn:hover {
-  border-color: #007bff;
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-}
-
-/* Hover effect for buttons */
-.form-submit-btn {
-  background-color: #007bff;
+button {
+  background-color: #28a745;
   color: white;
+  border: none;
+  padding: 12px 20px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  font-size: 16px;
 }
 
-.add-subaccount-btn, .remove-subaccount-btn {
+button:hover {
+  background-color: #218838;
+  transform: scale(1.05);
+}
+
+button:active {
+  transform: scale(1);
+}
+
+/* Form Popup */
+.form-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  overflow-y: auto; /* Ensures the form is scrollable */
+}
+
+.form-container {
+  background-color: rgb(0, 0, 0);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 6px 12px rgba(247, 244, 244, 0.1);
+  width: 90%;
+  max-width: 700px; /* Reduced max width for smaller popup */
+  min-width: 320px; /* Ensures the popup is never too small */
+  max-height: 90%; /* Prevents the form from exceeding 90% of the viewport height */
+  overflow-y: auto; /* Scrollable content within the form */
+  transition: width 0.3s ease-in-out;
+}
+
+.form-container h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+  color: #e2d6d6;
+}
+
+.form-container label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #e2d6d6;
+
+
+}
+input[readonly] {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  cursor: not-allowed;
+}
+.form-container input,
+.form-container select,
+.form-container textarea {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+}
+
+.form-container input:focus,
+.form-container select:focus,
+.form-container textarea:focus {
+  border-color: #28a745;
+  outline: none;
+}
+
+.form-container button {
+  margin-top: 15px;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.form-container button[type="submit"] {
   background-color: #28a745;
   color: white;
 }
 
-.add-subaccount-btn:hover {
+.form-container button[type="button"] {
+  background-color: #dc3545;
+  color: white;
+}
+
+.form-container button[type="submit"]:hover {
   background-color: #218838;
 }
 
-.remove-subaccount-btn:hover {
+.form-container button[type="button"]:hover {
   background-color: #c82333;
 }
 
-/* Form Row */
-.form-row {
-  margin-bottom: 15px;
-  opacity: 0;
-  animation: fadeInUp 1s forwards;
-}
-
-@keyframes fadeInUp {
-  from {
-    transform: translateY(10px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-/* Table */
-.journal-table {
+/* Table Styling */
+table {
   width: 100%;
-  margin-top: 20px; /* Reduced margin-top */
   border-collapse: collapse;
-  opacity: 0;
-  animation: fadeIn 1s forwards;
+  margin-top: 20px;
 }
 
-.journal-table th, .journal-table td {
-  padding: 6px 8px; /* Reduced padding */
+table th,
+table td {
   border: 1px solid #ddd;
+  padding: 12px;
   text-align: left;
-  font-size: 0.8rem; /* Smaller font size */
 }
 
-.journal-table tr:hover {
-  background-color: #f1f1f1;
-}
-
-.journal-table th {
-  background-color: #007bff;
-  color: white;
+table th {
+  background-color: #f4f4f4;
   font-weight: bold;
 }
 
-/* Row hover effects */
-.journal-table tr {
-  transition: all 0.3s ease-in-out;
+table td {
+  font-size: 16px;
 }
 
-.journal-table tr:hover {
-  background-color: #f9f9f9;
-  transform: scale(1.02);
+table td:last-child {
+  text-align: center;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-  .form-row {
+@media (max-width: 600px) {
+  .form-container {
+    width: 90%; /* Ensures the popup width adjusts on small screens */
+    max-width: none;
+    padding: 15px; /* Smaller padding for a tighter layout */
+  }
+
+  .form-container h2 {
+    font-size: 20px; /* Slightly smaller title on small screens */
+  }
+
+  .form-container input,
+  .form-container select,
+  .form-container textarea {
+    padding: 8px; /* Smaller padding on inputs */
+    font-size: 14px; /* Slightly smaller text for better mobile readability */
+  }
+
+  table,
+  thead,
+  tbody,
+  th,
+  td,
+  tr {
     display: block;
   }
 
-  .form-input, .form-submit-btn, .add-subaccount-btn, .remove-subaccount-btn {
-    width: 100%;
+  table thead tr {
+    display: none;
   }
 
-  .journal-table th, .journal-table td {
-    font-size: 0.75rem; /* Even smaller font size */
-    padding: 4px 6px; /* Reduced padding */
+  table tbody tr {
+    margin-bottom: 10px;
+  }
+
+  table tbody td {
+    text-align: right;
+    padding-left: 50%;
+    position: relative;
+    font-size: 14px;
+  }
+
+  table tbody td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0;
+    width: 50%;
+    padding-left: 10px;
+    font-weight: 600;
+    text-align: left;
+    color: #666;
   }
 }

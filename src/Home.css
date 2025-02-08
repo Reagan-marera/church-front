@@ -3,7 +3,7 @@ body {
   font-family: 'Arial', sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #f4f4f9;
+  background-color: #0505fa;
   height: 100%;
   width: 100%;
   overflow-x: hidden;
@@ -90,20 +90,22 @@ body {
 .navbar-logo {
   height: 40px;
   margin-right: 10px;
+  
 }
 
 .company-name {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #333;
+  color: #ff0a0a;
   font-family: 'Caveat', cursive; /* A more attractive font */
   text-transform: uppercase;
   letter-spacing: 2px;
+  background-color: #333;
 }
 
 /* Hero Section */
 .hero {
-  background: url('https://www.example.com/path/to/your/light-background-image.jpg') no-repeat center center/cover;
+  background: url('https://i.pinimg.com/1200x/5c/dc/b0/5cdcb0c878c363082da796fc5d28bcf3.jpg') no-repeat center center/cover;
   height: 90vh; /* Cover the full height */
   display: flex;
   justify-content: center;
@@ -118,16 +120,19 @@ body {
   padding: 30px;
   background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
   border-radius: 8px;
+  color: #fff;
 }
 
 .hero h1 {
   font-size: 2.5rem;
   margin-bottom: 20px;
+  color: #fff;
 }
 
 .hero h2 {
   font-size: 1.5rem;
   margin-bottom: 15px;
+  color: #fff;
 }
 
 .hero p {

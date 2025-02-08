@@ -1,208 +1,33 @@
-/* General container styling */
-.disbursement-form-container {
-  max-width: 1000px; /* Further reduced max width */
-  margin: 0 auto;
-  padding: 10px; /* Further reduced padding */
-  font-family: 'Arial', sans-serif;
-  background-color: #fff;
-  color: #333;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+.submitted-disbursements {
+  margin-top: 20px;
 }
 
-/* Form header styling */
-.form-header {
-  text-align: center;
-  font-size: 1rem; /* Smaller font size */
-  margin-bottom: 10px; /* Reduced margin */
-  font-weight: bold;
-  color: #333;
+.submitted-disbursements h2 {
+  font-size: 20px;
+  margin-bottom: 10px;
 }
 
-/* Error message styling */
-.error-message {
-  color: #d9534f;
-  text-align: center;
-  font-weight: bold;
-  margin-top: 10px; /* Reduced margin */
-}
-
-/* Form container */
-.form {
-  background: #fff;
-  padding: 8px; /* Smaller padding */
-  border: 1px solid #ddd;
-  border-radius: 3px; /* Slightly smaller border radius */
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.05);
-  margin-bottom: 10px; /* Reduced margin */
-}
-
-/* Form row */
-.form-row {
-  margin-bottom: 6px; /* Further reduced margin */
-  display: flex;
-  justify-content: space-between;
-}
-
-.form-row label {
-  font-weight: normal;
-  display: block;
-  width: 80px; /* Reduced label width */
-  font-size: 0.75rem; /* Smaller font size */
-}
-
-.form-input {
-  width: 100%;
-  padding: 4px 6px; /* Much smaller padding */
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  font-size: 0.75rem; /* Smaller font size */
-  background-color: #fff;
-  color: #333;
-}
-
-.form-input:focus {
-  border-color: #66afe9;
-  outline: none;
-}
-
-/* Button Styling */
-.add-subaccount-btn, .remove-subaccount-btn, .submit-button, .view-subaccounts-button, .edit-button, .delete-button {
-  background-color: #007bff;
-  color: white;
-  border: 1px solid #007bff;
-  padding: 4px 8px; /* Much smaller padding */
-  border-radius: 3px; /* Smaller border radius */
-  cursor: pointer;
-  font-size: 0.75rem; /* Smaller font size */
-  transition: background-color 0.3s ease;
-}
-
-.add-subaccount-btn:hover,
-.remove-subaccount-btn:hover,
-.submit-button:hover,
-.view-subaccounts-button:hover,
-.edit-button:hover,
-.delete-button:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
-}
-
-/* Table Styling */
-.disbursement-table {
+.submitted-disbursements table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 10px; /* Reduced margin */
-  background: #fff;
 }
 
-.disbursement-table th, .disbursement-table td {
-  padding: 10px 4px; /* Much smaller padding */
-  text-align: center;
+.submitted-disbursements th,
+.submitted-disbursements td {
   border: 1px solid #ddd;
-  font-size: 0.75rem; /* Smaller font size */
+  padding: 8px;
+  text-align: left;
 }
 
-.disbursement-table th {
-  background-color: #007bff;
-  color: #fff;
-  font-weight: normal;
+.submitted-disbursements th {
+  background-color: #f2f2f2;
+  font-weight: bold;
 }
 
-.disbursement-table tr:nth-child(even) {
+.submitted-disbursements tr:nth-child(even) {
   background-color: #f9f9f9;
 }
 
-.disbursement-table tr:hover {
+.submitted-disbursements tr:hover {
   background-color: #f1f1f1;
-}
-
-/* Loader Styling */
-.loader {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
-
-.loader div {
-  width: 6px; /* Smaller loader size */
-  height: 6px; /* Smaller loader size */
-  margin: 2px; /* Smaller margin */
-  background-color: #007bff;
-  border-radius: 50%;
-  animation: loader 1s infinite alternate;
-}
-
-.loader div:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.loader div:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-@keyframes loader {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-/* Modal Styling */
-.subaccounts-modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: white;
-  padding: 12px; /* Smaller padding */
-  border-radius: 3px; /* Smaller border radius */
-  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  width: 75%; /* Further reduced width */
-  max-width: 450px; /* Reduced max width */
-}
-
-.subaccounts-modal table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 8px; /* Reduced margin */
-}
-
-.subaccounts-modal th, .subaccounts-modal td {
-  padding: 4px 6px; /* Much smaller padding */
-  text-align: left;
-  border: 1px solid #ddd;
-}
-
-.subaccounts-modal button {
-  margin-top: 8px; /* Reduced margin */
-  background-color: #007bff;
-  color: white;
-  padding: 6px;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .form-row {
-    flex-direction: column;
-  }
-
-  .form-input {
-    width: 100%;
-  }
-
-  .disbursement-table th, .disbursement-table td {
-    font-size: 0.7rem; /* Smaller font size */
-    padding: 4px 6px; /* Smaller padding */
-  }
-
-  .subaccounts-modal {
-    width: 90%; /* Adjusted for mobile screens */
-  }
 }

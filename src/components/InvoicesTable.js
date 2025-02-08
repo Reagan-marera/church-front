@@ -140,7 +140,69 @@ const InvoiceIssued = () => {
     const subAccount = allSubAccounts.find(subAccount => subAccount.id === id);
     return subAccount ? subAccount.name : "Unknown";
   };
+  const handleUpdate = async (id) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("User is not authenticated");
+      return;
+    }
 
+    const updatedInvoice = {
+      invoice_number: invoiceNumber,
+      date_issued: dateIssued,
+      description,
+      amount: parseInt(amount),
+      account_debited: accountDebited,
+      account_credited: accountCredited,
+      name: customerName,
+    };
+
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/invoices/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatedInvoice),
+      });
+
+      if (response.ok) {
+        fetchInvoices();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Error updating invoice");
+      }
+    } catch (error) {
+      setError("Error updating invoice");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("User is not authenticated");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/invoices/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        fetchInvoices();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Error deleting invoice");
+      }
+    } catch (error) {
+      setError("Error deleting invoice");
+    }
+  };
   // Helper function to get the customer name by sub-account ID
   const getCustomerNameBySubAccountId = (id) => {
     const customer = customers.find(customer =>
@@ -342,9 +404,17 @@ const InvoiceIssued = () => {
                   <td>{invoice.date_issued}</td>
                   <td>{invoice.description}</td>
                   <td>{invoice.amount}</td>
-                  <td>{getSubAccountNameById(invoice.account_debited)}</td>
-                  <td>{getSubAccountNameById(invoice.account_credited)}</td>
-                  <td>{getCustomerNameBySubAccountId(invoice.name)}</td>
+                  <td>{(invoice.account_debited)}</td>
+                  <td>{(invoice.account_credited)}</td>
+                  <td>{(invoice.name)}</td>
+                  <td>
+                    <button onClick={() => handleUpdate(invoice.id)}>
+                      Update
+                    </button>
+                    <button onClick={() => handleDelete(invoice.id)}>
+                      Delete
+                    </button>
+                  </td>
                 </tr>
               ))
             ) : (
