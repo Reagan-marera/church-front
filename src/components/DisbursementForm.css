@@ -1,21 +1,134 @@
-.submitted-disbursements {
+/* Add this to your DisbursementForm.css file */
+.disbursement-container {
+  font-family: 'Arial', sans-serif;
+  padding: 20px;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+.add-button {
+  background-color: #007bff;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: background-color 0.3s;
+  font-size: 16px;
+}
+
+.add-button:hover {
+  background-color: #0056b3;
+}
+
+.form-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.form-container {
+  background-color: white;
+  padding: 30px;
+  border-radius: 15px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90%;
+  overflow-y: auto;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  font-size: 16px;
+}
+
+.form-container h2 {
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 24px;
+  color: #555;
+}
+
+.form-row {
+  margin-bottom: 20px;
+}
+
+.form-row label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: #333;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+.submit-button, .cancel-button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 16px;
+}
+
+.submit-button {
+  background-color: #28a745;
+  color: white;
+}
+
+.submit-button:hover {
+  background-color: #218838;
+}
+
+.cancel-button {
+  background-color: #dc3545;
+  color: white;
+}
+
+.cancel-button:hover {
+  background-color: #c82333;
+}
+
+.error-message {
+  color: #d9534f;
   margin-top: 20px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.submitted-disbursements {
+  margin-top: 40px;
 }
 
 .submitted-disbursements h2 {
-  font-size: 20px;
-  margin-bottom: 10px;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 22px;
+  color: #555;
 }
 
 .submitted-disbursements table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 14px; /* Reduced font size */
 }
 
 .submitted-disbursements th,
 .submitted-disbursements td {
   border: 1px solid #ddd;
-  padding: 8px;
+  padding: 6px; /* Reduced padding */
   text-align: left;
 }
 
@@ -24,10 +137,30 @@
   font-weight: bold;
 }
 
-.submitted-disbursements tr:nth-child(even) {
-  background-color: #f9f9f9;
+.edit-button, .delete-button {
+  padding: 6px 12px; /* Reduced padding */
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  font-size: 12px; /* Reduced font size */
+  margin: 2px;
 }
 
-.submitted-disbursements tr:hover {
-  background-color: #f1f1f1;
+.edit-button {
+  background-color: #ffc107;
+  color: white;
+}
+
+.edit-button:hover {
+  background-color: #e0a800;
+}
+
+.delete-button {
+  background-color: #dc3545;
+  color: white;
+}
+
+.delete-button:hover {
+  background-color: #c82333;
 }

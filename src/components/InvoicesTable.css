@@ -1,74 +1,125 @@
-/* Table Styling */
-.invoices-table {
+/* Modal Styling */
+.modal {
+  display: block;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-  font-family: Arial, sans-serif;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
-.invoices-table th,
-.invoices-table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
+.modal-content {
+  background-color: #fefefe;
+  margin: 10% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 50%;
+  border-radius: 10px;
 }
 
-.invoices-table th {
-  background-color: #f4f4f4;
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
   font-weight: bold;
-  color: #333;
-}
-
-.invoices-table tbody tr:hover {
-  background-color: #f9f9f9;
-}
-
-.invoices-table tbody tr:nth-child(even) {
-  background-color: #fafafa;
-}
-
-/* Error Message Styling */
-.error {
-  color: #ff0000;
-  margin-top: 10px;
-  font-weight: bold;
-}
-
-/* Button Styling */
-button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 10px 20px;
   cursor: pointer;
-  border-radius: 5px;
-  margin-bottom: 20px;
 }
 
-button:hover {
-  background-color: #0056b3;
+.close:hover {
+  color: black;
 }
 
 /* Form Styling */
 .invoice-form {
-  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .invoice-form div {
-  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
 }
 
 .invoice-form label {
-  display: block;
-  margin-bottom: 5px;
   font-weight: bold;
 }
 
 .invoice-form input,
 .invoice-form select {
-  width: 100%;
   padding: 8px;
-  box-sizing: border-box;
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+
+.invoice-form button {
+  padding: 10px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.invoice-form button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Table Styling */
+.compact-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.compact-table th,
+.compact-table td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+
+.compact-table th {
+  background-color: #f4f4f4;
+  font-weight: bold;
+}
+
+.compact-table tr:hover {
+  background-color: #f1f1f1;
+}
+
+.compact-table button {
+  padding: 5px 10px;
+  margin-right: 5px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.compact-table button:first-child {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.compact-table button:last-child {
+  background-color: #f44336;
+  color: white;
+}
+
+/* Error Styling */
+.error {
+  color: red;
+  margin-top: 10px;
+}
+.invoice-issued button{
+  color: rgb(255, 255, 255);
+  margin-top: 15px;
+  background-color: rgb(77, 59, 59);
+  padding: 10px;
+  border-radius: 10px;
+  border-color: #4CAF50;
 }

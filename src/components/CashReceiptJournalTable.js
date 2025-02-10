@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "./CashReceiptJournalTable.css";
+import "./CashReceiptJournalTable.css"; // Ensure this file exists for styling
 
 const CashReceiptJournalTable = () => {
   const [journals, setJournals] = useState([]);
@@ -79,12 +79,9 @@ const CashReceiptJournalTable = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error(await response.text());
-
       setCoa(await response.json());
-
     } catch (err) {
       setError(err.message);
-
     }
   };
 
@@ -108,51 +105,33 @@ const CashReceiptJournalTable = () => {
     } catch (err) {
       setError(err.message);
     }
-  }; 
-  
-  
+  };
+
   const handleCustomerChange = (e) => {
     const selectedCustomerName = e.target.value;
     setCustomerName(selectedCustomerName);
-  
-    // Debugging: Log the selected customer and all invoices
-    console.log("Selected Customer:", selectedCustomerName);
-    console.log("All Invoices:", invoices);
-  
-    // Filter invoices for the selected customer
+
     const customerInvoices = invoices.filter(
       (invoice) => invoice.name === selectedCustomerName
     );
-  
-    // Debugging: Log the filtered invoices
-    console.log("Customer Invoices:", customerInvoices);
-  
-    // Calculate total invoice amount
+
     const totalAmount = customerInvoices.reduce(
       (sum, invoice) => sum + parseFloat(invoice.amount),
       0
     );
     setInvoiceAmount(totalAmount);
-  
-    // Filter receipts for the selected customer
+
     const customerReceipts = journals.filter(
       (journal) => journal.from_whom_received === selectedCustomerName
     );
-  
-    // Calculate total receipt amount
+
     const totalReceipts = customerReceipts.reduce(
       (sum, journal) => sum + parseFloat(journal.total),
       0
     );
-  
-    // Calculate balance
+
     const customerBalance = totalAmount - totalReceipts;
     setBalance(customerBalance);
-  
-    // Debugging: Log the calculated values
-    console.log("Invoice Amount:", totalAmount);
-    console.log("Total Receipts:", totalReceipts);
-    console.log("Balance:", customerBalance);
   };
 
   const handleInputChange = (e) => {
@@ -261,7 +240,42 @@ const CashReceiptJournalTable = () => {
     }
   };
 
-  const openFormPopup = () => {
+  const openFormPopup = (journal = null) => {
+    if (journal) {
+      setIsEditing(true);
+      setEditingData(journal);
+      setFormData({
+        receipt_date: journal.receipt_date,
+        receipt_no: journal.receipt_no,
+        ref_no: journal.ref_no,
+        from_whom_received: journal.from_whom_received,
+        description: journal.description,
+        receipt_type: journal.receipt_type,
+        account_debited: journal.account_debited,
+        account_credited: journal.account_credited,
+        cash: journal.cash,
+        bank: journal.bank,
+        total: journal.total,
+        cashbook: journal.cashbook,
+      });
+    } else {
+      setIsEditing(false);
+      setEditingData(null);
+      setFormData({
+        receipt_date: "",
+        receipt_no: "",
+        ref_no: "",
+        from_whom_received: "",
+        description: "",
+        receipt_type: "",
+        account_debited: "",
+        account_credited: "",
+        cash: 0,
+        bank: 0,
+        total: 0,
+        cashbook: "",
+      });
+    }
     setShowForm(true);
   };
 
@@ -269,76 +283,80 @@ const CashReceiptJournalTable = () => {
     setShowForm(false);
     setFormData({});
     setError("");
+    setIsEditing(false);
+    setEditingData(null);
   };
-  
+
   const getDebitAccounts = () => {
-    console.log("COA Data:", coa); // Debugging: Inspect the COA data
-    console.log("Receipt Type:", formData.receipt_type); // Debugging: Inspect the selected receipt type
+    if (formData.receipt_type === "Invoiced") {
+      const currentAssetsAccount = coa.find(
+        (account) => account.parent_account === "1000"
+      );
+      return currentAssetsAccount?.sub_account_details || [];
+    } else if (formData.receipt_type === "Cash") {
+      const cashAccount = coa.find(
+        (account) => account.account_name === "100-Current Assets"
+      );
+      return cashAccount?.sub_account_details || [];
+    } else {
+      return coa.filter((account) => account.parent_account === "1000");
+    }
+  };
+
+  const getCreditAccounts = () => {
+    const getParentAccountNumber = (parentAccount) => {
+      const match = parentAccount?.match(/^\d+/);
+      return match ? parseInt(match[0], 10) : null;
+    };
 
     if (formData.receipt_type === "Invoiced") {
-        // Filter for accounts with a specific parent account (e.g., "1000")
-        const currentAssetsAccount = coa.find(
-            (account) => account.parent_account === "1000"
-        );
-        return currentAssetsAccount?.sub_account_details || [];
-    } else if (formData.receipt_type === "Cash") {
-        // Handle Cash receipts: Filter for "100-current assets" or similar
-        const cashAccount = coa.find(
-            (account) => account.account_name === "100-Current Assets"
-        );
-        return cashAccount?.sub_account_details || [];
-    } else {
-        // Default behavior for other receipt types
-        return coa.filter((account) => account.parent_account === "1000");
-    }
-};
-const getCreditAccounts = () => {
-  console.log("COA Data:", coa); // Debugging: Inspect the COA data
-  console.log("Receipt Type:", formData.receipt_type); // Debugging: Inspect the selected receipt type
-
-  // Helper function to extract the numeric part of the parent_account
-  const getParentAccountNumber = (parentAccount) => {
-      const match = parentAccount?.match(/^\d+/); // Extract the numeric part at the start
-      return match ? parseInt(match[0], 10) : null; // Convert to number
-  };
-
-  if (formData.receipt_type === "Invoiced") {
-      // Only include the sub-account "1150-Trade Debtors Control Account" under "1100-Trade Debtors Control account"
       const invoicedAccount = coa.find(
-          (account) => account.parent_account === "1100-Trade Debtors Control account"
+        (account) => account.parent_account === "1100-Trade Debtors Control account"
       );
       return invoicedAccount?.sub_account_details?.filter(
-          (subAccount) => subAccount.name === "1150-Trade Debtors  Control Account"
+        (subAccount) => subAccount.name === "1150-Trade Debtors  Control Account"
       ) || [];
-  } else {
-      // Return all sub-accounts, excluding those with account_type "50-Expenses" and parent_account above 5000
+    } else {
       return coa.flatMap((account) =>
-          account.sub_account_details?.filter((subAccount) => {
-              const parentAccountNumber = getParentAccountNumber(subAccount.parent_account);
-              return (
-                  subAccount.account_type !== "50-Expenses" && 
-                  (parentAccountNumber === null || parentAccountNumber <= 5000)
-              );
-          }) || []
+        account.sub_account_details?.filter((subAccount) => {
+          const parentAccountNumber = getParentAccountNumber(subAccount.parent_account);
+          return (
+            subAccount.account_type !== "50-Expenses" &&
+            (parentAccountNumber === null || parentAccountNumber <= 5000)
+          );
+        }) || []
       );
-  }
-};
-
-
+    }
+  };
 
   return (
-    <div>
+    <div className="cash-receipt-journal">
       <h1>Cash Receipt Journal</h1>
       {error && <p className="error">{error}</p>}
-      <button onClick={openFormPopup}>Add New Receipt</button>
+      <button 
+  onClick={() => openFormPopup()} 
+  style={{ 
+    backgroundColor: '#008CBA', 
+    color: 'white', 
+    padding: '10px 20px', 
+    border: 'none', 
+    borderRadius: '5px', 
+    cursor: 'pointer'
+  }}
+>
+  Add New Receipt
+</button>
 
       {showForm && (
-        <div className="form-popup">
-          <div className="form-container">
+        <div className="modal">
+          <div className="modal-content">
+            <span className="close" onClick={closeFormPopup}>
+              &times;
+            </span>
             <h2>{isEditing ? "Edit Receipt" : "Add New Receipt"}</h2>
-            <form onSubmit={handleSubmit}>
-              <label>
-                Receipt Date:
+            <form onSubmit={handleSubmit} className="form-container">
+              <div>
+                <label>Receipt Date:</label>
                 <input
                   type="date"
                   name="receipt_date"
@@ -346,10 +364,9 @@ const getCreditAccounts = () => {
                   onChange={handleInputChange}
                   required
                 />
-              </label>
-
-              <label>
-                Receipt No:
+              </div>
+              <div>
+                <label>Receipt No:</label>
                 <input
                   type="text"
                   name="receipt_no"
@@ -357,67 +374,63 @@ const getCreditAccounts = () => {
                   onChange={handleInputChange}
                   required
                 />
-              </label>
-
-              <label>
-                Reference No:
+              </div>
+              <div>
+                <label>Reference No:</label>
                 <input
                   type="text"
                   name="ref_no"
                   value={formData.ref_no}
                   onChange={handleInputChange}
                 />
-              </label>
-
-              <select
-  name="from_whom_received"
-  value={formData.from_whom_received}
-  onChange={(e) => {
-    handleInputChange(e);
-    handleCustomerChange(e);
-  }}
-  required
->
-  <option value="">Select Customer</option>
-  {customers.map((customer) => (
-    <option key={customer.id} value={customer.name}>
-      {customer.name}
-    </option>
-  ))}
-</select>
-
-  {/* Invoice Amount Field */}
-  <label>
-  Invoice Amount:
-  <input
-    type="number"
-    name="invoice_amount"
-    value={invoiceAmount}
-    readOnly
-  />
-</label>
-
-<label>
-  Balance:
-  <input
-    type="number"
-    name="balance"
-    value={balance}
-    readOnly
-  />
-</label>
-  {/* Rest of the form fields */}
-  <label>
-                Description:
+              </div>
+              <div>
+                <label>From Whom Received:</label>
+                <select
+                  name="from_whom_received"
+                  value={formData.from_whom_received}
+                  onChange={(e) => {
+                    handleInputChange(e);
+                    handleCustomerChange(e);
+                  }}
+                  required
+                >
+                  <option value="">Select Customer</option>
+                  {customers.map((customer) => (
+                    <option key={customer.id} value={customer.name}>
+                      {customer.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label>Invoice Amount:</label>
+                <input
+                  type="number"
+                  name="invoice_amount"
+                  value={invoiceAmount}
+                  readOnly
+                />
+              </div>
+              <div>
+                <label>Balance:</label>
+                <input
+                  type="number"
+                  name="balance"
+                  value={balance}
+                  readOnly
+                />
+              </div>
+              <div>
+                <label>Description:</label>
                 <textarea
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
                 />
-              </label>
-
-              <label>
-                Receipt Type:
+              </div>
+              <div>
+                <label>Receipt Type:</label>
                 <select
                   name="receipt_type"
                   value={formData.receipt_type}
@@ -428,10 +441,9 @@ const getCreditAccounts = () => {
                   <option value="Cash">Cash</option>
                   <option value="Invoiced">Invoiced</option>
                 </select>
-              </label>
-
-              <label>
-                Account Debited:
+              </div>
+              <div>
+                <label>Account Debited:</label>
                 <select
                   name="account_debited"
                   value={formData.account_debited}
@@ -445,10 +457,9 @@ const getCreditAccounts = () => {
                     </option>
                   ))}
                 </select>
-              </label>
-
-              <label>
-                Account Credited:
+              </div>
+              <div>
+                <label>Account Credited:</label>
                 <select
                   name="account_credited"
                   value={formData.account_credited}
@@ -462,10 +473,9 @@ const getCreditAccounts = () => {
                     </option>
                   ))}
                 </select>
-              </label>
-
-              <label>
-                Cash:
+              </div>
+              <div>
+                <label>Cash:</label>
                 <input
                   type="number"
                   name="cash"
@@ -473,9 +483,9 @@ const getCreditAccounts = () => {
                   onChange={handleInputChange}
                   step="0.01"
                 />
-              </label>
-              <label>
-                Bank:
+              </div>
+              <div>
+                <label>Bank:</label>
                 <input
                   type="number"
                   name="bank"
@@ -483,19 +493,18 @@ const getCreditAccounts = () => {
                   onChange={handleInputChange}
                   step="0.01"
                 />
-              </label>
-              <label>
-                Total:
+              </div>
+              <div>
+                <label>Total:</label>
                 <input
                   type="number"
                   name="total"
                   value={formData.total}
                   readOnly
                 />
-              </label>
-
-              <label>
-                Cashbook:
+              </div>
+              <div>
+                <label>Cashbook:</label>
                 <input
                   type="text"
                   name="cashbook"
@@ -503,12 +512,10 @@ const getCreditAccounts = () => {
                   onChange={handleInputChange}
                   required
                 />
-              </label>
-
+              </div>
               <button type="submit">
                 {isEditing ? "Update" : "Submit"}
               </button>
-
               <button type="button" onClick={closeFormPopup}>
                 Cancel
               </button>
@@ -517,12 +524,12 @@ const getCreditAccounts = () => {
         </div>
       )}
 
-<div>
-          <p>Invoice Amount: {invoiceAmount}</p>
-          <p>Balance: {balance}</p>
-        </div>
+      <div className="balance-info">
+        <p>Invoice Amount: {invoiceAmount}</p>
+        <p>Balance: {balance}</p>
+      </div>
 
-      <table>
+      <table className="compact-table">
         <thead>
           <tr>
             <th>Receipt Date</th>
@@ -537,6 +544,7 @@ const getCreditAccounts = () => {
             <th>Bank</th>
             <th>Total</th>
             <th>Cashbook</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>

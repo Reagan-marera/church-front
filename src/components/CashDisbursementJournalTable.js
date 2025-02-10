@@ -25,9 +25,9 @@ const DisbursementForm = () => {
   const [showForm, setShowForm] = useState(false);
   const [balance, setBalance] = useState(0);
   const [disbursements, setDisbursements] = useState([]);
-  const [totalDisbursed, setTotalDisbursed] = useState(0); // Total disbursed amount
+  const [totalDisbursed, setTotalDisbursed] = useState(0);
+  const [editingDisbursement, setEditingDisbursement] = useState(null);
 
-  // Fetch COA, Payees, Invoices, and Disbursements on component mount
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem("token");
@@ -37,7 +37,6 @@ const DisbursementForm = () => {
       }
 
       try {
-        // Fetch Chart of Accounts
         const coaResponse = await fetch("http://127.0.0.1:5000/chart-of-accounts", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -45,7 +44,6 @@ const DisbursementForm = () => {
         const coaData = await coaResponse.json();
         setCoaAccounts(coaData);
 
-        // Fetch Payees
         const payeesResponse = await fetch("http://127.0.0.1:5000/payee", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -53,7 +51,6 @@ const DisbursementForm = () => {
         const payeesData = await payeesResponse.json();
         setPayees(payeesData);
 
-        // Fetch Invoices
         const invoicesResponse = await fetch("http://127.0.0.1:5000/invoice-received", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -61,7 +58,6 @@ const DisbursementForm = () => {
         const invoicesData = await invoicesResponse.json();
         setInvoices(invoicesData);
 
-        // Fetch Disbursements
         const disbursementsResponse = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -78,13 +74,11 @@ const DisbursementForm = () => {
     fetchData();
   }, []);
 
-  // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => {
       const updatedData = { ...prevData, [name]: value };
 
-      // Recalculate total if cash or bank changes
       if (name === "cash" || name === "bank") {
         updatedData.total = calculateTotal(updatedData.cash, updatedData.bank);
       }
@@ -92,50 +86,40 @@ const DisbursementForm = () => {
       return updatedData;
     });
 
-    // Recalculate balance and total disbursed when payee changes
     if (name === "to_whom_paid") {
       calculateBalanceAndTotalDisbursed(value);
     }
   };
 
-  // Calculate total amount
   const calculateTotal = (cash, bank) => {
     return parseFloat(cash || 0) + parseFloat(bank || 0);
   };
 
-  // Calculate balance and total disbursed for the selected payee
   const calculateBalanceAndTotalDisbursed = (payeeName) => {
-    // Filter invoices for the selected payee
     const payeeInvoices = invoices.filter(
       (invoice) => invoice.name === payeeName
     );
 
-    // Calculate total invoice amount
     const totalInvoiceAmount = payeeInvoices.reduce(
       (sum, invoice) => sum + parseFloat(invoice.amount || 0),
       0
     );
 
-    // Filter disbursements for the selected payee
     const payeeDisbursements = disbursements.filter(
       (disbursement) => disbursement.to_whom_paid === payeeName
     );
 
-    // Calculate total disbursed amount
     const totalDisbursedAmount = payeeDisbursements.reduce(
       (sum, disbursement) => sum + parseFloat(disbursement.total || 0),
       0
     );
 
-    // Calculate balance
     const payeeBalance = totalInvoiceAmount - totalDisbursedAmount;
     setBalance(payeeBalance);
 
-    // Set total disbursed amount
     setTotalDisbursed(totalDisbursedAmount);
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -145,21 +129,32 @@ const DisbursementForm = () => {
       return;
     }
 
-    // Prepare payload
     const payload = {
       ...formData,
       disbursement_date: new Date(formData.disbursement_date).toISOString().split("T")[0],
     };
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      let response;
+      if (editingDisbursement) {
+        response = await fetch(`http://127.0.0.1:5000/cash-disbursement-journals/${editingDisbursement.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        response = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+      }
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -168,7 +163,6 @@ const DisbursementForm = () => {
 
       const result = await response.json();
 
-      // Refresh the disbursements list after submission
       const disbursementsResponse = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -176,7 +170,7 @@ const DisbursementForm = () => {
       const disbursementsData = await disbursementsResponse.json();
       setDisbursements(disbursementsData);
 
-      alert("Disbursement added successfully!");
+      alert(editingDisbursement ? "Disbursement updated successfully!" : "Disbursement added successfully!");
       setFormData({
         disbursement_date: "",
         cheque_no: "",
@@ -192,16 +186,104 @@ const DisbursementForm = () => {
         cashbook: "",
       });
       setErrorMessage("");
-      setShowForm(false); // Close the popup after submission
+      setShowForm(false);
+      setEditingDisbursement(null);
     } catch (error) {
       setErrorMessage(error.message);
     }
   };
 
-  // Get debit accounts based on payment type
+  const handleUpdateDisbursement = async (id, updatedData) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setErrorMessage("Unauthorized: Missing token.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/cash-disbursement-journals/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatedData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
+
+      const result = await response.json();
+
+      const disbursementsResponse = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
+      const disbursementsData = await disbursementsResponse.json();
+      setDisbursements(disbursementsData);
+
+      alert("Disbursement updated successfully!");
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
+
+  const handleDeleteDisbursement = async (id) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setErrorMessage("Unauthorized: Missing token.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/cash-disbursement-journals/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
+      }
+
+      const disbursementsResponse = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
+      const disbursementsData = await disbursementsResponse.json();
+      setDisbursements(disbursementsData);
+
+      alert("Disbursement deleted successfully!");
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
+
+  const handleEditClick = (disbursement) => {
+    setEditingDisbursement(disbursement);
+    setFormData({
+      disbursement_date: disbursement.disbursement_date,
+      cheque_no: disbursement.cheque_no,
+      p_voucher_no: disbursement.p_voucher_no,
+      to_whom_paid: disbursement.to_whom_paid,
+      description: disbursement.description,
+      payment_type: disbursement.payment_type,
+      account_debited: disbursement.account_debited,
+      account_credited: disbursement.account_credited,
+      cash: disbursement.cash,
+      bank: disbursement.bank,
+      total: disbursement.total,
+      cashbook: disbursement.cashbook,
+    });
+    setShowForm(true);
+  };
+
   const getDebitAccounts = () => {
     if (formData.payment_type === "Cash") {
-      // Handle Cash disbursements: Filter for all accounts except those with "50-Expenses"
       const cashAccounts = coaAccounts.flatMap((account) => {
         const validSubAccounts = account.sub_account_details?.filter(
           (subAccount) => subAccount.account_type !== "50-Expenses"
@@ -210,7 +292,6 @@ const DisbursementForm = () => {
       });
       return cashAccounts;
     } else if (formData.payment_type === "Invoiced") {
-      // Handle Invoiced disbursements: Only pull the "2250-Trade Creditors Control Account"
       const invoicedAccount = coaAccounts.flatMap((account) => {
         if (account.account_name === "200-current Liabilities") {
           return account.sub_account_details?.filter(
@@ -225,21 +306,17 @@ const DisbursementForm = () => {
     }
   };
 
-  // Get credit accounts based on payment type
   const getCreditAccounts = () => {
-    // Always find the account with the parent_account "1000"
     const liabilitiesAccount = coaAccounts.find(
       (account) => account.parent_account === "1000"
     );
     return liabilitiesAccount?.sub_account_details || [];
   };
 
-  // Open the form popup
   const openFormPopup = () => {
     setShowForm(true);
   };
 
-  // Close the form popup
   const closeFormPopup = () => {
     setShowForm(false);
     setFormData({
@@ -257,6 +334,7 @@ const DisbursementForm = () => {
       cashbook: "",
     });
     setErrorMessage("");
+    setEditingDisbursement(null);
   };
 
   return (
@@ -269,9 +347,8 @@ const DisbursementForm = () => {
       {showForm && (
         <div className="form-popup">
           <div className="form-container">
-            <h2>Cash Disbursement Form</h2>
+            <h2>{editingDisbursement ? "Edit Disbursement" : "Cash Disbursement Form"}</h2>
             <form onSubmit={handleSubmit}>
-              {/* Disbursement Date */}
               <div className="form-row">
                 <label htmlFor="disbursement_date">Disbursement Date</label>
                 <input
@@ -285,7 +362,6 @@ const DisbursementForm = () => {
                 />
               </div>
 
-              {/* Cheque No */}
               <div className="form-row">
                 <label htmlFor="cheque_no">Cheque No</label>
                 <input
@@ -299,7 +375,6 @@ const DisbursementForm = () => {
                 />
               </div>
 
-              {/* Payment Voucher No */}
               <div className="form-row">
                 <label htmlFor="p_voucher_no">Payment Voucher No</label>
                 <input
@@ -313,7 +388,6 @@ const DisbursementForm = () => {
                 />
               </div>
 
-              {/* To Whom Paid (Payee) */}
               <div className="form-row">
                 <label htmlFor="to_whom_paid">To Whom Paid</label>
                 <select
@@ -335,7 +409,6 @@ const DisbursementForm = () => {
                 </select>
               </div>
 
-              {/* Balance */}
               <div className="form-row">
                 <label>Balance</label>
                 <input
@@ -346,7 +419,6 @@ const DisbursementForm = () => {
                 />
               </div>
 
-              {/* Total Disbursed */}
               <div className="form-row">
                 <label>Total Disbursed</label>
                 <input
@@ -357,7 +429,6 @@ const DisbursementForm = () => {
                 />
               </div>
 
-              {/* Description */}
               <div className="form-row">
                 <label htmlFor="description">Description</label>
                 <input
@@ -371,7 +442,6 @@ const DisbursementForm = () => {
                 />
               </div>
 
-              {/* Payment Type */}
               <div className="form-row">
                 <label htmlFor="payment_type">Payment Type</label>
                 <select
@@ -388,7 +458,6 @@ const DisbursementForm = () => {
                 </select>
               </div>
 
-              {/* Account Debited */}
               <div className="form-row">
                 <label htmlFor="account_debited">Account Debited</label>
                 <select
@@ -408,7 +477,6 @@ const DisbursementForm = () => {
                 </select>
               </div>
 
-              {/* Account Credited */}
               <div className="form-row">
                 <label htmlFor="account_credited">Account Credited</label>
                 <select
@@ -428,7 +496,6 @@ const DisbursementForm = () => {
                 </select>
               </div>
 
-              {/* Cash Amount */}
               <div className="form-row">
                 <label htmlFor="cash">Cash Amount</label>
                 <input
@@ -442,7 +509,6 @@ const DisbursementForm = () => {
                 />
               </div>
 
-              {/* Bank Amount */}
               <div className="form-row">
                 <label htmlFor="bank">Bank Amount</label>
                 <input
@@ -456,7 +522,6 @@ const DisbursementForm = () => {
                 />
               </div>
 
-              {/* Total Amount */}
               <div className="form-row">
                 <label>Total</label>
                 <input
@@ -467,7 +532,6 @@ const DisbursementForm = () => {
                 />
               </div>
 
-              {/* Cashbook */}
               <div className="form-row">
                 <label htmlFor="cashbook">Cashbook</label>
                 <input
@@ -481,24 +545,21 @@ const DisbursementForm = () => {
                 />
               </div>
 
-              {/* Submit Button */}
               <div className="form-row">
                 <button type="submit" className="submit-button">
-                  Submit
+                  {editingDisbursement ? "Update" : "Submit"}
                 </button>
                 <button type="button" onClick={closeFormPopup} className="cancel-button">
                   Cancel
                 </button>
               </div>
 
-              {/* Display error messages */}
               {errorMessage && <div className="error-message">{errorMessage}</div>}
             </form>
           </div>
         </div>
       )}
 
-      {/* Table to display disbursements */}
       <div className="submitted-disbursements">
         <h2>Disbursements</h2>
         <table>
@@ -516,6 +577,7 @@ const DisbursementForm = () => {
               <th>Bank</th>
               <th>Total</th>
               <th>Cashbook</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -533,6 +595,20 @@ const DisbursementForm = () => {
                 <td>{disbursement.bank}</td>
                 <td>{disbursement.total}</td>
                 <td>{disbursement.cashbook}</td>
+                <td>
+                  <button
+                    onClick={() => handleEditClick(disbursement)}
+                    className="edit-button"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteDisbursement(disbursement.id)}
+                    className="delete-button"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
