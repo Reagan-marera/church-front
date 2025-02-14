@@ -39,7 +39,7 @@ const AccountSelection = () => {
           ...chartOfAccounts.map(account => ({
             ...account,
             type: 'chart_of_accounts',
-            subaccounts: account.sub_account_details || [] 
+            subaccounts: account.sub_account_details || []
           })),
           ...payees.map(account => ({
             ...account,
@@ -57,7 +57,9 @@ const AccountSelection = () => {
 
         const transactionsResponse = await fetch('http://127.0.0.1:5000/get-transactions', { headers });
         const data = await transactionsResponse.json();
-        setTransactions(data.transactions);
+
+        const validTransactions = Array.isArray(data.transactions) ? data.transactions.filter(t => t) : [];
+        setTransactions(validTransactions);
       } catch (error) {
         console.error('Error fetching data:', error.message);
       }
@@ -68,14 +70,24 @@ const AccountSelection = () => {
 
   const handleEdit = (transaction) => {
     if (transaction) {
-      setSelectedCreditedAccount(transaction.credited_account_name);
-      setSelectedDebitedAccount(transaction.debited_account_name);
-      setAmountCredited(transaction.amount_credited);
-      setAmountDebited(transaction.amount_debited);
-      setDescription(transaction.description);
+      setSelectedCreditedAccount(transaction.credited_account_name || '');
+      setSelectedDebitedAccount(transaction.debited_account_name || '');
+      setAmountCredited(transaction.amount_credited || '');
+      setAmountDebited(transaction.amount_debited || '');
+      setDescription(transaction.description || '');
       setCurrentTransactionId(transaction.id);
       setIsEditing(true);
     }
+  };
+
+  // Function to check for duplicate transaction
+  const isDuplicateTransaction = () => {
+    return transactions.some(transaction =>
+      transaction.credited_account_name === selectedCreditedAccount &&
+      transaction.debited_account_name === selectedDebitedAccount &&
+      transaction.amount_credited === parseFloat(amountCredited) &&
+      transaction.amount_debited === parseFloat(amountDebited)
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -83,6 +95,12 @@ const AccountSelection = () => {
 
     if (!amountCredited || !amountDebited || isNaN(amountCredited) || isNaN(amountDebited)) {
       setSuccessMessage("Please enter valid amounts for credited and debited accounts.");
+      setTimeout(() => setSuccessMessage(''), 3000);  // Clear message after 3 seconds
+      return;
+    }
+
+    if (isDuplicateTransaction()) {
+      setSuccessMessage("This transaction already exists.");
       setTimeout(() => setSuccessMessage(''), 3000);  // Clear message after 3 seconds
       return;
     }
@@ -101,8 +119,8 @@ const AccountSelection = () => {
     }
 
     try {
-      const response = await fetch(isEditing 
-        ? `http://127.0.0.1:5000/update-transaction/${currentTransactionId}` 
+      const response = await fetch(isEditing
+        ? `http://127.0.0.1:5000/update-transaction/${currentTransactionId}`
         : 'http://127.0.0.1:5000/submit-transaction', {
         method: isEditing ? 'PUT' : 'POST',
         headers: {
@@ -165,11 +183,13 @@ const AccountSelection = () => {
             className="form-select"
           >
             <option value="">Select a credited account</option>
-            {accounts.map((account) =>
-              account.subaccounts.map((subaccount) => (
-                <option key={subaccount.id} value={subaccount.name}>
-                  {subaccount.name} ({account.type})
-                </option>
+            {accounts?.map((account) =>
+              account?.subaccounts?.map((subaccount) => (
+                subaccount?.id ? (
+                  <option key={subaccount?.id} value={subaccount?.name}>
+                    {subaccount?.name} ({account?.type})
+                  </option>
+                ) : null
               ))
             )}
           </select>
@@ -181,11 +201,13 @@ const AccountSelection = () => {
             className="form-select"
           >
             <option value="">Select a debited account</option>
-            {accounts.map((account) =>
-              account.subaccounts.map((subaccount) => (
-                <option key={subaccount.id} value={subaccount.name}>
-                  {subaccount.name} ({account.type})
-                </option>
+            {accounts?.map((account) =>
+              account?.subaccounts?.map((subaccount) => (
+                subaccount?.id ? (
+                  <option key={subaccount?.id} value={subaccount?.name}>
+                    {subaccount?.name} ({account?.type})
+                  </option>
+                ) : null
               ))
             )}
           </select>
@@ -243,18 +265,20 @@ const AccountSelection = () => {
           </tr>
         </thead>
         <tbody>
-          {transactions && transactions.length > 0 ? transactions.map((transaction) => (
-            <tr key={transaction.id}>
-              <td>{transaction.credited_account_name || "N/A"}</td>
-              <td>{transaction.debited_account_name || "N/A"}</td>
-              <td>{transaction.amount_credited || "N/A"}</td>
-              <td>{transaction.amount_debited || "N/A"}</td>
-              <td>{transaction.description || "N/A"}</td>
-              <td>
-                <button onClick={() => handleEdit(transaction)}>Edit</button>
-                <button onClick={() => handleDelete(transaction.id)}>Delete</button>
-              </td>
-            </tr>
+          {transactions.length > 0 ? transactions.map((transaction) => (
+            transaction?.id ? (
+              <tr key={transaction?.id}>
+                <td>{transaction?.credited_account_name || "N/A"}</td>
+                <td>{transaction?.debited_account_name || "N/A"}</td>
+                <td>{transaction?.amount_credited || "N/A"}</td>
+                <td>{transaction?.amount_debited || "N/A"}</td>
+                <td>{transaction?.description || "N/A"}</td>
+                <td>
+                  <button onClick={() => handleEdit(transaction)}>Edit</button>
+                  <button onClick={() => handleDelete(transaction?.id)}>Delete</button>
+                </td>
+              </tr>
+            ) : null
           )) : (
             <tr>
               <td colSpan="6">No transactions found</td>

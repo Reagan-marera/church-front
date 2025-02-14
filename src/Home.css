@@ -1,234 +1,167 @@
-/* General Styling */
-body {
-  font-family: 'Arial', sans-serif;
-  margin: 0;
-  padding: 0;
-  background-color: #0505fa;
-  height: 100%;
-  width: 100%;
-  overflow-x: hidden;
-}
+/* Importing Roboto font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@1,400;1,700&display=swap');
 
-/* App Container */
 .App {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background-color: #42ecd0; /* Existing background color */
+  background-image: url('https://images.pexels.com/photos/2131614/pexels-photo-2131614.jpeg?cs=srgb&dl=pexels-quang-nguyen-vinh-222549-2131614.jpg&fm=jpg'); /* Add your image URL here */
+  background-size: cover; /* Makes the background image cover the entire screen */
+  background-position: center center; /* Center the image within the container */
+  min-height: 100vh; /* Ensure the background image covers the full height of the screen */
+  padding: 20px;
+  color: #333; /* Adjust text color to maintain readability on top of the background image */
+  background-attachment: fixed; /* Make sure the background image stays fixed while scrolling */
 }
 
-/* Loader */
 .loader {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
   flex-direction: column;
-  color: #333;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
 }
 
 .juggler {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  width: 100px;
+  height: 100px;
+  position: relative;
+  animation: spin 2s infinite linear;
+}
+
+.person {
+  width: 50px;
+  height: 50px;
+  background-color: #3498db;
+  border-radius: 50%;
+  position: absolute;
+  top: 0;
+  left: 25px;
 }
 
 .juggling-ball {
-  width: 15px;
-  height: 15px;
-  margin: 5px;
-  background-color: #007bff;
+  width: 20px;
+  height: 20px;
+  background-color: #e74c3c;
   border-radius: 50%;
-  animation: juggling 1.5s infinite ease-in-out;
+  position: absolute;
+  animation: bounce 2s infinite ease-in-out;
 }
 
-.juggling-ball:nth-child(1) {
-  animation-delay: 0s;
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.juggling-ball:nth-child(2) {
-  animation-delay: 0.3s;
-}
-
-.juggling-ball:nth-child(3) {
-  animation-delay: 0.6s;
-}
-
-.loader-text {
-  margin-top: 15px;
-  font-size: 1.2rem;
-  color: #333;
-}
-
-@keyframes juggling {
-  0% {
-    transform: translateY(0);
+@keyframes bounce {
+  0%, 100% {
+    top: 0;
   }
   50% {
-    transform: translateY(-20px);
-  }
-  100% {
-    transform: translateY(0);
+    top: 50px;
   }
 }
 
-/* Navbar */
 .navbarhome {
-  background-color: #fff;
-  padding: 15px 20px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: #0080ff; /* Darker shade for a more sophisticated look */
+  color: white;
+  padding: 8px 16px; /* Adjusted padding for a more compact and sleek look */
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-.navbar-brand {
-  display: flex;
-  align-items: center;
+  justify-content: center; /* Keep content centered */
+  align-items: center; /* Vertically align the items */
+  border-radius: 6px; /* Rounded corners for a modern look */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adds depth with a subtle shadow */
+  transition: background-color 0.3s ease, transform 0.3s ease; /* Smooth transition for color and hover effects */
 }
 
 .navbar-logo {
-  height: 40px;
+  width: 50px;
+  height: auto;
   margin-right: 10px;
+}
+.intro{
+  color: rgb(0, 0, 0);
+}
+.intro2{
+  color: rgb(255, 255, 255);
+}
+.company-name {
+  font-size: 1.5rem;
+  font-weight: 700;  /* Bold weight for emphasis */
+  font-style: italic; /* Elegant italic style */
+  font-family: 'Lora', serif; /* Apply Lora font */
+  letter-spacing: 1px; /* Adds some spacing for a sophisticated look */
+  color: #fcf9f9; /* Darker color for better readability */
+}
+
+
+.hero {
+  background-color: #ecf0f1;
+  padding: 50px 20px;
+  margin-bottom: 20px;
+  background-image: url('https://wallpapers.com/images/featured/desktop-lsjkr6wg7ctq97qv.jpg'); /* Add your image URL here */
+
+}
+
+.hero-content h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  color: rgb(255, 255, 255);
+}
+
+.hero-content h2 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: black;
+
   
 }
 
-.company-name {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #ff0a0a;
-  font-family: 'Caveat', cursive; /* A more attractive font */
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  background-color: #333;
-}
-
-/* Hero Section */
-.hero {
-  background: url('https://i.pinimg.com/1200x/5c/dc/b0/5cdcb0c878c363082da796fc5d28bcf3.jpg') no-repeat center center/cover;
-  height: 90vh; /* Cover the full height */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #fff;
-  text-align: center;
-  background-attachment: fixed; /* Parallax effect */
-}
-
-.hero-content {
-  max-width: 1700px;
-  padding: 30px;
-  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-  border-radius: 8px;
-  color: #fff;
-}
-
-.hero h1 {
-  font-size: 2.5rem;
-  margin-bottom: 20px;
-  color: #fff;
-}
-
-.hero h2 {
-  font-size: 1.5rem;
-  margin-bottom: 15px;
-  color: #fff;
-}
-
-.hero p {
-  font-size: 1rem;
-  margin-bottom: 30px;
-}
-
 .cta-button {
-  padding: 12px 24px;
-  font-size: 1.1rem;
-  background-color: #007bff;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  text-decoration: none;
   display: inline-block;
+  padding: 10px 20px;
+  background-color: #2ecc71;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+  font-size: 1rem;
   transition: background-color 0.3s ease;
 }
 
 .cta-button:hover {
-  background-color: #0056b3;
+  background-color: #27ae60;
 }
 
-/* Features Section */
 .features {
-  padding: 60px 20px;
-  background-color: #f9f9f9;
-  text-align: center;
-}
-
-.features h2 {
-  font-size: 2rem;
-  margin-bottom: 30px;
-  color: #333;
+  padding: 20px;
 }
 
 .feature-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 20px;
 }
 
 .feature-card {
   background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 5px;
   padding: 20px;
-  border-radius: 6px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease;
-}
-
-.feature-card:hover {
-  transform: translateY(-10px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .feature-card h3 {
-  font-size: 1.3rem;
-  margin-bottom: 15px;
+  font-size: 1.2rem;
+  margin-bottom: 10px;
 }
 
-.feature-card p {
-  font-size: 0.95rem;
-  color: #666;
-}
-
-/* Footer Section */
 .footer {
-  padding: 20px;
-  text-align: center;
-  background-color: #333;
-  color: #fff;
-  font-size: 0.9rem;
-}
-
-.footer p {
-  margin: 0;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .hero h1 {
-    font-size: 2rem;
-  }
-
-  .hero h2 {
-    font-size: 1.2rem;
-  }
-
-  .cta-button {
-    font-size: 0.9rem;
-  }
-
-  .feature-card {
-    padding: 15px;
-  }
-
-  .footer p {
-    font-size: 0.8rem;
-  }
+  background-color: #34495e;
+  color: white;
+  padding: 10px 20px;
+  margin-top: 20px;
 }

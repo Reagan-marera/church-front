@@ -1,30 +1,27 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import './Navbar.css'; // Importing the new CSS file
+import './Navbar.css'; // Importing the CSS file
 
-const Navbar = ({ token, role }) => {
+const Navbar = () => {
   const navigate = useNavigate();
-  const [showMore, setShowMore] = useState(false); // State to toggle "More" links visibility
+  const [showSetup, setShowSetup] = useState(false); // State to toggle "Setup" dropdown
+  const [showTransactions, setShowTransactions] = useState(false); // State to toggle "Transactions" dropdown
+  const [showMore, setShowMore] = useState(false); // State to toggle "More" dropdown
 
   // Handle logout
   const handleLogout = () => {
-    // Clear the token and role from localStorage
+    // Clear the token, role, and userId from localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('role');
-    localStorage.removeItem('userId');  // Ensure userId is removed too
+    localStorage.removeItem('userId');
 
     // Refresh the page to reflect the changes
-    window.location.reload();  // This will refresh the entire page
+    window.location.reload();
   };
 
   // Retrieve token and userId from localStorage
   const storedToken = localStorage.getItem('token');
   const storedUserId = localStorage.getItem('userId');
-
-  // Toggle the "More" links visibility
-  const handleShowMore = () => {
-    setShowMore(!showMore);
-  };
 
   return (
     <nav className="navbar">
@@ -32,68 +29,78 @@ const Navbar = ({ token, role }) => {
         {/* Home Link */}
         <li><Link to="/" className="nav-link">Home</Link></li>
 
-        {/* Other navigation links */}
-        <li><Link to="/chart-of-accounts" className="nav-link">Chart of Accounts</Link></li>
-        <li><Link to="/invoices" className="nav-link">Invoice Issued</Link></li>
-        
-        {/* Show Invoice Received link only if the user is logged in */}
-        {storedToken && (
-          <li><Link to="/invoice-received" className="nav-link">Invoice Received</Link></li>
-        )}
+        {/* Setup Dropdown */}
+        <li
+          className="dropdown"
+          onMouseEnter={() => setShowSetup(true)}
+          onMouseLeave={() => setShowSetup(false)}
+        >
+          <span className="nav-link">Setup</span>
+          {showSetup && (
+            <ul className="dropdown-menu">
+              <li><Link to="/chart-of-accounts" className="dropdown-link">Chart of Accounts</Link></li>
+              <li><Link to="/customer-list" className="dropdown-link">Customer List</Link></li>
+              <li><Link to="/payee-list" className="dropdown-link">Payee List</Link></li>
+            </ul>
+          )}
+        </li>
 
-        <li><Link to="/cash-receipt-journal" className="nav-link">Cash Receipt Journal</Link></li>
-        <li><Link to="/cash-disbursement-journal" className="nav-link">Cash Disbursement Journal</Link></li>
+        {/* Transactions Dropdown */}
+        <li
+          className="dropdown"
+          onMouseEnter={() => setShowTransactions(true)}
+          onMouseLeave={() => setShowTransactions(false)}
+        >
+          <span className="nav-link">Transactions</span>
+          {showTransactions && (
+            <ul className="dropdown-menu">
+              <li><Link to="/cash-receipt-journal" className="dropdown-link">Cash Receipt Journal</Link></li>
+              <li><Link to="/cash-disbursement-journal" className="dropdown-link">Cash Disbursement Journal</Link></li>
+              <li><Link to="/invoices" className="dropdown-link">Invoice Issued</Link></li>
+              {storedToken && (
+                <li><Link to="/invoice-received" className="dropdown-link">Invoice Received</Link></li>
+              )}
+            </ul>
+          )}
+        </li>
 
         {/* Financial Report Link (protected) */}
         {storedToken && (
           <li><Link to="/financial-report" className="nav-link">Financial Report</Link></li>
         )}
 
-        {/* Show General Report link to all users, no token required */}
+        {/* General Ledger Accounts Link */}
         <li><Link to="/general-report" className="nav-link">General Ledger Accounts</Link></li>
 
-        {/* Show the "More" button to toggle additional links */}
+        {/* More Dropdown */}
         {storedToken && (
-          <li>
-            <button className="nav-link" onClick={handleShowMore}>
-              {showMore ? 'Show Less' : 'More'}
-            </button>
+          <li
+            className="dropdown"
+            onMouseEnter={() => setShowMore(true)}
+            onMouseLeave={() => setShowMore(false)}
+          >
+            <span className="nav-link">More</span>
+            {showMore && (
+              <ul className="dropdown-menu">
+                <li><Link to="/subaccounts" className="dropdown-link">Subaccounts</Link></li>
+                {storedUserId && (
+                  <>
+                    <li><Link to="/create-pledge" className="dropdown-link">Create Pledge</Link></li>
+                    <li><Link to={`/member/${storedUserId}`} className="dropdown-link">Member Info</Link></li>
+                  </>
+                )}
+                <li><Link to="/payment-form" className="dropdown-link">Payment</Link></li>
+              </ul>
+            )}
           </li>
         )}
 
-        {/* Show additional links when "More" is clicked */}
-        {showMore && (
-          <>
-            {/* Show Customer List and Payee List links */}
-            <li><Link to="/customer-list" className="nav-link">Customer List</Link></li>
-            <li><Link to="/payee-list" className="nav-link">Payee List</Link></li>
-
-            {/* Show Subaccounts link */}
-            {storedToken && (
-              <li><Link to="/subaccounts" className="nav-link">Subaccounts</Link></li>
-            )}
-
-            {/* Show Create Pledge and Member Info only if the user is logged in and has a userId */}
-            {storedToken && storedUserId && (
-              <>
-                <li><Link to="/create-pledge" className="nav-link">Create Pledge</Link></li>
-                <li><Link to={`/member/${storedUserId}`} className="nav-link">Member Info</Link></li>
-              </>
-            )}
-
-            {/* Show Payment link only if the user is logged in */}
-            {storedToken && (
-              <li><Link to="/payment-form" className="nav-link">Payment</Link></li>
-            )}
-          </>
-        )}
-
-        {/* Show Logout link only for logged-in users */}
+        {/* Logout Link */}
         {storedToken && (
-          <li><button onClick={handleLogout} className="nav-link">Logout</button></li>
+          <li><button onClick={handleLogout} className="nav-link logout-button">Logout</button></li>
         )}
 
-        {/* Show Register and Login only if the user is not logged in */}
+        {/* Register and Login Links */}
         {!storedToken && (
           <>
             <li><Link to="/register" className="nav-link">Register</Link></li>

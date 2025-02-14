@@ -170,6 +170,9 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Add CashTransactions Route (protected) */}
+        
         </Routes>
       </div>
     </Router>
