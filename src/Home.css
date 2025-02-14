@@ -99,24 +99,18 @@
 }
 
 
-.hero {
-  background-color: #ecf0f1;
-  padding: 50px 20px;
-  margin-bottom: 20px;
-  background-image: url('https://wallpapers.com/images/featured/desktop-lsjkr6wg7ctq97qv.jpg'); /* Add your image URL here */
 
-}
 
-.hero-content h1 {
+.hero h1 {
   font-size: 2.5rem;
   margin-bottom: 10px;
-  color: rgb(255, 255, 255);
+  color: rgb(247, 204, 16);
 }
 
-.hero-content h2 {
+.hero h2 {
   font-size: 1.5rem;
   margin-bottom: 20px;
-  color: black;
+  color: rgb(221, 236, 7);
 
   
 }

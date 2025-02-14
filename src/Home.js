@@ -38,7 +38,7 @@ function Home() {
 
           {/* Hero Section */}
           <header className="hero">
-            <div className="hero-content">
+           
               <i><h1>Non-Profit Financial Management Toolkit</h1></i>
               <h2>For Schools, Churches, and NGOs</h2>
               <p className="intro">
@@ -48,7 +48,7 @@ function Home() {
               <Link to="/register" className="cta-button">
                 Get Started
               </Link>
-            </div>
+           
           </header>
 
           {/* Features Section */}

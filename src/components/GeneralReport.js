@@ -3,9 +3,10 @@ import './CashTransactions.css'; // Import the CSS file
 
 const CashTransactions = () => {
     const [transactions, setTransactions] = useState([]);
-    const [filteredGroupedAccounts, setFilteredGroupedAccounts] = useState([]);
+    const [groupedAccounts, setGroupedAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [searchTerm, setSearchTerm] = useState(''); // State for search term
 
     useEffect(() => {
         const fetchTransactions = async () => {
@@ -16,7 +17,10 @@ const CashTransactions = () => {
                 }
                 const data = await response.json();
                 setTransactions(data.transactions); // Access the `transactions` array
-                setFilteredGroupedAccounts(data.filtered_grouped_accounts); // Access the `filtered_grouped_accounts` array
+
+                // Group transactions by account code and calculate totals
+                const grouped = groupTransactionsByAccount(data.transactions);
+                setGroupedAccounts(grouped);
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -26,6 +30,57 @@ const CashTransactions = () => {
 
         fetchTransactions();
     }, []); // Empty array means this effect runs only once, when the component mounts
+
+    // Helper function to group transactions by account code
+    const groupTransactionsByAccount = (transactions) => {
+        const accounts = {};
+
+        transactions.forEach((transaction) => {
+            const { account_debited, account_credited, total } = transaction;
+
+            // Initialize account if it doesn't exist
+            if (!accounts[account_debited]) {
+                accounts[account_debited] = { debits: 0, credits: 0, closingBalance: 0 };
+            }
+            if (!accounts[account_credited]) {
+                accounts[account_credited] = { debits: 0, credits: 0, closingBalance: 0 };
+            }
+
+            // Update debits and credits
+            if (transaction.transaction_type === 'Cash Receipt') {
+                accounts[account_debited].debits += total; // Debit the debited account
+                accounts[account_credited].credits += total; // Credit the credited account
+            } else if (transaction.transaction_type === 'Cash Disbursement') {
+                accounts[account_debited].debits += total; // Debit the debited account
+                accounts[account_credited].credits += total; // Credit the credited account
+            }
+        });
+
+        // Calculate closing balance for each account
+        const groupedAccounts = Object.keys(accounts).map((accountCode) => {
+            const { debits, credits } = accounts[accountCode];
+            const closingBalance = credits - debits;
+            return {
+                accountCode,
+                totalDebits: debits,
+                totalCredits: credits,
+                closingBalance,
+            };
+        });
+
+        return groupedAccounts;
+    };
+
+    // Filter transactions and grouped accounts based on search term
+    const filteredTransactions = transactions.filter(
+        (transaction) =>
+            transaction.account_debited.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            transaction.account_credited.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const filteredGroupedAccounts = groupedAccounts.filter((account) =>
+        account.accountCode.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     if (loading) {
         return <div className="loading">Loading transactions...</div>;
@@ -37,23 +92,82 @@ const CashTransactions = () => {
 
     return (
         <div className="cash-transactions-container">
-            <h2>CashandCash transactions</h2>
+            <h2>Transactions</h2>
+
+            {/* Search Input */}
+            <div className="search-container">
+                <input
+                    type="text"
+                    placeholder="Search by account name..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Transaction Type</th>
+                        <th>Date</th>
+                        <th>Receipt/Cheque No</th>
+                        <th>Description</th>
+                        <th>Account Debited</th>
+                        <th>Account Credited</th>
+                        <th>DR</th>
+                        <th>CR</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {filteredTransactions.map((transaction, index) => (
+                        <React.Fragment key={index}>
+                            {/* Display Cash Receipts */}
+                            {transaction.transaction_type === 'Cash Receipt' && (
+                                <tr>
+                                    <td>{transaction.transaction_type}</td>
+                                    <td>{transaction.date}</td>
+                                    <td>{transaction.receipt_no}</td>
+                                    <td>{transaction.description}</td>
+                                    <td>{transaction.account_debited}</td>
+                                    <td>{transaction.account_credited}</td>
+                                    <td>{transaction.total}</td> {/* DR */}
+                                    <td>0.00</td> {/* CR */}
+                                </tr>
+                            )}
+                            {/* Display Cash Disbursements */}
+                            {transaction.transaction_type === 'Cash Disbursement' && (
+                                <tr>
+                                    <td>{transaction.transaction_type}</td>
+                                    <td>{transaction.date}</td>
+                                    <td>{transaction.cheque_no}</td>
+                                    <td>{transaction.description}</td>
+                                    <td>{transaction.account_debited}</td>
+                                    <td>{transaction.account_credited}</td>
+                                    <td>0.00</td> {/* DR */}
+                                    <td>{transaction.total}</td> {/* CR */}
+                                </tr>
+                            )}
+                        </React.Fragment>
+                    ))}
+                </tbody>
+            </table>
+
+            <h2>Grouped Account Balances</h2>
             <table>
                 <thead>
                     <tr>
                         <th>Account Code</th>
-                        <th>Total Debits</th>
-                        <th>Total Credits</th>
+                        <th>Total Debits (DR)</th>
+                        <th>Total Credits (CR)</th>
                         <th>Closing Balance</th>
                     </tr>
                 </thead>
                 <tbody>
                     {filteredGroupedAccounts.map((account, index) => (
                         <tr key={index}>
-                            <td>{account.account_code}</td>
-                            <td>{account.total_debits}</td>
-                            <td>{account.total_credits}</td>
-                            <td>{account.closing_balance}</td>
+                            <td>{account.accountCode}</td>
+                            <td>{account.totalDebits}</td>
+                            <td>{account.totalCredits}</td>
+                            <td>{account.closingBalance}</td>
                         </tr>
                     ))}
                 </tbody>

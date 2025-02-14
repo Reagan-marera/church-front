@@ -8,6 +8,7 @@ const AccountSelection = () => {
   const [amountCredited, setAmountCredited] = useState('');
   const [amountDebited, setAmountDebited] = useState('');
   const [description, setDescription] = useState('');
+  const [dateIssued, setDateIssued] = useState(''); // Add dateIssued state
   const [transactions, setTransactions] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -75,6 +76,7 @@ const AccountSelection = () => {
       setAmountCredited(transaction.amount_credited || '');
       setAmountDebited(transaction.amount_debited || '');
       setDescription(transaction.description || '');
+      setDateIssued(transaction.date_issued || ''); // Set dateIssued when editing
       setCurrentTransactionId(transaction.id);
       setIsEditing(true);
     }
@@ -99,6 +101,12 @@ const AccountSelection = () => {
       return;
     }
 
+    if (!dateIssued) {
+      setSuccessMessage("Please enter a valid date.");
+      setTimeout(() => setSuccessMessage(''), 3000);  // Clear message after 3 seconds
+      return;
+    }
+
     if (isDuplicateTransaction()) {
       setSuccessMessage("This transaction already exists.");
       setTimeout(() => setSuccessMessage(''), 3000);  // Clear message after 3 seconds
@@ -111,6 +119,7 @@ const AccountSelection = () => {
       amountCredited: parseFloat(amountCredited),
       amountDebited: parseFloat(amountDebited),
       description,
+      dateIssued, // Include dateIssued in the transaction data
     };
 
     if (isEditing && !currentTransactionId) {
@@ -236,6 +245,17 @@ const AccountSelection = () => {
         </div>
 
         <div className="form-field">
+          <label className="form-label">Date Issued</label>
+          <input
+            type="date"
+            value={dateIssued}
+            onChange={(e) => setDateIssued(e.target.value)}
+            required
+            className="form-input"
+          />
+        </div>
+
+        <div className="form-field">
           <label className="form-label">Description</label>
           <textarea
             value={description}
@@ -260,6 +280,7 @@ const AccountSelection = () => {
             <th>Debited Account</th>
             <th>Amount Credited</th>
             <th>Amount Debited</th>
+            <th>Date Issued</th> {/* Add Date Issued column */}
             <th>Description</th>
             <th>Actions</th>
           </tr>
@@ -272,6 +293,7 @@ const AccountSelection = () => {
                 <td>{transaction?.debited_account_name || "N/A"}</td>
                 <td>{transaction?.amount_credited || "N/A"}</td>
                 <td>{transaction?.amount_debited || "N/A"}</td>
+                <td>{transaction?.date_issued || "N/A"}</td> {/* Display Date Issued */}
                 <td>{transaction?.description || "N/A"}</td>
                 <td>
                   <button onClick={() => handleEdit(transaction)}>Edit</button>
@@ -281,7 +303,7 @@ const AccountSelection = () => {
             ) : null
           )) : (
             <tr>
-              <td colSpan="6">No transactions found</td>
+              <td colSpan="7">No transactions found</td>
             </tr>
           )}
         </tbody>
