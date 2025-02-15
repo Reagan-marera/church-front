@@ -36,7 +36,7 @@ const CashTransactions = () => {
         const accounts = {};
 
         transactions.forEach((transaction) => {
-            const { account_debited, account_credited, total } = transaction;
+            const { account_debited, account_credited, total, amount_debited, amount_credited } = transaction;
 
             // Initialize account if it doesn't exist
             if (!accounts[account_debited]) {
@@ -53,6 +53,9 @@ const CashTransactions = () => {
             } else if (transaction.transaction_type === 'Cash Disbursement') {
                 accounts[account_debited].debits += total; // Debit the debited account
                 accounts[account_credited].credits += total; // Credit the credited account
+            } else if (transaction.transaction_type === 'Transaction') {
+                accounts[account_debited].debits += amount_debited; // Debit the debited account
+                accounts[account_credited].credits += amount_credited; // Credit the credited account
             }
         });
 
@@ -119,34 +122,28 @@ const CashTransactions = () => {
                 </thead>
                 <tbody>
                     {filteredTransactions.map((transaction, index) => (
-                        <React.Fragment key={index}>
-                            {/* Display Cash Receipts */}
-                            {transaction.transaction_type === 'Cash Receipt' && (
-                                <tr>
-                                    <td>{transaction.transaction_type}</td>
-                                    <td>{transaction.date}</td>
-                                    <td>{transaction.receipt_no}</td>
-                                    <td>{transaction.description}</td>
-                                    <td>{transaction.account_debited}</td>
-                                    <td>{transaction.account_credited}</td>
-                                    <td>{transaction.total}</td> {/* DR */}
-                                    <td>0.00</td> {/* CR */}
-                                </tr>
-                            )}
-                            {/* Display Cash Disbursements */}
-                            {transaction.transaction_type === 'Cash Disbursement' && (
-                                <tr>
-                                    <td>{transaction.transaction_type}</td>
-                                    <td>{transaction.date}</td>
-                                    <td>{transaction.cheque_no}</td>
-                                    <td>{transaction.description}</td>
-                                    <td>{transaction.account_debited}</td>
-                                    <td>{transaction.account_credited}</td>
-                                    <td>0.00</td> {/* DR */}
-                                    <td>{transaction.total}</td> {/* CR */}
-                                </tr>
-                            )}
-                        </React.Fragment>
+                        <tr key={index}>
+                            <td>{transaction.transaction_type}</td>
+                            <td>{transaction.date}</td>
+                            <td>
+                                {transaction.transaction_type === 'Cash Receipt'
+                                    ? transaction.receipt_no
+                                    : transaction.cheque_no || "N/A"}
+                            </td>
+                            <td>{transaction.description}</td>
+                            <td>{transaction.account_debited}</td>
+                            <td>{transaction.account_credited}</td>
+                            <td>
+                                {transaction.transaction_type === 'Cash Receipt'
+                                    ? transaction.total
+                                    : transaction.amount_debited || "0.00"}
+                            </td> {/* DR */}
+                            <td>
+                                {transaction.transaction_type === 'Cash Disbursement'
+                                    ? transaction.total
+                                    : transaction.amount_credited || "0.00"}
+                            </td> {/* CR */}
+                        </tr>
                     ))}
                 </tbody>
             </table>
