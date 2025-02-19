@@ -19,7 +19,8 @@ import PayeeList from './components/PayeeList'; // Import PayeeList
 import InvoiceReceived from './components/InvoiceReceived'; // Import the InvoiceReceived component
 import Subaccounts from './components/Subaccounts ';
 import RevenueTransactions from './components/RevenueTransactions'; // Import the RevenueTransactions component
-
+import ExpenseTransactions from './components/ExpenseTransactions';
+import AssetTransactions from './components/AssetTransactions';
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
   const [role, setRole] = useState(null); // Manage the user role
@@ -181,7 +182,22 @@ function App() {
               
             }
           />
-        
+        <Route
+            path="/expense-transactions"
+            element={
+              
+                <ExpenseTransactions />
+              
+            }
+          />
+          <Route
+            path="/asset-transactions"
+            element={
+              
+                <AssetTransactions />
+              
+            }
+          />
         </Routes>
       </div>
     </Router>
