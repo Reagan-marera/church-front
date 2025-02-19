@@ -18,6 +18,7 @@ import CustomerList from './components/CustomerList'; // Import CustomerList
 import PayeeList from './components/PayeeList'; // Import PayeeList
 import InvoiceReceived from './components/InvoiceReceived'; // Import the InvoiceReceived component
 import Subaccounts from './components/Subaccounts ';
+import RevenueTransactions from './components/RevenueTransactions'; // Import the RevenueTransactions component
 
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
@@ -171,7 +172,15 @@ function App() {
             }
           />
 
-          {/* Add CashTransactions Route (protected) */}
+          {/* Add RevenueTransactions Route (protected) */}
+          <Route
+            path="/revenue-transactions"
+            element={
+              
+                <RevenueTransactions />
+              
+            }
+          />
         
         </Routes>
       </div>
