@@ -21,6 +21,7 @@ import Subaccounts from './components/Subaccounts ';
 import RevenueTransactions from './components/RevenueTransactions'; // Import the RevenueTransactions component
 import ExpenseTransactions from './components/ExpenseTransactions';
 import AssetTransactions from './components/AssetTransactions';
+import LiabilityTransactions from './components/LiabilityTransactions';
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
   const [role, setRole] = useState(null); // Manage the user role
@@ -195,6 +196,14 @@ function App() {
             element={
               
                 <AssetTransactions />
+              
+            }
+          />
+           <Route
+            path="/liability-transactions"
+            element={
+              
+                <LiabilityTransactions />
               
             }
           />
