@@ -8,7 +8,6 @@ const AssetTransactions = () => {
   const [searchAccount, setSearchAccount] = useState('');
 
   useEffect(() => {
-    // Fetch data from the /assettransactions route
     const fetchData = async () => {
       try {
         const response = await fetch('http://127.0.0.1:5000/assettransactions');
@@ -17,69 +16,80 @@ const AssetTransactions = () => {
         }
         const data = await response.json();
 
-        // Combine and normalize data
         const combined = [
-          // Cash Disbursement: Pull only account_debited
+          // Cash Disbursement
           ...data.cash_disbursements.map((cd) => ({
             type: 'Cash Disbursement',
             date: cd.disbursement_date,
             reference: cd.cheque_no,
             from: cd.to_whom_paid,
             description: cd.description,
-            debited_account: cd.account_debited,
-            credited_account: '', // No credited account for cash disbursement
-            parent_account: cd.parent_account,
+            debited_account: cd.account_debited || '', // Default to empty string if undefined
+            credited_account: '',
+            parent_account: cd.parent_account || '', // Default to empty string if undefined
             amount: cd.total,
+            dr: cd.total, // Use DR for Cash Disbursement
+            cr: 0,
           })),
 
-          // Invoice Received: Pull only account_debited
+          // Invoice Received
           ...data.invoices_received.map((inv) => ({
             type: 'Invoice Received',
             date: inv.date_issued,
             reference: inv.invoice_number,
             from: inv.name,
             description: inv.description,
-            debited_account: inv.account_debited,
-            credited_account: '', // No credited account for invoices received
-            parent_account: inv.parent_account,
+            debited_account: inv.account_debited || '', // Default to empty string if undefined
+            credited_account: '',
+            parent_account: inv.parent_account || '', // Default to empty string if undefined
             amount: inv.amount,
+            dr: inv.amount, // Use DR for Invoice Received
+            cr: 0,
           })),
 
-          // Invoice Issued: Pull only account_credited
+          // Invoice Issued
           ...data.invoices_issued.map((inv) => ({
             type: 'Invoice Issued',
             date: inv.date_issued,
             reference: inv.invoice_number,
             from: inv.name,
             description: inv.description,
-            debited_account: '', // No debited account for invoices issued
-            credited_account: inv.account_credited,
-            parent_account: inv.parent_account,
+            debited_account: '',
+            credited_account: inv.account_credited || '', // Default to empty string if undefined
+            parent_account: inv.parent_account || '', // Default to empty string if undefined
             amount: inv.amount,
+            cr: 0,
+            dr: inv.amount, // Use CR for Invoice Issued
           })),
 
-          // Cash Receipt: Pull only account_credited
+          // Cash Receipt
           ...data.cash_receipts.map((cr) => ({
             type: 'Cash Receipt',
             date: cr.receipt_date,
             reference: cr.receipt_no,
             from: cr.from_whom_received,
             description: cr.description,
-            debited_account: '', // No debited account for cash receipts
-            credited_account: cr.account_credited,
-            parent_account: cr.parent_account,
+            debited_account: '',
+            credited_account: cr.account_credited || '', // Default to empty string if undefined
+            parent_account: cr.parent_account || '', // Default to empty string if undefined
             amount: cr.total,
+            dr: 0,
+            cr: cr.total, // Use CR for Cash Receipt
           })),
+
+          // Transactions
           ...data.transactions.map((txn) => ({
             type: 'Transaction',
             date: txn.date_issued,
             reference: txn.id,
-            from: txn.debited_account_name,
+            from: txn.debited_account_name || txn.credited_account_name || '', // Default to empty string if undefined
             description: txn.description,
-            debited_account: txn.debited_account_name,
-            credited_account: txn.credited_account_name, // Include credited account
-            parent_account: txn.parent_account,
-            amount: txn.amount_debited,
+            debited_account: txn.debited_account_name || '', // Default to empty string if undefined
+            credited_account: txn.credited_account_name || '', // Default to empty string if undefined
+            parent_account: txn.parent_account || '', // Default to empty string if undefined
+            amount: txn.amount_debited || txn.amount_credited || 0, // Default to 0 if undefined
+            dr: txn.amount_debited || 0, // Use DR for Transactions
+            cr: txn.amount_credited || 0, // Use CR for Transactions
           })),
         ];
 
@@ -95,7 +105,6 @@ const AssetTransactions = () => {
     fetchData();
   }, []);
 
-  // Handle search by account
   const handleSearch = (e) => {
     const account = e.target.value;
     setSearchAccount(account);
@@ -104,7 +113,7 @@ const AssetTransactions = () => {
       const filtered = combinedData.filter((item) =>
         item.debited_account.toLowerCase().includes(account.toLowerCase()) ||
         item.credited_account.toLowerCase().includes(account.toLowerCase()) ||
-        item.parent_account.toLowerCase().includes(account.toLowerCase()) // Include parent account in search
+        item.parent_account.toLowerCase().includes(account.toLowerCase())
       );
       setFilteredData(filtered);
     } else {
@@ -112,8 +121,10 @@ const AssetTransactions = () => {
     }
   };
 
-  // Calculate total amount for filtered data
+  // Calculate total amounts for DR and CR
   const totalAmount = filteredData.reduce((sum, item) => sum + item.amount, 0);
+  const totalDR = filteredData.reduce((sum, item) => sum + (item.dr || 0), 0);
+  const totalCR = filteredData.reduce((sum, item) => sum + (item.cr || 0), 0);
 
   if (loading) {
     return <div style={styles.loading}>Loading...</div>;
@@ -149,6 +160,8 @@ const AssetTransactions = () => {
             <th>Description</th>
             <th>Account</th>
             <th>Parent Account</th>
+            <th>DR</th>
+            <th>CR</th>
             <th>Amount</th>
           </tr>
         </thead>
@@ -162,14 +175,18 @@ const AssetTransactions = () => {
               <td>{item.description}</td>
               <td>{item.credited_account || item.debited_account}</td>
               <td>{item.parent_account}</td>
-              <td>{item.amount}</td>
+              <td>{item.dr.toFixed(2)}</td> {/* Display DR value */}
+              <td>{item.cr.toFixed(2)}</td> {/* Display CR value */}
+              <td>{item.amount.toFixed(2)}</td> {/* Display Amount */}
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Display Total Amount */}
+      {/* Display Total Amounts */}
       <div style={styles.totalAmount}>
+        Total DR: {totalDR.toFixed(2)} <br />
+        Total CR: {totalCR.toFixed(2)} <br />
         Total Amount: {totalAmount.toFixed(2)}
       </div>
     </div>

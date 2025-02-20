@@ -253,12 +253,14 @@ const InvoiceIssued = () => {
   // Function to get all sub-account names for the "Account Credited" dropdown
   const getSubAccountNames = () => {
     const revenueSubAccounts = chartOfAccounts
-      .filter((account) => account.account_type === "40-Revenue")
+      .filter((account) => 
+        account.account_type === "40-Revenue" || account.account_type === "10-assets"
+      )
       .flatMap((account) => account.sub_account_details || []);
-
+  
     return revenueSubAccounts.map((subAccount) => subAccount.name);
   };
-
+  
   // Handle change of selected customer and update related sub-accounts for "Account Debited"
   const handleCustomerChange = (e) => {
     const selectedCustomerName = e.target.value;

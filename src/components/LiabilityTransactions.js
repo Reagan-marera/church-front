@@ -8,7 +8,6 @@ const LiabilityTransactions = () => {
   const [searchAccount, setSearchAccount] = useState('');
 
   useEffect(() => {
-    // Fetch data from the /liabilitytransactions route
     const fetchData = async () => {
       try {
         const response = await fetch('http://127.0.0.1:5000/liabilitytransactions');
@@ -17,9 +16,7 @@ const LiabilityTransactions = () => {
         }
         const data = await response.json();
 
-        // Combine and normalize data
         const combined = [
-          // Cash Disbursement: Pull only account_debited (Liability-related)
           ...data.cash_disbursements.map((cd) => ({
             type: 'Cash Disbursement',
             date: cd.disbursement_date,
@@ -27,53 +24,58 @@ const LiabilityTransactions = () => {
             from: cd.to_whom_paid,
             description: cd.description,
             debited_account: cd.account_debited,
-            credited_account: '', // No credited account for cash disbursement
+            credited_account: '', 
             parent_account: cd.parent_account,
             amount: cd.total,
+            dr: cd.total,  
+            cr: 0,         
           })),
 
-          // Invoice Received: Pull only account_credited (Liability-related)
           ...data.invoices_received.map((inv) => ({
             type: 'Invoice Received',
             date: inv.date_issued,
             reference: inv.invoice_number,
             from: inv.name,
             description: inv.description,
-            debited_account: '', // No debited account for invoices received
+            debited_account: '', 
             credited_account: inv.account_credited,
             parent_account: inv.parent_account,
             amount: inv.amount,
+            dr: 0,         
+            cr: inv.amount, 
           })),
 
-          // Cash Receipt: Pull only account_credited (Liability-related)
           ...data.cash_receipts.map((cr) => ({
             type: 'Cash Receipt',
             date: cr.receipt_date,
             reference: cr.receipt_no,
             from: cr.from_whom_received,
             description: cr.description,
-            debited_account: '', // No debited account for cash receipts
+            debited_account: '', 
             credited_account: cr.account_credited,
             parent_account: cr.parent_account,
             amount: cr.total,
+            dr: 0,         
+            cr: cr.total,  
           })),
 
-          // Transaction: Includes both debited and credited accounts (Liability-related)
           ...data.transactions.map((txn) => ({
             type: 'Transaction',
             date: txn.date_issued,
             reference: txn.id,
-            from: txn.debited_account_name,
+            from: txn.account_name, // Use the account_name from the filtered transaction
             description: txn.description,
-            debited_account: txn.debited_account_name,
-            credited_account: txn.credited_account_name, // Include credited account
+            debited_account: txn.account_name.includes('Debit') ? txn.account_name : '', 
+            credited_account: txn.account_name.includes('Credit') ? txn.account_name : '', 
             parent_account: txn.parent_account,
-            amount: txn.amount_debited,
+            amount: txn.amount,
+            dr: txn.account_name.includes('Debit') ? txn.amount : 0, // Set DR if it's a debit
+            cr: txn.account_name.includes('Credit') ? txn.amount : 0, // Set CR if it's a credit
           })),
         ];
 
         setCombinedData(combined);
-        setFilteredData(combined); // Initialize filtered data with all data
+        setFilteredData(combined);
       } catch (error) {
         setError(error.message);
       } finally {
@@ -84,7 +86,6 @@ const LiabilityTransactions = () => {
     fetchData();
   }, []);
 
-  // Handle search by account
   const handleSearch = (e) => {
     const account = e.target.value;
     setSearchAccount(account);
@@ -93,16 +94,22 @@ const LiabilityTransactions = () => {
       const filtered = combinedData.filter((item) =>
         item.debited_account.toLowerCase().includes(account.toLowerCase()) ||
         item.credited_account.toLowerCase().includes(account.toLowerCase()) ||
-        item.parent_account.toLowerCase().includes(account.toLowerCase()) // Include parent account in search
+        item.parent_account.toLowerCase().includes(account.toLowerCase())
       );
       setFilteredData(filtered);
     } else {
-      setFilteredData(combinedData); // Reset to all data if search is empty
+      setFilteredData(combinedData);
     }
   };
 
-  // Calculate total amount for filtered data
-  const totalAmount = filteredData.reduce((sum, item) => sum + item.amount, 0);
+  const totalAmount = filteredData.reduce((sum, item) => sum + (item.amount || 0), 0);
+  const totalDR = filteredData.reduce((sum, item) => sum + (item.dr || 0), 0);
+  const totalCR = filteredData.reduce((sum, item) => sum + (item.cr || 0), 0);
+
+  const formatNumber = (num) => {
+    if (num === 0 || !num) return "0.00";
+    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   if (loading) {
     return <div style={styles.loading}>Loading...</div>;
@@ -130,7 +137,7 @@ const LiabilityTransactions = () => {
       {/* Display Combined Data in One Table */}
       <table style={styles.table}>
         <thead>
-          <tr>
+          <tr style={styles.tableHeader}>
             <th>Type</th>
             <th>Date</th>
             <th>Reference</th>
@@ -138,12 +145,14 @@ const LiabilityTransactions = () => {
             <th>Description</th>
             <th>Account</th>
             <th>Parent Account</th>
+            <th>DR</th>
+            <th>CR</th>
             <th>Amount</th>
           </tr>
         </thead>
         <tbody>
           {filteredData.map((item, index) => (
-            <tr key={index}>
+            <tr key={index} style={index % 2 === 0 ? styles.evenRow : styles.oddRow}>
               <td>{item.type}</td>
               <td>{item.date}</td>
               <td>{item.reference}</td>
@@ -151,15 +160,19 @@ const LiabilityTransactions = () => {
               <td>{item.description}</td>
               <td>{item.credited_account || item.debited_account}</td>
               <td>{item.parent_account}</td>
-              <td>{item.amount}</td>
+              <td>{formatNumber(item.dr)}</td>
+              <td>{formatNumber(item.cr)}</td>
+              <td>{formatNumber(item.amount)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Display Total Amount */}
+      {/* Display Total Amounts */}
       <div style={styles.totalAmount}>
-        Total Amount: {totalAmount.toFixed(2)}
+        Total DR: {formatNumber(totalDR)} <br />
+        Total CR: {formatNumber(totalCR)} <br />
+        Total Amount: {formatNumber(totalAmount)}
       </div>
     </div>
   );
@@ -172,13 +185,14 @@ const styles = {
     padding: '20px',
     maxWidth: '1200px',
     margin: '0 auto',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f4f6f9', // Light gray background
   },
   header: {
     textAlign: 'center',
     marginBottom: '30px',
     fontSize: '2rem',
-    color: '#333',
+    fontFamily: 'Georgia, serif',
+    color: '#003366', // Darker blue for header
   },
   searchContainer: {
     display: 'flex',
@@ -186,7 +200,7 @@ const styles = {
     marginBottom: '20px',
   },
   searchInput: {
-    padding: '8px',
+    padding: '10px',
     width: '300px',
     borderRadius: '5px',
     border: '1px solid #ccc',
@@ -196,22 +210,31 @@ const styles = {
     width: '100%',
     borderCollapse: 'collapse',
     marginTop: '20px',
+    backgroundColor: '#fff',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+    borderRadius: '8px',
   },
   tableHeader: {
-    backgroundColor: '#f2f2f2',
-    fontWeight: 'bold',
-  },
-  tableCell: {
-    padding: '10px',
-    border: '1px solid #ddd',
+    backgroundColor: '#003366', // Dark blue header
+    color: 'black',
     textAlign: 'left',
+    fontWeight: 'bold',
+    padding: '12px 15px',
+    borderTopLeftRadius: '8px',
+    borderTopRightRadius: '8px',
+  },
+  evenRow: {
+    backgroundColor: '#f7f7f7',
+  },
+  oddRow: {
+    backgroundColor: '#ffffff',
   },
   totalAmount: {
     marginTop: '20px',
     fontWeight: 'bold',
     fontSize: '1.2rem',
     textAlign: 'right',
-    color: '#333',
+    color: '#003366', // Dark blue for total
   },
   loading: {
     textAlign: 'center',
