@@ -22,6 +22,11 @@ import RevenueTransactions from './components/RevenueTransactions'; // Import th
 import ExpenseTransactions from './components/ExpenseTransactions';
 import AssetTransactions from './components/AssetTransactions';
 import LiabilityTransactions from './components/LiabilityTransactions';
+import NetAssets from './components/NetAssets';
+
+
+
+
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
   const [role, setRole] = useState(null); // Manage the user role
@@ -204,6 +209,14 @@ function App() {
             element={
               
                 <LiabilityTransactions />
+              
+            }
+          />
+           <Route
+            path="/net-transactions"
+            element={
+              
+                <NetAssets />
               
             }
           />
