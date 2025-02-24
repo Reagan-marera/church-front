@@ -125,6 +125,12 @@ const AssetTransactions = () => {
   const totalAmount = filteredData.reduce((sum, item) => sum + item.amount, 0);
   const totalDR = filteredData.reduce((sum, item) => sum + (item.dr || 0), 0);
   const totalCR = filteredData.reduce((sum, item) => sum + (item.cr || 0), 0);
+  const closingBalance = totalDR - totalCR; // Calculate closing balance
+
+  const formatNumber = (num) => {
+    if (num === 0 || !num) return "0.00";
+    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   if (loading) {
     return <div style={styles.loading}>Loading...</div>;
@@ -152,7 +158,7 @@ const AssetTransactions = () => {
       {/* Display Combined Data in One Table */}
       <table style={styles.table}>
         <thead>
-          <tr>
+          <tr style={styles.tableHeader}>
             <th>Type</th>
             <th>Date</th>
             <th>Reference</th>
@@ -167,7 +173,7 @@ const AssetTransactions = () => {
         </thead>
         <tbody>
           {filteredData.map((item, index) => (
-            <tr key={index}>
+            <tr key={index} style={index % 2 === 0 ? styles.evenRow : styles.oddRow}>
               <td>{item.type}</td>
               <td>{item.date}</td>
               <td>{item.reference}</td>
@@ -175,20 +181,22 @@ const AssetTransactions = () => {
               <td>{item.description}</td>
               <td>{item.credited_account || item.debited_account}</td>
               <td>{item.parent_account}</td>
-              <td>{item.dr.toFixed(2)}</td> {/* Display DR value */}
-              <td>{item.cr.toFixed(2)}</td> {/* Display CR value */}
-              <td>{item.amount.toFixed(2)}</td> {/* Display Amount */}
+              <td>{formatNumber(item.dr)}</td>
+              <td>{formatNumber(item.cr)}</td>
+              <td>{formatNumber(item.amount)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Display Total Amounts */}
-      <div style={styles.totalAmount}>
-        Total DR: {totalDR.toFixed(2)} <br />
-        Total CR: {totalCR.toFixed(2)} <br />
-        Total Amount: {totalAmount.toFixed(2)}
-      </div>
+      {/* Display Total Amounts and Closing Balance */}
+     <i> <div style={styles.totalAmount}>
+        <div>Total DR: {formatNumber(totalDR)}</div>
+        <div>Total CR: {formatNumber(totalCR)}</div>
+        <div style={{ fontWeight: 'bold', marginTop: '10px' }}>
+          Closing Balance: {formatNumber(closingBalance)}
+        </div>
+      </div></i>
     </div>
   );
 };
@@ -200,13 +208,16 @@ const styles = {
     padding: '20px',
     maxWidth: '1200px',
     margin: '0 auto',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f4f6f9', // Light gray background
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   },
   header: {
     textAlign: 'center',
     marginBottom: '30px',
     fontSize: '2rem',
-    color: '#333',
+    fontFamily: 'Georgia, serif',
+    color: '#003366', // Darker blue for header
   },
   searchContainer: {
     display: 'flex',
@@ -214,32 +225,46 @@ const styles = {
     marginBottom: '20px',
   },
   searchInput: {
-    padding: '8px',
+    padding: '10px',
     width: '300px',
     borderRadius: '5px',
     border: '1px solid #ccc',
     fontSize: '1rem',
+    outline: 'none',
+    transition: 'border-color 0.3s ease',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
     marginTop: '20px',
+    backgroundColor: '#fff',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+    borderRadius: '8px',
+    overflow: 'hidden',
   },
   tableHeader: {
-    backgroundColor: '#f2f2f2',
-    fontWeight: 'bold',
-  },
-  tableCell: {
-    padding: '10px',
-    border: '1px solid #ddd',
+    backgroundColor: '#003366', // Dark blue header
+    color: 'black',
     textAlign: 'left',
+    fontWeight: 'bold',
+    padding: '12px 15px',
+  },
+  evenRow: {
+    backgroundColor: '#f7f7f7',
+  },
+  oddRow: {
+    backgroundColor: '#ffffff',
   },
   totalAmount: {
     marginTop: '20px',
     fontWeight: 'bold',
     fontSize: '1.2rem',
     textAlign: 'right',
-    color: '#333',
+    color: '#003366', // Dark blue for total
+    padding: '10px',
+    backgroundColor: '#fff',
+    borderRadius: '8px',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
   },
   loading: {
     textAlign: 'center',

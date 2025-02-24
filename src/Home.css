@@ -1,161 +1,161 @@
-/* Importing Roboto font from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@1,400;1,700&display=swap');
-
+/* General Styles */
 .App {
   font-family: Arial, sans-serif;
   text-align: center;
-  background-color: #42ecd0; /* Existing background color */
-  background-image: url('https://images.pexels.com/photos/2131614/pexels-photo-2131614.jpeg?cs=srgb&dl=pexels-quang-nguyen-vinh-222549-2131614.jpg&fm=jpg'); /* Add your image URL here */
-  background-size: cover; /* Makes the background image cover the entire screen */
-  background-position: center center; /* Center the image within the container */
-  min-height: 100vh; /* Ensure the background image covers the full height of the screen */
-  padding: 20px;
-  color: #333; /* Adjust text color to maintain readability on top of the background image */
-  background-attachment: fixed; /* Make sure the background image stays fixed while scrolling */
+  background-color: #000; /* Black background */
+  color: #fff; /* White text */
+  min-height: 100vh;
 }
 
+/* Loader */
 .loader {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100vh;
+  background-color: #000; /* Black background */
 }
 
-.juggler {
-  width: 100px;
-  height: 100px;
-  position: relative;
-  animation: spin 2s infinite linear;
-}
-
-.person {
-  width: 50px;
-  height: 50px;
-  background-color: #3498db;
-  border-radius: 50%;
-  position: absolute;
-  top: 0;
-  left: 25px;
-}
-
-.juggling-ball {
-  width: 20px;
-  height: 20px;
-  background-color: #e74c3c;
-  border-radius: 50%;
-  position: absolute;
-  animation: bounce 2s infinite ease-in-out;
+.spinner-icon {
+  font-size: 3rem;
+  animation: spin 1s linear infinite;
+  color: #ff8c42; /* Orange spinner */
 }
 
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-@keyframes bounce {
-  0%, 100% {
-    top: 0;
-  }
-  50% {
-    top: 50px;
-  }
+.loader-text {
+  margin-top: 1rem;
+  font-size: 1.2rem;
+  color: #ff8c42; /* Orange text */
 }
 
+/* Navigation Bar */
 .navbarhome {
-  background-color: #0080ff; /* Darker shade for a more sophisticated look */
-  color: white;
-  padding: 8px 16px; /* Adjusted padding for a more compact and sleek look */
-  display: flex;
-  justify-content: center; /* Keep content centered */
-  align-items: center; /* Vertically align the items */
-  border-radius: 6px; /* Rounded corners for a modern look */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adds depth with a subtle shadow */
-  transition: background-color 0.3s ease, transform 0.3s ease; /* Smooth transition for color and hover effects */
+  background-color: #000; /* Black background */
+  padding: 1rem;
+  border-bottom: 2px solid #ff8c42; /* Orange border */
 }
 
-.navbar-logo {
-  width: 50px;
-  height: auto;
-  margin-right: 10px;
-}
-.intro{
-  color: rgb(0, 0, 0);
-}
-.intro2{
-  color: rgb(255, 255, 255);
-}
-.company-name {
-  font-size: 1.5rem;
-  font-weight: 700;  /* Bold weight for emphasis */
-  font-style: italic; /* Elegant italic style */
-  font-family: 'Lora', serif; /* Apply Lora font */
-  letter-spacing: 1px; /* Adds some spacing for a sophisticated look */
-  color: #fcf9f9; /* Darker color for better readability */
+.navbar-brand {
+  font-size: 2.5rem; /* Increased font size for more impact */
+  font-weight: bold;
+  color: #ff8c42; /* Orange text */
+  font-family: 'Lobster', cursive; /* New attractive font */
 }
 
-
-
+/* Hero Section */
+.hero {
+  background: linear-gradient(135deg, #000, #333); /* Black gradient */
+  color: #fff; /* White text */
+  padding: 4rem 2rem;
+}
 
 .hero h1 {
   font-size: 2.5rem;
-  margin-bottom: 10px;
-  color: rgb(247, 204, 16);
+  margin-bottom: 1rem;
+  color: #ff8c42; /* Orange heading */
+  font-family: 'Georgia', serif; /* New font for hero heading */
 }
 
 .hero h2 {
-  font-size: 1.5rem;
-  margin-bottom: 20px;
-  color: rgb(221, 236, 7);
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  color: #ff8c42; /* Orange subheading */
+  font-family: 'Verdana', sans-serif; /* New font for hero subheading */
+}
 
-  
+.hero .intro {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  color: #ccc; /* Light gray text */
 }
 
 .cta-button {
-  display: inline-block;
-  padding: 10px 20px;
-  background-color: #2ecc71;
-  color: white;
-  text-decoration: none;
+  background: #ff8c42; /* Orange button */
+  color: #000; /* Black text */
+  padding: 0.8rem 2rem;
   border-radius: 5px;
+  text-decoration: none;
   font-size: 1rem;
-  transition: background-color 0.3s ease;
+  transition: background 0.3s ease;
 }
 
 .cta-button:hover {
-  background-color: #27ae60;
+  background: #e67332; /* Darker orange on hover */
 }
 
+/* Features Section */
 .features {
-  padding: 20px;
+  padding: 4rem 2rem;
+  background-color: #000; /* Black background */
 }
 
 .feature-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+  gap: 2rem;
+  margin-top: 2rem;
 }
 
 .feature-card {
-  background-color: #fff;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  padding: 20px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  background: #1a1a1a; /* Dark gray background */
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-10px);
+}
+
+.feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #ff8c42; /* Orange icon */
 }
 
 .feature-card h3 {
-  font-size: 1.2rem;
-  margin-bottom: 10px;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #ff8c42; /* Orange heading */
+  font-family: 'Trebuchet MS', sans-serif; /* New font for feature card heading */
 }
 
+.feature-card p {
+  font-size: 1rem;
+  color: #ccc; /* Light gray text */
+}
+
+/* Footer */
 .footer {
-  background-color: #34495e;
-  color: white;
-  padding: 10px 20px;
-  margin-top: 20px;
+  background-color: #000; /* Black background */
+  color: #fff; /* White text */
+  padding: 2rem;
+  margin-top: 4rem;
+  border-top: 2px solid #ff8c42; /* Orange border */
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-links a {
+  color: #ff8c42; /* Orange links */
+  text-decoration: none;
+  margin: 0 1rem;
+  transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+  color: #e67332; /* Darker orange on hover */
 }

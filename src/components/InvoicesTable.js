@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./InvoicesTable.css"; // Ensure this file exists for styling
+import { FaEdit, FaTrash } from "react-icons/fa"; // Import icons
 
 const InvoiceIssued = () => {
   // State for storing form fields
@@ -253,14 +254,14 @@ const InvoiceIssued = () => {
   // Function to get all sub-account names for the "Account Credited" dropdown
   const getSubAccountNames = () => {
     const revenueSubAccounts = chartOfAccounts
-      .filter((account) => 
+      .filter((account) =>
         account.account_type === "40-Revenue" || account.account_type === "10-assets"
       )
       .flatMap((account) => account.sub_account_details || []);
-  
+
     return revenueSubAccounts.map((subAccount) => subAccount.name);
   };
-  
+
   // Handle change of selected customer and update related sub-accounts for "Account Debited"
   const handleCustomerChange = (e) => {
     const selectedCustomerName = e.target.value;
@@ -269,18 +270,18 @@ const InvoiceIssued = () => {
 
   return (
     <div className="invoice-issued">
-      <h1>Invoice Issued</h1>
+     <i> <h1 className="head">Invoice Issued</h1></i>
 
       {/* Toggle to show/hide the form */}
-      < button className ="invoice-issued button" onClick={() => setShowForm(true)}>Add New Invoice</button>
+      <button className="invoice-issued button" onClick={() => setShowForm(true)}>Add New Invoice</button>
 
       {/* Modal for the form */}
       {showForm && (
         <div className="modal">
           <div className="modal-content">
-            <span className="close" onClick={() => setShowForm(false)}>
+            <button className="close" onClick={() => setShowForm(false)}>
               &times;
-            </span>
+            </button>
             <form onSubmit={handleSubmit} className="invoice-form">
               <div>
                 <label>Invoice Number:</label>
@@ -404,8 +405,8 @@ const InvoiceIssued = () => {
                   <td>{invoice.account_credited}</td>
                   <td>{invoice.name}</td>
                   <td>
-                    <button onClick={() => handleUpdate(invoice)}>Update</button>
-                    <button onClick={() => handleDelete(invoice.id)}>Delete</button>
+                    <button onClick={() => handleUpdate(invoice)}><FaEdit /></button>
+                    <button onClick={() => handleDelete(invoice.id)}><FaTrash /></button>
                   </td>
                 </tr>
               ))

@@ -1,6 +1,18 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import './Navbar.css'; // Importing the CSS file
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  FaHome,
+  FaCog,
+  FaExchangeAlt,
+  FaFileInvoice,
+  FaChartLine,
+  FaBook,
+  FaEllipsisH,
+  FaUserPlus,
+  FaSignInAlt,
+  FaSignOutAlt,
+} from "react-icons/fa"; // Icons for the navbar
+import "./Navbar.css"; // Importing the CSS file
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -11,23 +23,27 @@ const Navbar = () => {
   // Handle logout
   const handleLogout = () => {
     // Clear the token, role, and userId from localStorage
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('userId');
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("userId");
 
     // Refresh the page to reflect the changes
     window.location.reload();
   };
 
   // Retrieve token and userId from localStorage
-  const storedToken = localStorage.getItem('token');
-  const storedUserId = localStorage.getItem('userId');
+  const storedToken = localStorage.getItem("token");
+  const storedUserId = localStorage.getItem("userId");
 
   return (
     <nav className="navbar">
       <ul className="nav-list">
         {/* Home Link */}
-        <li><Link to="/" className="nav-link">Home</Link></li>
+        <li>
+          <Link to="/" className="nav-link">
+            <FaHome className="nav-icon" /> Home
+          </Link>
+        </li>
 
         {/* Setup Dropdown */}
         <li
@@ -35,12 +51,26 @@ const Navbar = () => {
           onMouseEnter={() => setShowSetup(true)}
           onMouseLeave={() => setShowSetup(false)}
         >
-          <span className="nav-link">Setup</span>
+          <span className="nav-link">
+            <FaCog className="nav-icon" /> Setup
+          </span>
           {showSetup && (
             <ul className="dropdown-menu">
-              <li><Link to="/chart-of-accounts" className="dropdown-link">Chart of Accounts</Link></li>
-              <li><Link to="/customer-list" className="dropdown-link">Customer List</Link></li>
-              <li><Link to="/payee-list" className="dropdown-link">Payee List</Link></li>
+              <li>
+                <Link to="/chart-of-accounts" className="dropdown-link">
+                  <FaChartLine className="dropdown-icon" /> Chart of Accounts
+                </Link>
+              </li>
+              <li>
+                <Link to="/customer-list" className="dropdown-link">
+                  <FaBook className="dropdown-icon" /> Customer List
+                </Link>
+              </li>
+              <li>
+                <Link to="/payee-list" className="dropdown-link">
+                  <FaBook className="dropdown-icon" /> Payee List
+                </Link>
+              </li>
             </ul>
           )}
         </li>
@@ -51,14 +81,32 @@ const Navbar = () => {
           onMouseEnter={() => setShowTransactions(true)}
           onMouseLeave={() => setShowTransactions(false)}
         >
-          <span className="nav-link">Transactions</span>
+          <span className="nav-link">
+            <FaExchangeAlt className="nav-icon" /> Transactions
+          </span>
           {showTransactions && (
             <ul className="dropdown-menu">
-              <li><Link to="/cash-receipt-journal" className="dropdown-link">Cash Receipt Journal</Link></li>
-              <li><Link to="/cash-disbursement-journal" className="dropdown-link">Cash Disbursement Journal</Link></li>
-              <li><Link to="/invoices" className="dropdown-link">Invoice Issued</Link></li>
+              <li>
+                <Link to="/cash-receipt-journal" className="dropdown-link">
+                  <FaFileInvoice className="dropdown-icon" /> Cash Receipt Journal
+                </Link>
+              </li>
+              <li>
+                <Link to="/cash-disbursement-journal" className="dropdown-link">
+                  <FaFileInvoice className="dropdown-icon" /> Cash Disbursement Journal
+                </Link>
+              </li>
+              <li>
+                <Link to="/invoices" className="dropdown-link">
+                  <FaFileInvoice className="dropdown-icon" /> Invoice Issued
+                </Link>
+              </li>
               {storedToken && (
-                <li><Link to="/invoice-received" className="dropdown-link">Invoice Received</Link></li>
+                <li>
+                  <Link to="/invoice-received" className="dropdown-link">
+                    <FaFileInvoice className="dropdown-icon" /> Invoice Received
+                  </Link>
+                </li>
               )}
             </ul>
           )}
@@ -66,11 +114,19 @@ const Navbar = () => {
 
         {/* Financial Report Link (protected) */}
         {storedToken && (
-          <li><Link to="/financial-report" className="nav-link">Financial Report</Link></li>
+          <li>
+            <Link to="/financial-report" className="nav-link">
+              <FaChartLine className="nav-icon" /> Financial Report
+            </Link>
+          </li>
         )}
 
         {/* General Ledger Accounts Link */}
-        <li><Link to="/general-report" className="nav-link">General Ledger Accounts</Link></li>
+        <li>
+          <Link to="/general-report" className="nav-link">
+            <FaBook className="nav-icon" /> General Ledger Accounts
+          </Link>
+        </li>
 
         {/* More Dropdown */}
         {storedToken && (
@@ -79,17 +135,35 @@ const Navbar = () => {
             onMouseEnter={() => setShowMore(true)}
             onMouseLeave={() => setShowMore(false)}
           >
-            <span className="nav-link">More</span>
+            <span className="nav-link">
+              <FaEllipsisH className="nav-icon" /> More
+            </span>
             {showMore && (
               <ul className="dropdown-menu">
-                <li><Link to="/subaccounts" className="dropdown-link">Subaccounts</Link></li>
+                <li>
+                  <Link to="/subaccounts" className="dropdown-link">
+                    <FaBook className="dropdown-icon" /> Subaccounts
+                  </Link>
+                </li>
                 {storedUserId && (
                   <>
-                    <li><Link to="/create-pledge" className="dropdown-link">Create Pledge</Link></li>
-                    <li><Link to={`/member/${storedUserId}`} className="dropdown-link">Member Info</Link></li>
+                    <li>
+                      <Link to="/create-pledge" className="dropdown-link">
+                        <FaBook className="dropdown-icon" /> Create Pledge
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to={`/member/${storedUserId}`} className="dropdown-link">
+                        <FaBook className="dropdown-icon" /> Member Info
+                      </Link>
+                    </li>
                   </>
                 )}
-                <li><Link to="/payment-form" className="dropdown-link">Payment</Link></li>
+                <li>
+                  <Link to="/payment-form" className="dropdown-link">
+                    <FaFileInvoice className="dropdown-icon" /> Payment
+                  </Link>
+                </li>
               </ul>
             )}
           </li>
@@ -97,14 +171,26 @@ const Navbar = () => {
 
         {/* Logout Link */}
         {storedToken && (
-          <li><button onClick={handleLogout} className="nav-link logout-button">Logout</button></li>
+          <li>
+            <button onClick={handleLogout} className="nav-link logout-button">
+              <FaSignOutAlt className="nav-icon" /> Logout
+            </button>
+          </li>
         )}
 
         {/* Register and Login Links */}
         {!storedToken && (
           <>
-            <li><Link to="/register" className="nav-link">Register</Link></li>
-            <li><Link to="/login" className="nav-link">Login</Link></li>
+            <li>
+              <Link to="/register" className="nav-link">
+                <FaUserPlus className="nav-icon" /> Register
+              </Link>
+            </li>
+            <li>
+              <Link to="/login" className="nav-link">
+                <FaSignInAlt className="nav-icon" /> Login
+              </Link>
+            </li>
           </>
         )}
       </ul>

@@ -25,9 +25,10 @@ const RevenueTransactions = () => {
             reference: cr.receipt_no,
             from: cr.from_whom_received,
             description: cr.description,
-            account: cr.account_credited,
+            credited_account: cr.account_credited,
             parent_account: cr.parent_account, // Include parent account
-            amount: cr.total,
+            dr_amount: 0, // No DR amount for cash receipt
+            cr_amount: cr.total || 0, // All amounts are in CR, ensure it's a number
           })),
           ...data.invoices_issued.map((inv) => ({
             type: 'Invoice Issued',
@@ -35,9 +36,10 @@ const RevenueTransactions = () => {
             reference: inv.invoice_number,
             from: inv.name,
             description: inv.description,
-            account: inv.account_credited,
+            credited_account: inv.account_credited,
             parent_account: inv.parent_account, // Include parent account
-            amount: inv.amount,
+            dr_amount: 0, // No DR amount for invoices issued
+            cr_amount: inv.amount || 0, // All amounts are in CR, ensure it's a number
           })),
           ...data.transactions.map((txn) => ({
             type: 'Transaction',
@@ -45,9 +47,10 @@ const RevenueTransactions = () => {
             reference: txn.id,
             from: txn.debited_account_name,
             description: txn.description,
-            account: txn.debited_account_name,
+            credited_account: txn.credited_account_name,
             parent_account: txn.parent_account, // Include parent account
-            amount: txn.amount_debited,
+            dr_amount: 0, // No DR amount for transactions
+            cr_amount: txn.amount_debited || 0, // All amounts are in CR, ensure it's a number
           })),
         ];
 
@@ -70,7 +73,7 @@ const RevenueTransactions = () => {
 
     if (account) {
       const filtered = combinedData.filter((item) =>
-        item.account.toLowerCase().includes(account.toLowerCase()) ||
+        item.credited_account.toLowerCase().includes(account.toLowerCase()) ||
         item.parent_account.toLowerCase().includes(account.toLowerCase()) // Include parent account in search
       );
       setFilteredData(filtered);
@@ -78,9 +81,16 @@ const RevenueTransactions = () => {
       setFilteredData(combinedData); // Reset to all data if search is empty
     }
   };
+// Calculate total DR and CR amounts
+const totalDR = filteredData.reduce((sum, item) => sum + (Number(item.dr_amount) || 0), 0);
+const totalCR = filteredData.reduce((sum, item) => sum + (Number(item.cr_amount) || 0), 0);
+const closingBalance = totalCR - totalDR; // Closing balance calculation
 
-  // Calculate total amount for filtered data
-  const totalAmount = filteredData.reduce((sum, item) => sum + item.amount, 0);
+
+  const formatNumber = (num) => {
+    if (num === 0 || !num) return "0.00";
+    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   if (loading) {
     return <div style={styles.loading}>Loading...</div>;
@@ -108,7 +118,7 @@ const RevenueTransactions = () => {
       {/* Display Combined Data in One Table */}
       <table style={styles.table}>
         <thead>
-          <tr>
+          <tr style={styles.tableHeader}>
             <th>Type</th>
             <th>Date</th>
             <th>Reference</th>
@@ -116,28 +126,34 @@ const RevenueTransactions = () => {
             <th>Description</th>
             <th>Account</th>
             <th>Parent Account</th>
-            <th>Amount</th>
+            <th>DR Amount</th>
+            <th>CR Amount</th>
           </tr>
         </thead>
         <tbody>
           {filteredData.map((item, index) => (
-            <tr key={index}>
+            <tr key={index} style={index % 2 === 0 ? styles.evenRow : styles.oddRow}>
               <td>{item.type}</td>
               <td>{item.date}</td>
               <td>{item.reference}</td>
               <td>{item.from}</td>
               <td>{item.description}</td>
-              <td>{item.account}</td>
+              <td>{item.credited_account}</td>
               <td>{item.parent_account}</td>
-              <td>{item.amount}</td>
+              <td>{formatNumber(item.dr_amount)}</td> {/* DR Amount */}
+              <td>{formatNumber(item.cr_amount)}</td> {/* CR Amount */}
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Display Total Amount */}
+      {/* Display Total Amounts and Closing Balance */}
       <div style={styles.totalAmount}>
-        Total Amount: {totalAmount.toFixed(2)}
+        <div>Total DR: {formatNumber(totalDR)}</div>
+        <div>Total CR: {formatNumber(totalCR)}</div>
+        <div style={{ fontWeight: 'bold', marginTop: '10px' }}>
+          Closing Balance: {formatNumber(closingBalance)}
+        </div>
       </div>
     </div>
   );
@@ -150,13 +166,16 @@ const styles = {
     padding: '20px',
     maxWidth: '1200px',
     margin: '0 auto',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f4f6f9', // Light gray background
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   },
   header: {
     textAlign: 'center',
     marginBottom: '30px',
     fontSize: '2rem',
-    color: '#333',
+    fontFamily: 'Georgia, serif',
+    color: '#003366', // Darker blue for header
   },
   searchContainer: {
     display: 'flex',
@@ -164,32 +183,46 @@ const styles = {
     marginBottom: '20px',
   },
   searchInput: {
-    padding: '8px',
+    padding: '10px',
     width: '300px',
     borderRadius: '5px',
     border: '1px solid #ccc',
     fontSize: '1rem',
+    outline: 'none',
+    transition: 'border-color 0.3s ease',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
     marginTop: '20px',
+    backgroundColor: '#fff',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+    borderRadius: '8px',
+    overflow: 'hidden',
   },
   tableHeader: {
-    backgroundColor: '#f2f2f2',
-    fontWeight: 'bold',
-  },
-  tableCell: {
-    padding: '10px',
-    border: '1px solid #ddd',
+    backgroundColor: '#003366', // Dark blue header
+    color: 'black',
     textAlign: 'left',
+    fontWeight: 'bold',
+    padding: '12px 15px',
+  },
+  evenRow: {
+    backgroundColor: '#f7f7f7',
+  },
+  oddRow: {
+    backgroundColor: '#ffffff',
   },
   totalAmount: {
     marginTop: '20px',
     fontWeight: 'bold',
     fontSize: '1.2rem',
     textAlign: 'right',
-    color: '#333',
+    color: '#003366', // Dark blue for total
+    padding: '10px',
+    backgroundColor: '#fff',
+    borderRadius: '8px',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
   },
   loading: {
     textAlign: 'center',

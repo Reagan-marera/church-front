@@ -1,6 +1,6 @@
 /* Page Background */
 body {
-  background-color: #f4f4f4;
+  background-color: #000000;
   font-family: Arial, sans-serif;
 }
 
@@ -100,7 +100,7 @@ body {
 }
 
 .compact-table th {
-  background-color: #f4f4f4;
+  background-color: #000000;
   font-weight: bold;
 }
 

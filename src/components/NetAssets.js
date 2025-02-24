@@ -4,6 +4,8 @@ const NetAssets = () => {
   const [netAssetsData, setNetAssetsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState(''); // State for the search term
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
 
   useEffect(() => {
     // Fetch data from the /net-assets route
@@ -15,6 +17,7 @@ const NetAssets = () => {
         }
         const data = await response.json();
         setNetAssetsData(data);
+        setFilteredTransactions(data.transactions); // Initialize filtered transactions
       } catch (error) {
         setError(error.message);
       } finally {
@@ -24,6 +27,30 @@ const NetAssets = () => {
 
     fetchNetAssets();
   }, []);
+
+  useEffect(() => {
+    // Filter transactions when search term changes
+    if (netAssetsData && searchTerm) {
+      const filtered = netAssetsData.transactions.filter((txn) => {
+        const creditedAccount = txn.credited_account_name.toLowerCase();
+        const debitedAccount = txn.debited_account_name.toLowerCase();
+        const parentAccountCredited = txn.parent_account_credited.toLowerCase();
+        const parentAccountDebited = txn.parent_account_debited.toLowerCase();
+        
+        const search = searchTerm.toLowerCase();
+        
+        return (
+          creditedAccount.includes(search) ||
+          debitedAccount.includes(search) ||
+          parentAccountCredited.includes(search) ||
+          parentAccountDebited.includes(search)
+        );
+      });
+      setFilteredTransactions(filtered);
+    } else {
+      setFilteredTransactions(netAssetsData?.transactions || []); // Show all if no search term
+    }
+  }, [searchTerm, netAssetsData]);
 
   if (loading) {
     return <div style={styles.loading}>Loading...</div>;
@@ -36,6 +63,17 @@ const NetAssets = () => {
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>Net Assets</h1>
+
+      {/* Search Input */}
+      <div style={styles.searchContainer}>
+        <input
+          type="text"
+          placeholder="Search by Account or Parent Account..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={styles.searchInput}
+        />
+      </div>
 
       {/* Display Totals */}
       <div style={styles.totals}>
@@ -57,7 +95,7 @@ const NetAssets = () => {
           </tr>
         </thead>
         <tbody>
-          {netAssetsData.transactions.map((txn) => (
+          {filteredTransactions.map((txn) => (
             <tr key={txn.id}>
               <td>{txn.credited_account_name}</td>
               <td>{txn.debited_account_name}</td>
@@ -87,6 +125,17 @@ const styles = {
     marginBottom: '30px',
     fontSize: '2rem',
     color: '#333',
+  },
+  searchContainer: {
+    marginBottom: '20px',
+    textAlign: 'center',
+  },
+  searchInput: {
+    padding: '10px',
+    fontSize: '1rem',
+    width: '60%',
+    borderRadius: '5px',
+    border: '1px solid #ddd',
   },
   totals: {
     marginBottom: '20px',

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./InvoicesTable.css"; // Ensure this file exists for styling
+import { FaEdit, FaTrash } from "react-icons/fa"; // Import icons
 
 const InvoiceReceived = () => {
   // State for storing form fields
@@ -262,13 +263,13 @@ const InvoiceReceived = () => {
 
   return (
     <div className="invoice-received">
-      <h1>Invoice Received</h1>
+      <h1 className="head">Invoice Received</h1>
 
       {/* Toggle to show/hide the form */}
       <button 
   onClick={() => setShowForm(true)} 
   style={{ 
-    backgroundColor: '#4CAF50', 
+    backgroundColor: '#FFA500', 
     color: 'white', 
     padding: '10px 20px', 
     border: 'none', 
@@ -420,8 +421,8 @@ const InvoiceReceived = () => {
                   <td>{invoice.name}</td>
                   <td>{invoice.grn_number}</td>
                   <td>
-                    <button onClick={() => handleEdit(invoice)}>Edit</button>
-                    <button onClick={() => handleDelete(invoice.id)}>Delete</button>
+                    <button onClick={() => handleEdit(invoice)}><FaEdit /></button>
+                    <button onClick={() => handleDelete(invoice.id)}><FaTrash /></button>
                   </td>
                 </tr>
               ))

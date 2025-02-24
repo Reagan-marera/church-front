@@ -23,7 +23,7 @@ import ExpenseTransactions from './components/ExpenseTransactions';
 import AssetTransactions from './components/AssetTransactions';
 import LiabilityTransactions from './components/LiabilityTransactions';
 import NetAssets from './components/NetAssets';
-
+import TrialBalance from './components/TrialBalance';
 
 
 
@@ -217,6 +217,14 @@ function App() {
             element={
               
                 <NetAssets />
+              
+            }
+          />
+           <Route
+            path="/trial-transactions"
+            element={
+              
+                <TrialBalance />
               
             }
           />

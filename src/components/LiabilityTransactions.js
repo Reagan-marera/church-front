@@ -105,6 +105,7 @@ const LiabilityTransactions = () => {
   const totalAmount = filteredData.reduce((sum, item) => sum + (item.amount || 0), 0);
   const totalDR = filteredData.reduce((sum, item) => sum + (item.dr || 0), 0);
   const totalCR = filteredData.reduce((sum, item) => sum + (item.cr || 0), 0);
+  const closingBalance = totalCR - totalDR; // Calculate closing balance
 
   const formatNumber = (num) => {
     if (num === 0 || !num) return "0.00";
@@ -168,12 +169,14 @@ const LiabilityTransactions = () => {
         </tbody>
       </table>
 
-      {/* Display Total Amounts */}
-      <div style={styles.totalAmount}>
-        Total DR: {formatNumber(totalDR)} <br />
-        Total CR: {formatNumber(totalCR)} <br />
-        Total Amount: {formatNumber(totalAmount)}
-      </div>
+      {/* Display Total Amounts and Closing Balance */}
+    <i> <div style={styles.totalAmount}>
+        <div>Total DR: {formatNumber(totalDR)}</div>
+        <div>Total CR: {formatNumber(totalCR)}</div>
+        <div style={{ fontWeight: 'bold', marginTop: '10px' }}>
+          Closing Balance: {formatNumber(closingBalance)}
+        </div>
+      </div></i> 
     </div>
   );
 };
@@ -186,6 +189,8 @@ const styles = {
     maxWidth: '1200px',
     margin: '0 auto',
     backgroundColor: '#f4f6f9', // Light gray background
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   },
   header: {
     textAlign: 'center',
@@ -205,6 +210,17 @@ const styles = {
     borderRadius: '5px',
     border: '1px solid #ccc',
     fontSize: '1rem',
+    outline: 'none',
+    transition: 'border-color 0.3s ease',
+  },
+  searchInput: {
+    padding: '10px',
+    width: '300px',
+    borderRadius: '5px',
+    border: '1px solid #ccc',
+    fontSize: '1rem',
+    outline: 'none',
+    transition: 'border-color 0.3s ease',
   },
   table: {
     width: '100%',
@@ -213,6 +229,7 @@ const styles = {
     backgroundColor: '#fff',
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
     borderRadius: '8px',
+    overflow: 'hidden',
   },
   tableHeader: {
     backgroundColor: '#003366', // Dark blue header
@@ -220,8 +237,6 @@ const styles = {
     textAlign: 'left',
     fontWeight: 'bold',
     padding: '12px 15px',
-    borderTopLeftRadius: '8px',
-    borderTopRightRadius: '8px',
   },
   evenRow: {
     backgroundColor: '#f7f7f7',
@@ -235,6 +250,10 @@ const styles = {
     fontSize: '1.2rem',
     textAlign: 'right',
     color: '#003366', // Dark blue for total
+    padding: '10px',
+    backgroundColor: '#fff',
+    borderRadius: '8px',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
   },
   loading: {
     textAlign: 'center',

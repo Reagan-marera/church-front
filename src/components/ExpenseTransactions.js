@@ -25,10 +25,9 @@ const ExpenseTransactions = () => {
             reference: cd.cheque_no,
             from: cd.to_whom_paid,
             description: cd.description,
-            debited_account: cd.account_debited,
-            credited_account: '', // No credited account for cash disbursement
+            debited_amount: cd.total,  // Use DR column for cash disbursement
+            credited_amount: 0, // No credited amount for cash disbursement
             parent_account: cd.parent_account,
-            amount: cd.total,
           })),
           ...data.invoices_received.map((inv) => ({
             type: 'Invoice Received',
@@ -36,10 +35,9 @@ const ExpenseTransactions = () => {
             reference: inv.invoice_number,
             from: inv.name,
             description: inv.description,
-            debited_account: inv.account_debited,
-            credited_account: '', // No credited account for invoices
+            debited_amount: inv.amount, // Use DR column for invoices received
+            credited_amount: 0, // No credited amount for invoices
             parent_account: inv.parent_account,
-            amount: inv.amount,
           })),
           ...data.transactions.map((txn) => ({
             type: 'Transaction',
@@ -47,10 +45,9 @@ const ExpenseTransactions = () => {
             reference: txn.id,
             from: txn.debited_account_name,
             description: txn.description,
-            debited_account: txn.debited_account_name,
-            credited_account: txn.credited_account_name, // Include credited account
+            debited_amount: txn.amount_debited,
+            credited_amount: txn.amount_credited, // Include credited amount for transactions
             parent_account: txn.parent_account,
-            amount: txn.amount_debited,
           })),
         ];
 
@@ -73,8 +70,8 @@ const ExpenseTransactions = () => {
 
     if (account) {
       const filtered = combinedData.filter((item) =>
-        item.debited_account.toLowerCase().includes(account.toLowerCase()) ||
-        item.credited_account.toLowerCase().includes(account.toLowerCase()) ||
+        item.debited_amount.toString().toLowerCase().includes(account.toLowerCase()) ||
+        item.credited_amount.toString().toLowerCase().includes(account.toLowerCase()) ||
         item.parent_account.toLowerCase().includes(account.toLowerCase()) // Include parent account in search
       );
       setFilteredData(filtered);
@@ -83,8 +80,15 @@ const ExpenseTransactions = () => {
     }
   };
 
-  // Calculate total amount for filtered data
-  const totalAmount = filteredData.reduce((sum, item) => sum + item.amount, 0);
+  // Calculate total DR and CR amounts
+  const totalDR = filteredData.reduce((sum, item) => sum + (item.debited_amount || 0), 0);
+  const totalCR = filteredData.reduce((sum, item) => sum + (item.credited_amount || 0), 0);
+  const closingBalance = totalDR - totalCR; // Calculate closing balance
+
+  const formatNumber = (num) => {
+    if (num === 0 || !num) return "0.00";
+    return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
   if (loading) {
     return <div style={styles.loading}>Loading...</div>;
@@ -112,39 +116,39 @@ const ExpenseTransactions = () => {
       {/* Display Combined Data in One Table */}
       <table style={styles.table}>
         <thead>
-          <tr>
+          <tr style={styles.tableHeader}>
             <th>Type</th>
             <th>Date</th>
             <th>Reference</th>
             <th>From</th>
             <th>Description</th>
-           
-            <th> Account</th>
+            <th>DR Amount</th>
+            <th>CR Amount</th>
             <th>Parent Account</th>
-            <th>Amount</th>
           </tr>
         </thead>
         <tbody>
           {filteredData.map((item, index) => (
-            <tr key={index}>
+            <tr key={index} style={index % 2 === 0 ? styles.evenRow : styles.oddRow}>
               <td>{item.type}</td>
               <td>{item.date}</td>
               <td>{item.reference}</td>
               <td>{item.from}</td>
               <td>{item.description}</td>
-              
-              <td>{item.credited_account || item.debited_account}</td>
+              <td>{formatNumber(item.debited_amount)}</td>  {/* DR Amount */}
+              <td>{formatNumber(item.credited_amount)}</td>  {/* CR Amount */}
               <td>{item.parent_account}</td>
-              <td>{item.amount}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Display Total Amount */}
-      <div style={styles.totalAmount}>
-        Total Amount: {totalAmount.toFixed(2)}
-      </div>
+      {/* Display Total Amounts and Closing Balance */}
+    <i> <div style={styles.totalAmount}>
+        <div>Total DR: {formatNumber(totalDR)}</div>
+        <div>Total CR: {formatNumber(totalCR)}</div>
+        <div>Closing Balance: {formatNumber(closingBalance)}</div>
+      </div> </i> 
     </div>
   );
 };
@@ -156,13 +160,16 @@ const styles = {
     padding: '20px',
     maxWidth: '1200px',
     margin: '0 auto',
-    backgroundColor: '#f9f9f9',
+    backgroundColor: '#f4f6f9', // Light gray background
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   },
   header: {
     textAlign: 'center',
     marginBottom: '30px',
     fontSize: '2rem',
-    color: '#333',
+    fontFamily: 'Georgia, serif',
+    color: '#003366', // Darker blue for header
   },
   searchContainer: {
     display: 'flex',
@@ -170,32 +177,46 @@ const styles = {
     marginBottom: '20px',
   },
   searchInput: {
-    padding: '8px',
+    padding: '10px',
     width: '300px',
     borderRadius: '5px',
     border: '1px solid #ccc',
     fontSize: '1rem',
+    outline: 'none',
+    transition: 'border-color 0.3s ease',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
     marginTop: '20px',
+    backgroundColor: '#fff',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+    borderRadius: '8px',
+    overflow: 'hidden',
   },
   tableHeader: {
-    backgroundColor: '#f2f2f2',
-    fontWeight: 'bold',
-  },
-  tableCell: {
-    padding: '10px',
-    border: '1px solid #ddd',
+    backgroundColor: '#003366', // Dark blue header
+    color: 'black',
     textAlign: 'left',
+    fontWeight: 'bold',
+    padding: '12px 15px',
+  },
+  evenRow: {
+    backgroundColor: '#f7f7f7',
+  },
+  oddRow: {
+    backgroundColor: '#ffffff',
   },
   totalAmount: {
     marginTop: '20px',
     fontWeight: 'bold',
     fontSize: '1.2rem',
     textAlign: 'right',
-    color: '#333',
+    color: '#003366', // Dark blue for total
+    padding: '10px',
+    backgroundColor: '#fff',
+    borderRadius: '8px',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
   },
   loading: {
     textAlign: 'center',
