@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import "./InvoicesTable.css"; // Ensure this file exists for styling
 import { FaEdit, FaTrash } from "react-icons/fa"; // Import icons
-
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faFileInvoiceDollar,
+  faMoneyBill,
+  faCreditCard,
+  
+} from "@fortawesome/free-solid-svg-icons";
 const InvoiceReceived = () => {
   // State for storing form fields
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -263,7 +269,9 @@ const InvoiceReceived = () => {
 
   return (
     <div className="invoice-received">
-      <h1 className="head">Invoice Received</h1>
+      <h1 className="head">
+        <FontAwesomeIcon icon={faCreditCard} className="icon" /> Invoice Received
+      </h1>
 
       {/* Toggle to show/hide the form */}
       <button 

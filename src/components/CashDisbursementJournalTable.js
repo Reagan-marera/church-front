@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faPlus, faEdit, faTrash, faCalendar, faFileAlt, faUser, faDollarSign, faWallet, faBook } from "@fortawesome/free-solid-svg-icons";
 import "./DisbursementForm.css";
 
 const DisbursementForm = () => {
@@ -339,9 +341,10 @@ const DisbursementForm = () => {
 
   return (
     <div className="disbursement-container">
-      <h1>Cash Disbursement Journal</h1>
-      <button onClick={openFormPopup} className="add-button">
-        Add New Disbursement
+  <h1 className="head">
+        <FontAwesomeIcon icon={faWallet} className="icon" /> Cash disbursement Journal
+      </h1>      <button onClick={openFormPopup} className="add-button">
+        <FontAwesomeIcon icon={faPlus} className="icon" /> Add New Disbursement
       </button>
 
       {showForm && (
@@ -350,7 +353,9 @@ const DisbursementForm = () => {
             <h2>{editingDisbursement ? "Edit Disbursement" : "Cash Disbursement Form"}</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-row">
-                <label htmlFor="disbursement_date">Disbursement Date</label>
+                <label htmlFor="disbursement_date">
+                  <FontAwesomeIcon icon={faCalendar} className="icon" /> Disbursement Date
+                </label>
                 <input
                   type="date"
                   id="disbursement_date"
@@ -363,7 +368,9 @@ const DisbursementForm = () => {
               </div>
 
               <div className="form-row">
-                <label htmlFor="cheque_no">Cheque No</label>
+                <label htmlFor="cheque_no">
+                  <FontAwesomeIcon icon={faFileAlt} className="icon" /> Cheque No
+                </label>
                 <input
                   type="text"
                   id="cheque_no"
@@ -376,7 +383,9 @@ const DisbursementForm = () => {
               </div>
 
               <div className="form-row">
-                <label htmlFor="p_voucher_no">Payment Voucher No</label>
+                <label htmlFor="p_voucher_no">
+                  <FontAwesomeIcon icon={faFileAlt} className="icon" /> Payment Voucher No
+                </label>
                 <input
                   type="text"
                   id="p_voucher_no"
@@ -389,7 +398,9 @@ const DisbursementForm = () => {
               </div>
 
               <div className="form-row">
-                <label htmlFor="to_whom_paid">To Whom Paid</label>
+                <label htmlFor="to_whom_paid">
+                  <FontAwesomeIcon icon={faUser} className="icon" /> To Whom Paid
+                </label>
                 <select
                   id="to_whom_paid"
                   name="to_whom_paid"
@@ -547,7 +558,15 @@ const DisbursementForm = () => {
 
               <div className="form-row">
                 <button type="submit" className="submit-button">
-                  {editingDisbursement ? "Update" : "Submit"}
+                  {editingDisbursement ? (
+                    <>
+                      <FontAwesomeIcon icon={faEdit} className="icon" /> Update
+                    </>
+                  ) : (
+                    <>
+                      <FontAwesomeIcon icon={faPlus} className="icon" /> Submit
+                    </>
+                  )}
                 </button>
                 <button type="button" onClick={closeFormPopup} className="cancel-button">
                   Cancel
@@ -564,20 +583,20 @@ const DisbursementForm = () => {
         <h2>Disbursements</h2>
         <table>
           <thead>
-            <tr>
-              <th>Disbursement Date</th>
-              <th>Cheque No</th>
-              <th>Payment Voucher No</th>
-              <th>To Whom Paid</th>
-              <th>Description</th>
-              <th>Payment Type</th>
-              <th>Account Debited</th>
-              <th>Account Credited</th>
-              <th>Cash</th>
-              <th>Bank</th>
-              <th>Total</th>
-              <th>Cashbook</th>
-              <th>Actions</th>
+            <tr >
+              <th className="ths">Disbursement Date</th>
+              <th className="ths">Cheque No</th>
+              <th className="ths">Payment Voucher No</th>
+              <th className="ths">To Whom Paid</th>
+              <th className="ths">Description</th>
+              <th className="ths">Payment Type</th>
+              <th className="ths">Account Debited</th>
+              <th className="ths">Account Credited</th>
+              <th className="ths">Cash</th>
+              <th className="ths">Bank</th>
+              <th className="ths">Total</th>
+              <th className="ths">Cashbook</th>
+              <th className="ths">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -600,13 +619,13 @@ const DisbursementForm = () => {
                     onClick={() => handleEditClick(disbursement)}
                     className="edit-button"
                   >
-                    Edit
+                    <FontAwesomeIcon icon={faEdit} className="icon" /> Edit
                   </button>
                   <button
                     onClick={() => handleDeleteDisbursement(disbursement.id)}
                     className="delete-button"
                   >
-                    Delete
+                    <FontAwesomeIcon icon={faTrash} className="icon" /> Delete
                   </button>
                 </td>
               </tr>

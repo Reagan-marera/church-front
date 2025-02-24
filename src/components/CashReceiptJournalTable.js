@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from "react";
-import "./CashReceiptJournalTable.css"; // Ensure this file exists for styling
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faFileInvoiceDollar } from "@fortawesome/free-solid-svg-icons"; // Example icon
+import {
+  faPlus,
+  faEdit,
+  faTrash,
+  faCalendar,
+  faFileAlt,
+  faUser,
+  faDollarSign,
+  faWallet,
+  faBook,
+} from "@fortawesome/free-solid-svg-icons";
+import "./CashReceiptJournalTable.css";
 
 const CashReceiptJournalTable = () => {
   const [journals, setJournals] = useState([]);
@@ -331,21 +344,13 @@ const CashReceiptJournalTable = () => {
 
   return (
     <div className="cash-receipt-journal">
-      <h1>Cash Receipt Journal</h1>
+       <h1>
+        <FontAwesomeIcon icon={faBook} className="icon" /> Cash Receipt Journal
+      </h1>
       {error && <p className="error">{error}</p>}
-      <button 
-  onClick={() => openFormPopup()} 
-  style={{ 
-    backgroundColor: '#008CBA', 
-    color: 'white', 
-    padding: '10px 20px', 
-    border: 'none', 
-    borderRadius: '5px', 
-    cursor: 'pointer'
-  }}
->
-  Add New Receipt
-</button>
+      <button onClick={() => openFormPopup()}>
+        <FontAwesomeIcon icon={faPlus} className="icon" /> Add New Receipt
+      </button>
 
       {showForm && (
         <div className="modal">
@@ -356,7 +361,9 @@ const CashReceiptJournalTable = () => {
             <h2>{isEditing ? "Edit Receipt" : "Add New Receipt"}</h2>
             <form onSubmit={handleSubmit} className="form-container">
               <div>
-                <label>Receipt Date:</label>
+                <label>
+                  <FontAwesomeIcon icon={faCalendar} className="icon" /> Receipt Date:
+                </label>
                 <input
                   type="date"
                   name="receipt_date"
@@ -366,7 +373,9 @@ const CashReceiptJournalTable = () => {
                 />
               </div>
               <div>
-                <label>Receipt No:</label>
+                <label>
+                  <FontAwesomeIcon icon={faFileAlt} className="icon" /> Receipt No:
+                </label>
                 <input
                   type="text"
                   name="receipt_no"
@@ -385,7 +394,9 @@ const CashReceiptJournalTable = () => {
                 />
               </div>
               <div>
-                <label>From Whom Received:</label>
+                <label>
+                  <FontAwesomeIcon icon={faUser} className="icon" /> From Whom Received:
+                </label>
                 <select
                   name="from_whom_received"
                   value={formData.from_whom_received}
@@ -404,7 +415,9 @@ const CashReceiptJournalTable = () => {
                 </select>
               </div>
               <div>
-                <label>Invoice Amount:</label>
+                <label>
+                  <FontAwesomeIcon icon={faDollarSign} className="icon" /> Invoice Amount:
+                </label>
                 <input
                   type="number"
                   name="invoice_amount"
@@ -475,7 +488,9 @@ const CashReceiptJournalTable = () => {
                 </select>
               </div>
               <div>
-                <label>Cash:</label>
+                <label>
+                  <FontAwesomeIcon icon={faWallet} className="icon" /> Cash:
+                </label>
                 <input
                   type="number"
                   name="cash"
@@ -504,7 +519,9 @@ const CashReceiptJournalTable = () => {
                 />
               </div>
               <div>
-                <label>Cashbook:</label>
+                <label>
+                  <FontAwesomeIcon icon={faBook} className="icon" /> Cashbook:
+                </label>
                 <input
                   type="text"
                   name="cashbook"
@@ -514,7 +531,15 @@ const CashReceiptJournalTable = () => {
                 />
               </div>
               <button type="submit">
-                {isEditing ? "Update" : "Submit"}
+                {isEditing ? (
+                  <>
+                    <FontAwesomeIcon icon={faEdit} className="icon" /> Update
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faPlus} className="icon" /> Submit
+                  </>
+                )}
               </button>
               <button type="button" onClick={closeFormPopup}>
                 Cancel
@@ -563,8 +588,12 @@ const CashReceiptJournalTable = () => {
               <td>{journal.total}</td>
               <td>{journal.cashbook}</td>
               <td>
-                <button onClick={() => openFormPopup(journal)}>Edit</button>
-                <button onClick={() => handleDelete(journal.id)}>Delete</button>
+                <button onClick={() => openFormPopup(journal)}>
+                  <FontAwesomeIcon icon={faEdit} className="icon" /> Edit
+                </button>
+                <button onClick={() => handleDelete(journal.id)}>
+                  <FontAwesomeIcon icon={faTrash} className="icon" /> Delete
+                </button>
               </td>
             </tr>
           ))}
