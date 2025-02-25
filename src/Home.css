@@ -47,23 +47,23 @@
 @keyframes ledEffect {
   0% {
     color: #ff8c42; /* Start with orange */
-    text-shadow: 0 0 5px #ff8c42, 0 0 1px #ff8c42, 0 0 5px #ff8c42, 0 0 2px #ff8c42; /* Subtle glow */
+    text-shadow: 0 0 2px #ff8c42, 0 0 1px #ff8c42, 0 0 5px #ff8c42, 0 0 2px #ff8c42; /* Subtle glow */
   }
   25% {
-    color: #1effb4; /* Change to a bright red */
-    text-shadow: 0 0 5px #ff1e56, 0 0 1px #1eddff, 0 0 5px #1ee5ff, 0 0 2px #1ef8ff;
+    color:#ff8c42;; /* Change to a bright red */
+    text-shadow: 0 0 2px #ff1e56, 0 0 1px #1eddff, 0 0 5px #1ee5ff, 0 0 2px #1ef8ff;
   }
   50% {
-    color: #42ff87; /* Change to bright green */
-    text-shadow: 0 0 5px #42ff87, 0 0 1px #42ff87, 0 0 5px #42ff87, 0 0 2px #42ff87;
+    color: #ff8c42;; /* Change to bright green */
+    text-shadow: 0 0 2px #42ff87, 0 0 1px #42ff87, 0 0 5px #42ff87, 0 0 2px #42ff87;
   }
   75% {
-    color: #4287ff; /* Change to bright blue */
-    text-shadow: 0 0 5px #4287ff, 0 0 1px #4287ff, 0 0 5px #4287ff, 0 0 2px #4287ff;
+    color: #ff8c42; /* Change to bright blue */
+    text-shadow: 0 0 2px #4287ff, 0 0 1px #4287ff, 0 0 5px #4287ff, 0 0 2px #4287ff;
   }
   100% {
     color: #ff8c42; /* Go back to orange */
-    text-shadow: 0 0 5px #ff8c42, 0 0 1px #ff8c42, 0 0 5px #ff8c42, 0 0 2px #ff8c42;
+    text-shadow: 0 0 2px #ff8c42, 0 0 1px #ff8c42, 0 0 5px #ff8c42, 0 0 2px #ff8c42;
   }
 }
 
@@ -77,7 +77,11 @@
   padding: 5px 10px; /* Space for the border effect */
   position: relative;
 }
-
+.navbar-brands {
+  font-size: 2.5rem; /* Increased font size for more impact */
+  font-weight: bold;
+  color: #ff8c42; /* Orange text */
+}
 .navbar-brand:hover {
   color: #ff8c42; /* Keep the same color when hovered */
   text-shadow: 0 0 5px #ff8c42, 0 0 1px #ff8c42, 0 0 5px #ff8c42, 0 0 2px #ff8c42; /* Subtle glow on hover */
@@ -89,6 +93,8 @@
   background: linear-gradient(135deg, #000, #333); /* Black gradient */
   color: #fff; /* White text */
   padding: 4rem 2rem;
+  background-image: url('https://i.pinimg.com/474x/05/a9/fc/05a9fc87a930699b73d1bedcda2a6aba.jpg');
+  
 }
 
 .hero h1 {
@@ -99,16 +105,17 @@
 }
 
 .hero h2 {
-  font-size: 1.8rem;
+  font-size: 2.2rem;
   margin-bottom: 1.5rem;
   color: #ff8c42; /* Orange subheading */
-  font-family: 'Verdana', sans-serif; /* New font for hero subheading */
+  font-family: "Moon Dance", serif;
 }
 
 .hero .intro {
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   margin-bottom: 2rem;
-  color: #ccc; /* Light gray text */
+  color:rgb(248, 248, 248); /* Light gray text */
+  font-family: 'Georgia', serif; 
 }
 
 .cta-button {

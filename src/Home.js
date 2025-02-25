@@ -3,7 +3,13 @@ import { Link } from "react-router-dom";
 import { FaChartLine, FaFileInvoice, FaMoneyCheckAlt, FaCashRegister, FaBook, FaFileAlt } from "react-icons/fa"; // Icons for features
 import { FiLoader } from "react-icons/fi"; // Loader icon
 import "./Home.css"; // Ensure your CSS file is properly linked
-
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faFileInvoiceDollar,
+  faMoneyBill,
+  faCreditCard,
+  
+} from "@fortawesome/free-solid-svg-icons";
 function Home() {
   const [loading, setLoading] = useState(true);
 
@@ -27,20 +33,21 @@ function Home() {
         <>
           {/* Navigation Bar */}
           <nav className="navbarhome">
-            <div className="navbar-brand">
-              <span className="company-name">YOUMING TECHNOLOGIES</span>
-            </div>
-          </nav>
+    <div className="navbar-brand">
+        <i className="fas fa-laptop-code"></i> {/* Technology icon */}
+        <span className="company-name">YOUMING TECHNOLOGIES</span>
+    </div>
+</nav>
 
           {/* Hero Section */}
           <header className="hero">
             <div className="hero-content">
-              <h1>Non-Profit Financial Management Toolkit</h1>
-              <h2>For Schools, Churches, and NGOs</h2>
-              <p className="intro">
+              <h1 >Non-Profit Financial Management Toolkit</h1>
+              <h2 className="navbar-brands">For Schools, Churches, and NGOs</h2>
+              <h1><p className="intro">
                 Manage invoices, receipts, disbursements, and generate accurate
                 financial reports all in one place.
-              </p>
+              </p></h1>
               <Link to="/register" className="cta-button">
                 Get Started
               </Link>
