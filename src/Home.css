@@ -117,7 +117,25 @@
   color:rgb(248, 248, 248); /* Light gray text */
   font-family: 'Georgia', serif; 
 }
+.attractive-text {
+  font-family: 'Arial', sans-serif; /* Use a modern font */
+  font-size: 0.9rem; /* Slightly larger font size */
+  color: #ffffff; /* Dark gray color for text */
+  display: flex; /* Align icon and text horizontally */
+  align-items: center; /* Center items vertically */
+  gap: 1px; /* Add space between icon and text */
+}
 
+.attractive-text i {
+  color: #007bff; /* Blue color for the icon */
+  font-size: 1.5rem; /* Larger icon size */
+}
+
+.highlight {
+  color: #007bff; /* Blue color for the name */
+  font-weight: bold; /* Make the name bold */
+  text-transform: lowercase; /* Uppercase the name */
+}
 .cta-button {
   background: #ff8c42; /* Orange button */
   color: #000; /* Black text */
