@@ -101,13 +101,13 @@ const Navbar = () => {
                   <FaFileInvoice className="dropdown-icon" /> Invoice Issued
                 </Link>
               </li>
-              {storedToken && (
+            
                 <li>
                   <Link to="/invoice-received" className="dropdown-link">
                     <FaFileInvoice className="dropdown-icon" /> Invoice Received
                   </Link>
                 </li>
-              )}
+              
             </ul>
           )}
         </li>
