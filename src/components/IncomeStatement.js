@@ -42,7 +42,7 @@ const IncomeStatement = () => {
               <th>Note Number</th>
               <th>Parent Account</th>
               <th>Relevant Accounts</th>
-              <th>Amounts</th>
+             
               <th>Total Amount</th>
             </tr>
           </thead>
@@ -51,8 +51,13 @@ const IncomeStatement = () => {
               <tr key={note}>
                 <td>{note}</td>
                 <td>{data.parent_account}</td>
-                <td>{data.relevant_accounts.join(', ')}</td>
-                <td>{data.amounts.join(', ')}</td>
+                <td>
+  <ul>
+    {data.relevant_accounts.map((account, index) => (
+      <li key={index}>{account}</li>
+    ))}
+  </ul>
+</td>
                 <td>{data.total_amount}</td>
               </tr>
             ))}
