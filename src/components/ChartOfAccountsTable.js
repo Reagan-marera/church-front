@@ -10,6 +10,8 @@ const ChartOfAccountsTable = () => {
     parent_account: '',
     account_name: '',
     account_type: '',
+    note_number: '', // Add note_number
+    parent_account_id: null, // Add parent_account_id
     sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
   });
 
@@ -114,6 +116,8 @@ const ChartOfAccountsTable = () => {
         parent_account: '',
         account_name: '',
         account_type: '',
+        note_number: '', // Reset note_number
+        parent_account_id: null, // Reset parent_account_id
         sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
       });
       alert(result.message);
@@ -163,6 +167,8 @@ const ChartOfAccountsTable = () => {
       parent_account: account.parent_account,
       account_name: account.account_name,
       account_type: account.account_type,
+      note_number: account.note_number || '', // Include note_number
+      parent_account_id: account.parent_account_id || null, // Include parent_account_id
       sub_account_details: account.sub_account_details || [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
     });
   };
@@ -240,7 +246,18 @@ const ChartOfAccountsTable = () => {
             style={styles.input}
           />
         </div>
-
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Note Number:</label>
+          <input
+            type="text"
+            name="note_number"
+            value={formData.note_number}
+            onChange={handleInputChange}
+            style={styles.input}
+          />
+        </div>
+      
+      
         <div>
           <h3>Subaccounts</h3>
           {formData.sub_account_details.map((subAccount, index) => (
@@ -280,6 +297,7 @@ const ChartOfAccountsTable = () => {
             <th style={styles.tableHeader}>Account Type</th>
             <th style={styles.tableHeader}>Account Class</th>
             <th style={styles.tableHeader}>General Ledger</th>
+            <th style={styles.tableHeader}>Note Number</th>
             <th style={styles.tableHeader}>Sub Account Details</th>
             <th style={styles.tableHeader}>Actions</th>
           </tr>
@@ -287,7 +305,7 @@ const ChartOfAccountsTable = () => {
         <tbody>
           {accounts.length === 0 ? (
             <tr>
-              <td colSpan="5" style={styles.tableCell}>No accounts available.</td>
+              <td colSpan="7" style={styles.tableCell}>No accounts available.</td>
             </tr>
           ) : (
             accounts.map((account) => (
@@ -295,6 +313,7 @@ const ChartOfAccountsTable = () => {
                 <td style={styles.tableCell}>{account.account_type}</td>
                 <td style={styles.tableCell}>{account.account_name}</td>
                 <td style={styles.tableCell}>{account.parent_account}</td>
+                <td style={styles.tableCell}>{account.note_number || 'N/A'}</td>
                 <td style={styles.tableCell}>
                   {account.sub_account_details && account.sub_account_details.length > 0
                     ? account.sub_account_details.map((sub, idx) => (
@@ -397,7 +416,7 @@ const styles = {
   tableCell: {
     padding: '12px',
     border: '1px solid #333',
-    color: 'black',
+    color: 'WHITE',
     borderRadius: '5px',
   },
   tableRow: {

@@ -11,6 +11,7 @@ import {
   CircularProgress,
   Box,
 } from "@mui/material";
+import "./trialbalance.css";
 
 const TrialBalance = () => {
   const [trialBalance, setTrialBalance] = useState([]);
@@ -39,7 +40,7 @@ const TrialBalance = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+      <Box className="trial-balance-loading">
         <CircularProgress />
       </Box>
     );
@@ -47,40 +48,46 @@ const TrialBalance = () => {
 
   if (error) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+      <Box className="trial-balance-error">
         <Typography color="error">Error: {error}</Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ padding: 3 }}>
-      <Typography variant="h4" gutterBottom>
+    <Box className="trial-balance-container">
+      <Typography variant="h4" gutterBottom className="trial-balance-title">
         Trial Balance
       </Typography>
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} className="trial-balance-table-container">
         <Table>
-          <TableHead>
+          <TableHead className="trial-balance-table-header">
             <TableRow>
-              <TableCell sx={{ fontWeight: "bold" }}>Account</TableCell>
-              <TableCell sx={{ fontWeight: "bold" }} align="right">
+              <TableCell className="trial-balance-table-header-cell">Account</TableCell>
+              <TableCell className="trial-balance-table-header-cell" align="right">
                 Total Debits
               </TableCell>
-              <TableCell sx={{ fontWeight: "bold" }} align="right">
+              <TableCell className="trial-balance-table-header-cell" align="right">
                 Total Credits
               </TableCell>
-              <TableCell sx={{ fontWeight: "bold" }} align="right">
+              <TableCell className="trial-balance-table-header-cell" align="right">
                 Closing Balance
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {trialBalance.map((row, index) => (
-              <TableRow key={index}>
-                <TableCell>{row.account}</TableCell>
-                <TableCell align="right">{row.total_debits.toFixed(2)}</TableCell>
-                <TableCell align="right">{row.total_credits.toFixed(2)}</TableCell>
-                <TableCell align="right">{row.closing_balance.toFixed(2)}</TableCell>
+              <TableRow key={index} className="trial-balance-table-row">
+                <TableCell className="trial-balance-table-cell">{row.account}</TableCell>
+                <TableCell className="trial-balance-table-cell" align="right">
+                  {row.total_debits.toFixed(2)}
+                </TableCell>
+                <TableCell className="trial-balance-table-cell" align="right">
+                  {row.total_credits.toFixed(2)}
+                </TableCell>
+                <TableCell className="trial-balance-table-cell" align="right">
+                  {row.closing_balance.toFixed(2)}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

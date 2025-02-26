@@ -1,164 +1,62 @@
-/* Container for the entire financial report */
-.financial-report {
-  font-family: Arial, sans-serif;
+/* Container for the entire component */
+.trial-balance-container {
   padding: 20px;
-  background-color: #000000; /* Light background for the report */
-  border-radius: 8px; /* Rounded corners for the container */
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.trial-balance-table-cell{background-color: rgb(255, 255, 255);
 }
 
-/* Title styles */
-.section-title {
-  font-size: 24px;
+/* Title styling */
+.trial-balance-title {
+  font-size: 2rem;
   font-weight: bold;
-  color: #34495e; /* Dark gray for the section title */
+  color: #fcf4f4;
   margin-bottom: 20px;
-  border-bottom: 2px solid #ddd; /* Border below the section title */
-  padding-bottom: 10px;
 }
 
-/* Table container for responsive design */
-.table-container {
-  overflow-x: auto;
+/* Table container styling */
+.trial-balance-table-container {
   margin-top: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Table styles */
-.trial-balance-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for the table */
+/* Table header styling */
+.trial-balance-table-header {
+  background-color: #1976d2; /* Material-UI primary color */
+  color: white;
 }
 
-/* Table header and cell styling */
-.trial-balance-table th,
-.trial-balance-table td {
-  border: 1px solid #ddd;
-  padding: 10px;
-  text-align: left;
-  font-size: 14px;
+.trial-balance-table-header-cell {
+  font-weight: bold !important;
+  font-size: 1rem;
 }
 
-/* Header row style */
-.trial-balance-table th {
-  background-color: #f4f4f4;
-  color: #2c3e50;
-  font-weight: bold;
+/* Table row styling */
+.trial-balance-table-row:nth-child(even) {
+  background-color: #f5f5f5;
 }
 
-/* Alternating row colors for better readability */
-.trial-balance-table tr:nth-child(even) {
-  background-color: #f9f9f9; /* Light gray for even rows */
+.trial-balance-table-row:hover {
+  background-color: #e3f2fd; /* Light blue hover effect */
 }
 
-.trial-balance-table tr:nth-child(odd) {
-  background-color: #ffffff; /* White for odd rows */
+/* Table cell styling */
+.trial-balance-table-cell {
+  font-size: 0.9rem;
+  color: #ffffff;
 }
 
-/* Hover effect for rows */
-.trial-balance-table tr:hover {
-  background-color: #ecf0f1; /* Light blue for row hover */
-  cursor: pointer;
-}
-
-/* Table cell hover effect */
-.trial-balance-table td:hover {
-  background-color: #ecf0f1;
-  transition: background-color 0.3s ease;
-}
-
-/* Styling for group headers */
-.group-header {
-  background-color: #f0f0f0;
-  font-weight: bold;
-  text-align: left;
-  padding: 10px;
-  color: #34495e;
-}
-
-/* Styling for parent account headers */
-.parent-account-header {
-  background-color: #e9e9e9;
-  font-weight: bold;
-  text-align: left;
-  padding: 10px;
-  color: #2c3e50;
-}
-
-/* Total label for totals in the table */
-.total-label {
-  font-weight: bold;
-  text-align: right;
-  padding-right: 10px;
-  color: #007bff; /* Blue color for totals */
-}
-
-/* Loader styles */
-.loader-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5); /* Semi-transparent dark background */
+/* Loading and error message styling */
+.trial-balance-loading,
+.trial-balance-error {
   display: flex;
-  align-items: center;
   justify-content: center;
-}
-
-.spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  animation: spin 1s linear infinite;
-}
-
-/* Spinner animation */
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Error message styling */
-.error-message {
-  color: red;
-  font-weight: bold;
-  margin-top: 20px;
-  font-size: 16px;
-}
-
-/* Parent account selector styling */
-.parent-account-selector {
-  display: flex;
   align-items: center;
-  margin-top: 15px;
-}
-
-.parent-account-selector label {
-  margin-right: 10px;
-  font-weight: bold;
-}
-
-.parent-account-selector select {
-  padding: 8px;
-  font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  width: 200px;
-  transition: border-color 0.3s;
-}
-
-.parent-account-selector select:focus {
-  border-color: #3498db;
-  outline: none;
-}
-
-.parent-account-selector select option {
-  padding: 10px;
-}
-
-.parent-account-selector select option:hover {
-  background-color: #f1f1f1;
+  min-height: 200px;
+  font-size: 1.2rem;
+  color: #d32f2f; /* Material-UI error color */
 }

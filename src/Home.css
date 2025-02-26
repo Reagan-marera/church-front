@@ -2,7 +2,7 @@
 .App {
   font-family: Arial, sans-serif;
   text-align: center;
-  background-color: #000; /* Black background */
+  background-color: #cccbcb; /* Black background */
   color: #fff; /* White text */
   min-height: 100vh;
 }
@@ -54,11 +54,11 @@
     text-shadow: 0 0 2px #ff1e56, 0 0 1px #1eddff, 0 0 5px #1ee5ff, 0 0 2px #1ef8ff;
   }
   50% {
-    color: #ff8c42;; /* Change to bright green */
+    color:#ff8c42 ; /* Change to bright green */
     text-shadow: 0 0 2px #42ff87, 0 0 1px #42ff87, 0 0 5px #42ff87, 0 0 2px #42ff87;
   }
   75% {
-    color: #ff8c42; /* Change to bright blue */
+    color: #ffa742; /* Change to bright blue */
     text-shadow: 0 0 2px #4287ff, 0 0 1px #4287ff, 0 0 5px #4287ff, 0 0 2px #4287ff;
   }
   100% {
@@ -93,7 +93,6 @@
   background: linear-gradient(135deg, #000, #333); /* Black gradient */
   color: #fff; /* White text */
   padding: 4rem 2rem;
-  background-image: url('https://i.pinimg.com/236x/3d/a0/f8/3da0f825346fb0dacca86d6b5615ee47.jpg');
   
 }
 

@@ -24,8 +24,8 @@ import AssetTransactions from './components/AssetTransactions';
 import LiabilityTransactions from './components/LiabilityTransactions';
 import NetAssets from './components/NetAssets';
 import TrialBalance from './components/TrialBalance';
-
-
+import AccountsTransactions from './components/AccountsTransactions';
+import IncomeStatement from './components/IncomeStatement';
 
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
@@ -225,6 +225,22 @@ function App() {
             element={
               
                 <TrialBalance />
+              
+            }
+          />
+           <Route
+            path="/accounts-transactions"
+            element={
+              
+                <AccountsTransactions />
+              
+            }
+          />
+           <Route
+            path="/income-transactions"
+            element={
+              
+                <IncomeStatement />
               
             }
           />

@@ -143,6 +143,7 @@ const styles = {
     backgroundColor: '#e0f7fa',
     borderRadius: '5px',
     textAlign: 'center',
+    color:'black'
   },
   table: {
     width: '100%',

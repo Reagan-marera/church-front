@@ -97,7 +97,7 @@ function Home() {
               <p>&copy; 2024 InstitutionFinance | All Rights Reserved</p>
               <h5 className="attractive-text">
     <i className="fas fa-code"></i> {/* Add a code icon for visual appeal */}
-    Code Engineered and Maintained by <span className="highlight">marierareagan@mail.com</span>
+    Code Engineered and Maintained by <span className="highlight">marierareagan@gmail.com</span>
 </h5>              <div className="footer-links">
                 <Link to="/privacy-policy">Privacy Policy</Link>
                 <Link to="/terms-of-service">Terms of Service</Link>
