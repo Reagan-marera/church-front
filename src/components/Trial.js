@@ -7,7 +7,7 @@ const Trial = () => {
 
   useEffect(() => {
     // Fetch data from the Flask backend
-    fetch('http://127.0.0.1:5000/trial-statement/accounts')
+    fetch('http://127.0.0.1:5000/balance-statement/accounts')
       .then((response) => {
         if (!response.ok) {
           throw new Error('Network response was not ok');
@@ -31,10 +31,10 @@ const Trial = () => {
   if (error) {
     return <div>Error: {error.message}</div>;
   }
-
+// uses trial route interchange
   return (
     <div>
-      <h1>Trial Balance</h1>
+      <h1>Income statement</h1>
       {incomeData && Object.keys(incomeData).length > 0 ? (
         <table border="1" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
           <thead>

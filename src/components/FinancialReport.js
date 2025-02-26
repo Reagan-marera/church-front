@@ -5,36 +5,38 @@ import AssetTransactions from './AssetTransactions'; // Import the Asset Transac
 import LiabilityTransactions from './LiabilityTransactions'; // Import the Liability Transactions component
 import NetAssets from './NetAssets'; // Import the Net Assets component
 import RevenueTransactions from './RevenueTransactions'; // Import the Revenue Transactions component
+import CashTransactions from './CashandCash'; // Import the Cash and Cash Transactions component
 
 const FinancialStatements = () => {
   return (
     <div className="financial-statements">
       <h1>Financial Statements Overview</h1>
       
-     
-      
-      
-      
       <div className="statement-section">
         <h2>Expense Transactions</h2>
         <ExpenseTransactions />
       </div>
+
+      <div className="statement-section">
+        <h2>Cash and Cash</h2>
+        <CashTransactions />
+      </div> {/* Correct closing div for CashTransactions */}
       
       <div className="statement-section">
         <h2>Asset Transactions</h2>
         <AssetTransactions />
       </div>
-      
+
       <div className="statement-section">
         <h2>Liability Transactions</h2>
         <LiabilityTransactions />
       </div>
-      
+
       <div className="statement-section">
         <h2>Net Assets</h2>
         <NetAssets />
       </div>
-      
+
       <div className="statement-section">
         <h2>Revenue Transactions</h2>
         <RevenueTransactions />

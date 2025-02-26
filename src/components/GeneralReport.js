@@ -3,6 +3,7 @@ import AccountsTransactions from './AccountsTransactions';
 import IncomeStatement from './IncomeStatement';
 import Trial from './Trial';
 import './trialbalance.css'; // Import the CSS file for styling
+import TrialBalance from './TrialBalance'; // Ensure this is used or adjust accordingly
 
 const FinancialOverview = () => {
   const [activeTab, setActiveTab] = useState('AccountsTransactions'); // Default tab
@@ -13,7 +14,9 @@ const FinancialOverview = () => {
         return <AccountsTransactions />;
       case 'IncomeStatement':
         return <IncomeStatement />;
-      case 'Trial':
+      case 'TrialBalance': // Fixed this to match the correct component name
+        return <TrialBalance />;
+      case 'Trial': // This is correctly linked to the Trial component
         return <Trial />;
       default:
         return <AccountsTransactions />;
@@ -32,8 +35,9 @@ const FinancialOverview = () => {
       {/* Tabs for Navigation */}
       <div className="tabs">
         <button onClick={() => setActiveTab('AccountsTransactions')}>Notes</button>
-        <button onClick={() => setActiveTab('IncomeStatement')}>Trial Balance</button>
-        <button onClick={() => setActiveTab('Trial')}>Income Statement</button>
+        <button onClick={() => setActiveTab('TrialBalance')}>Trial Balance</button> {/* Corrected the label */}
+        <button onClick={() => setActiveTab('IncomeStatement')}>Income Statement</button> {/* Corrected the label */}
+        <button onClick={() => setActiveTab('Trial')}>Trial</button> {/* If you want to show Trial component */}
       </div>
 
       {/* Component content based on active tab */}

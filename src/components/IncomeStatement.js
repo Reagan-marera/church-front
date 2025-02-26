@@ -31,10 +31,10 @@ const IncomeStatement = () => {
   if (error) {
     return <div>Error: {error.message}</div>;
   }
-
+// uses income route interchange
   return (
     <div>
-      <h1>Income Statement</h1>
+      <h1>Trial Balance</h1>
       {incomeData && Object.keys(incomeData).length > 0 ? (
         <table border="1" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
           <thead>

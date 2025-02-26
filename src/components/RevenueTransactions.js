@@ -70,18 +70,18 @@ const RevenueTransactions = () => {
   const handleSearch = (e) => {
     const account = e.target.value;
     setSearchAccount(account);
-
+  
     if (account) {
       const filtered = combinedData.filter((item) =>
-        item.credited_account.toLowerCase().includes(account.toLowerCase()) ||
-        item.parent_account.toLowerCase().includes(account.toLowerCase()) // Include parent account in search
+        (item.credited_account && item.credited_account.toLowerCase().includes(account.toLowerCase())) || 
+        (item.parent_account && item.parent_account.toLowerCase().includes(account.toLowerCase())) // Check if parent_account exists
       );
       setFilteredData(filtered);
     } else {
       setFilteredData(combinedData); // Reset to all data if search is empty
     }
   };
-// Calculate total DR and CR amounts
+  
 const totalDR = filteredData.reduce((sum, item) => sum + (Number(item.dr_amount) || 0), 0);
 const totalCR = filteredData.reduce((sum, item) => sum + (Number(item.cr_amount) || 0), 0);
 const closingBalance = totalCR - totalDR; // Closing balance calculation

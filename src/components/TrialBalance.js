@@ -1,99 +1,97 @@
-import React, { useEffect, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Typography,
-  CircularProgress,
-  Box,
-} from "@mui/material";
-import "./trialbalance.css";
+import React, { useState, useEffect } from 'react';
+import './trialbalance.css';
 
 const TrialBalance = () => {
-  const [trialBalance, setTrialBalance] = useState([]);
+  // State to store trial balance data and loading state
+  const [trialBalance, setTrialBalance] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch trial balance data from the backend
-  useEffect(() => {
-    const fetchTrialBalance = async () => {
-      try {
-        const response = await fetch("http://127.0.0.1:5000/trial-balance");
-        if (!response.ok) {
-          throw new Error("Failed to fetch trial balance data");
-        }
-        const data = await response.json();
-        setTrialBalance(data);
-      } catch (error) {
-        setError(error.message);
-      } finally {
-        setLoading(false);
+  // Function to fetch trial balance data from the server
+  const fetchTrialBalance = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:5000/trial-balance'); // API endpoint for trial balance
+      if (!response.ok) {
+        throw new Error('Failed to fetch trial balance data');
       }
-    };
+      const data = await response.json();
+      setTrialBalance(data);
+      setLoading(false); // Set loading to false once data is loaded
+    } catch (err) {
+      setError(err.message); // Handle any error that occurs during fetching
+      setLoading(false);
+    }
+  };
 
+  // Fetch the trial balance data when the component mounts
+  useEffect(() => {
     fetchTrialBalance();
   }, []);
 
+  // Calculate the totals of debits and credits
+  let totalDebits = 0;
+  let totalCredits = 0;
+
+  // Filter and sum the debits and credits
+  const filteredTrialBalance = Object.keys(trialBalance).filter((noteNumber) => {
+    const { total_debits, total_credits } = trialBalance[noteNumber];
+    if (total_debits > 0 || total_credits > 0) {
+      totalDebits += total_debits;
+      totalCredits += total_credits;
+      return true;
+    }
+    return false;
+  }).reduce((result, noteNumber) => {
+    result[noteNumber] = trialBalance[noteNumber];
+    return result;
+  }, {});
+
+  // Render the component based on loading and error states
   if (loading) {
-    return (
-      <Box className="trial-balance-loading">
-        <CircularProgress />
-      </Box>
-    );
+    return <div>Loading...</div>;
   }
 
   if (error) {
-    return (
-      <Box className="trial-balance-error">
-        <Typography color="error">Error: {error}</Typography>
-      </Box>
-    );
+    return <div>Error: {error}</div>;
   }
 
+  // Render the trial balance data
   return (
-    <Box className="trial-balance-container">
-      <Typography variant="h4" gutterBottom className="trial-balance-title">
-        Trial Balance
-      </Typography>
-      <TableContainer component={Paper} className="trial-balance-table-container">
-        <Table>
-          <TableHead className="trial-balance-table-header">
-            <TableRow>
-              <TableCell className="trial-balance-table-header-cell">Account</TableCell>
-              <TableCell className="trial-balance-table-header-cell" align="right">
-                Total Debits
-              </TableCell>
-              <TableCell className="trial-balance-table-header-cell" align="right">
-                Total Credits
-              </TableCell>
-              <TableCell className="trial-balance-table-header-cell" align="right">
-                Closing Balance
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {trialBalance.map((row, index) => (
-              <TableRow key={index} className="trial-balance-table-row">
-                <TableCell className="trial-balance-table-cell">{row.account}</TableCell>
-                <TableCell className="trial-balance-table-cell" align="right">
-                  {row.total_debits.toFixed(2)}
-                </TableCell>
-                <TableCell className="trial-balance-table-cell" align="right">
-                  {row.total_credits.toFixed(2)}
-                </TableCell>
-                <TableCell className="trial-balance-table-cell" align="right">
-                  {row.closing_balance.toFixed(2)}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
+    <div>
+      <h1>Trial Balance</h1>
+      <table>
+        <thead>
+          <tr>
+            <th className="mose">Note Number</th>
+            <th className="mose">Parent Account</th>
+            <th className="mose">Relevant Accounts</th>
+            <th className="mose">Total Debits</th>
+            <th className="mose">Total Credits</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.keys(filteredTrialBalance).map((noteNumber) => {
+            const { parent_account, relevant_accounts, total_debits, total_credits } = filteredTrialBalance[noteNumber];
+            return (
+              <tr key={noteNumber}>
+                <td>{noteNumber}</td>
+                <td>{parent_account}</td>
+                <td>{relevant_accounts.join(', ')}</td>
+                <td>{total_debits}</td>
+                <td>{total_credits}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan="3" className="mose"><strong>Total</strong></td>
+            <td>{totalDebits}</td>
+            <td>{totalCredits}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   );
 };
 
