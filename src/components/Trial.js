@@ -1,0 +1,73 @@
+import React, { useEffect, useState } from 'react';
+
+const Trial = () => {
+  const [incomeData, setIncomeData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    // Fetch data from the Flask backend
+    fetch('http://127.0.0.1:5000/trial-statement/accounts')
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
+      })
+      .then((data) => {
+        setIncomeData(data);
+        setLoading(false);
+      })
+      .catch((error) => {
+        setError(error);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+
+  return (
+    <div>
+      <h1>Trial Balance</h1>
+      {incomeData && Object.keys(incomeData).length > 0 ? (
+        <table border="1" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th>Note Number</th>
+              <th>Parent Account</th>
+              <th>Relevant Accounts</th>
+             
+              <th>Total Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(incomeData).map(([note, data]) => (
+              <tr key={note}>
+                <td>{note}</td>
+                <td>{data.parent_account}</td>
+                <td>
+  <ul>
+    {data.relevant_accounts.map((account, index) => (
+      <li key={index}>{account}</li>
+    ))}
+  </ul>
+</td>
+                <td>{data.total_amount}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p>No data available.</p>
+      )}
+    </div>
+  );
+};
+
+export default Trial;
