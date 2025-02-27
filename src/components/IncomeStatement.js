@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import './incomestatement.css';
 
 const IncomeStatement = () => {
   const [incomeData, setIncomeData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     // Fetch data from the Flask backend
@@ -24,6 +26,23 @@ const IncomeStatement = () => {
       });
   }, []);
 
+  const handleSearch = (event) => {
+    setSearchQuery(event.target.value.toLowerCase());
+  };
+
+  const filteredData = incomeData
+    ? Object.entries(incomeData).filter(([note, data]) => {
+        const accountNameMatch = data.account_names.some(accountName =>
+          accountName.toLowerCase().includes(searchQuery)
+        );
+        const parentAccountMatch = data.parent_account
+          .toLowerCase()
+          .includes(searchQuery);
+
+        return accountNameMatch || parentAccountMatch;
+      })
+    : [];
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -31,38 +50,40 @@ const IncomeStatement = () => {
   if (error) {
     return <div>Error: {error.message}</div>;
   }
-// uses income route interchange
+
   return (
-    <div>
-      <h1>Trial Balance</h1>
-      {incomeData && Object.keys(incomeData).length > 0 ? (
-        <table border="1" style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th>Note Number</th>
-              <th>Parent Account</th>
-              <th>Relevant Accounts</th>
-             
-              <th>Total Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(incomeData).map(([note, data]) => (
-              <tr key={note}>
-                <td>{note}</td>
-                <td>{data.parent_account}</td>
-                <td>
-  <ul>
-    {data.relevant_accounts.map((account, index) => (
-      <li key={index}>{account}</li>
-    ))}
-  </ul>
-</td>
-                <td>{data.total_amount}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="income-statement-container">
+      <h1>Income Statement</h1>
+      <div className="search-container">
+        <input
+          type="text"
+          className="search-input"
+          placeholder="Search by Account Name or Parent Account..."
+          onChange={handleSearch}
+        />
+      </div>
+
+      {incomeData && filteredData.length > 0 ? (
+        <div className="income-statement-content">
+          {filteredData.map(([note, data]) => (
+            <div className="note-group" key={note}>
+              <div className="parent-account">
+                <h2>{data.parent_account}</h2>
+              </div>
+              {data.account_names.map((accountName, index) => (
+                <div className="account-section" key={index}>
+                  <h3>{accountName}</h3>
+                  <ul>
+                    {data.relevant_accounts.map((account, idx) => (
+                      <li key={idx}>{account}</li>
+                    ))}
+                  </ul>
+                  <div>Total Amount: {data.total_amount}</div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       ) : (
         <p>No data available.</p>
       )}
