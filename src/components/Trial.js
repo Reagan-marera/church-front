@@ -8,24 +8,34 @@ const Trial = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    // Fetch data from the Flask backend for balance statement
-    fetch('http://127.0.0.1:5000/balance-statement/accounts')
-      .then((response) => {
+    const fetchData = async () => {
+      try {
+        // Retrieve the JWT token from local storage or wherever it's stored
+        const token = localStorage.getItem('token');
+
+        const response = await fetch('http://127.0.0.1:5000/balance-statement/accounts', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
         if (!response.ok) {
           throw new Error('Network response was not ok');
         }
-        return response.json();
-      })
-      .then((data) => {
-        setIncomeData(data);
-        setLoading(false);
-      })
-      .catch((error) => {
-        setError(error);
-        setLoading(false);
-      });
-  }, []);
 
+        const data = await response.json();
+        setIncomeData(data);
+      } catch (error) {
+        setError(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
   const handleSearch = (event) => {
     setSearchQuery(event.target.value.toLowerCase());
   };

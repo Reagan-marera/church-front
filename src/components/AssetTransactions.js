@@ -10,10 +10,21 @@ const AssetTransactions = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5000/assettransactions');
+        // Retrieve the JWT token from local storage or wherever it's stored
+        const token = localStorage.getItem('token');
+
+        const response = await fetch('http://127.0.0.1:5000/assettransactions', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
         if (!response.ok) {
           throw new Error('Failed to fetch data');
         }
+
         const data = await response.json();
 
         const combined = [
@@ -190,13 +201,13 @@ const AssetTransactions = () => {
       </table>
 
       {/* Display Total Amounts and Closing Balance */}
-     <i> <div style={styles.totalAmount}>
+      <div style={styles.totalAmount}>
         <div>Total DR: {formatNumber(totalDR)}</div>
         <div>Total CR: {formatNumber(totalCR)}</div>
         <div style={{ fontWeight: 'bold', marginTop: '10px' }}>
           Closing Balance: {formatNumber(closingBalance)}
         </div>
-      </div></i>
+      </div>
     </div>
   );
 };

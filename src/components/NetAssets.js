@@ -11,10 +11,21 @@ const NetAssets = () => {
     // Fetch data from the /net-assets route
     const fetchNetAssets = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5000/net-assets');
+        // Retrieve the JWT token from local storage or wherever it's stored
+        const token = localStorage.getItem('token');
+
+        const response = await fetch('http://127.0.0.1:5000/net-assets', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
         if (!response.ok) {
           throw new Error('Failed to fetch data');
         }
+
         const data = await response.json();
         setNetAssetsData(data);
         setFilteredTransactions(data.transactions); // Initialize filtered transactions
@@ -27,7 +38,6 @@ const NetAssets = () => {
 
     fetchNetAssets();
   }, []);
-
   useEffect(() => {
     // Filter transactions when search term changes
     if (netAssetsData && searchTerm) {

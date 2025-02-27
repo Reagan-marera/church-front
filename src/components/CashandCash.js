@@ -10,10 +10,21 @@ const CashTransactions = () => {
     useEffect(() => {
         const fetchTransactions = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:5000/api/transactions');
+                // Retrieve the JWT token from local storage or wherever it's stored
+                const token = localStorage.getItem('token');
+
+                const response = await fetch('http://127.0.0.1:5000/api/transactions', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
                 if (!response.ok) {
                     throw new Error('Error fetching transactions');
                 }
+
                 const data = await response.json();
                 setTransactions(data.transactions); // Access the `transactions` array
                 setFilteredGroupedAccounts(data.filtered_grouped_accounts); // Access the `filtered_grouped_accounts` array
@@ -37,7 +48,7 @@ const CashTransactions = () => {
 
     return (
         <div className="cash-transactions-container">
-            <h2>CashandCash transactions</h2>
+            <h2>Cash and Cash Transactions</h2>
             <table>
                 <thead>
                     <tr>
@@ -51,9 +62,9 @@ const CashTransactions = () => {
                     {filteredGroupedAccounts.map((account, index) => (
                         <tr key={index}>
                             <td>{account.account_code}</td>
-                            <td>{account.total_debits}</td>
-                            <td>{account.total_credits}</td>
-                            <td>{account.closing_balance}</td>
+                            <td>{account.total_debits.toFixed(2)}</td>
+                            <td>{account.total_credits.toFixed(2)}</td>
+                            <td>{account.closing_balance.toFixed(2)}</td>
                         </tr>
                     ))}
                 </tbody>

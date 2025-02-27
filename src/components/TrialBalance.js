@@ -10,15 +10,26 @@ const TrialBalance = () => {
   // Function to fetch trial balance data from the server
   const fetchTrialBalance = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:5000/trial-balance'); // API endpoint for trial balance
+      // Retrieve the JWT token from local storage or wherever it's stored
+      const token = localStorage.getItem('token');
+
+      const response = await fetch('http://127.0.0.1:5000/trial-balance', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
       if (!response.ok) {
         throw new Error('Failed to fetch trial balance data');
       }
+
       const data = await response.json();
       setTrialBalance(data);
-      setLoading(false); // Set loading to false once data is loaded
     } catch (err) {
       setError(err.message); // Handle any error that occurs during fetching
+    } finally {
       setLoading(false);
     }
   };

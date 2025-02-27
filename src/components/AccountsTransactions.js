@@ -6,19 +6,35 @@ const AccountsTransactions = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Fetch the data from the Flask route
-    fetch('http://127.0.0.1:5000/transactions/accounts')
-      .then((response) => response.json())
-      .then((data) => {
+    const fetchData = async () => {
+      try {
+        // Retrieve the JWT token from local storage or wherever it's stored
+        const token = localStorage.getItem('token');
+
+        const response = await fetch('http://127.0.0.1:5000/transactions/accounts', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error('Error fetching data');
+        }
+
+        const data = await response.json();
         console.log("Data fetched:", data); // Log the data to see what is received
         setNoteGroups(data);
-        setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("Error fetching data:", err); // Log any fetch errors
         setError('Error fetching data');
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchData();
   }, []);
 
   if (loading) {

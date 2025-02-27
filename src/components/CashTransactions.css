@@ -1,34 +1,61 @@
 .cash-transactions-container {
-    padding: 20px;
     font-family: Arial, sans-serif;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #f4f6f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-table {
+.cash-transactions-container h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 2rem;
+    font-family: Georgia, serif;
+    color: #003366;
+}
+
+.cash-transactions-container table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 20px;
+    margin-top: 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
 }
 
-th, td {
-    border: 1px solid #ddd;
-    padding: 8px;
+.cash-transactions-container th,
+.cash-transactions-container td {
+    padding: 12px 15px;
     text-align: left;
 }
 
-th {
-    background-color: #f4f4f4;
+.cash-transactions-container th {
+    background-color: #003366;
+    color: white;
+    font-weight: bold;
 }
 
-tr:nth-child(even) {
-    background-color: #f9f9f9;
+.cash-transactions-container tr:nth-child(even) {
+    background-color: #f7f7f7;
+}
+
+.cash-transactions-container tr:nth-child(odd) {
+    background-color: #ffffff;
 }
 
 .loading, .error {
-    padding: 20px;
     text-align: center;
-    font-size: 18px;
+    font-size: 1.5rem;
+    margin-top: 20px;
+}
+
+.loading {
+    color: #007BFF;
 }
 
 .error {
-    color: red;
+    color: #FF0000;
 }

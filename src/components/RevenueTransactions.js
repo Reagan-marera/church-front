@@ -2,22 +2,30 @@ import React, { useEffect, useState } from 'react';
 
 const RevenueTransactions = () => {
   const [combinedData, setCombinedData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
+  const [searchAccount, setSearchAccount] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchAccount, setSearchAccount] = useState('');
 
   useEffect(() => {
-    // Fetch data from the /revenuetransactions route
     const fetchData = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:5000/revenuetransactions');
+        // Retrieve the JWT token from local storage or wherever it's stored
+        const token = localStorage.getItem('token');
+
+        const response = await fetch('http://127.0.0.1:5000/revenuetransactions', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
         if (!response.ok) {
           throw new Error('Failed to fetch data');
         }
+
         const data = await response.json();
 
-        // Combine and normalize data
         const combined = [
           ...data.cash_receipts.map((cr) => ({
             type: 'Cash Receipt',
@@ -26,9 +34,9 @@ const RevenueTransactions = () => {
             from: cr.from_whom_received,
             description: cr.description,
             credited_account: cr.account_credited,
-            parent_account: cr.parent_account, // Include parent account
-            dr_amount: 0, // No DR amount for cash receipt
-            cr_amount: cr.total || 0, // All amounts are in CR, ensure it's a number
+            parent_account: cr.parent_account,
+            dr_amount: 0,
+            cr_amount: cr.total || 0,
           })),
           ...data.invoices_issued.map((inv) => ({
             type: 'Invoice Issued',
@@ -37,9 +45,9 @@ const RevenueTransactions = () => {
             from: inv.name,
             description: inv.description,
             credited_account: inv.account_credited,
-            parent_account: inv.parent_account, // Include parent account
-            dr_amount: 0, // No DR amount for invoices issued
-            cr_amount: inv.amount || 0, // All amounts are in CR, ensure it's a number
+            parent_account: inv.parent_account,
+            dr_amount: 0,
+            cr_amount: inv.amount || 0,
           })),
           ...data.transactions.map((txn) => ({
             type: 'Transaction',
@@ -48,14 +56,13 @@ const RevenueTransactions = () => {
             from: txn.debited_account_name,
             description: txn.description,
             credited_account: txn.credited_account_name,
-            parent_account: txn.parent_account, // Include parent account
-            dr_amount: 0, // No DR amount for transactions
-            cr_amount: txn.amount_debited || 0, // All amounts are in CR, ensure it's a number
+            parent_account: txn.parent_account,
+            dr_amount: 0,
+            cr_amount: txn.amount_debited || 0,
           })),
         ];
 
         setCombinedData(combined);
-        setFilteredData(combined); // Initialize filtered data with all data
       } catch (error) {
         setError(error.message);
       } finally {
@@ -66,26 +73,18 @@ const RevenueTransactions = () => {
     fetchData();
   }, []);
 
-  // Handle search by account
   const handleSearch = (e) => {
-    const account = e.target.value;
-    setSearchAccount(account);
-  
-    if (account) {
-      const filtered = combinedData.filter((item) =>
-        (item.credited_account && item.credited_account.toLowerCase().includes(account.toLowerCase())) || 
-        (item.parent_account && item.parent_account.toLowerCase().includes(account.toLowerCase())) // Check if parent_account exists
-      );
-      setFilteredData(filtered);
-    } else {
-      setFilteredData(combinedData); // Reset to all data if search is empty
-    }
+    setSearchAccount(e.target.value);
   };
-  
-const totalDR = filteredData.reduce((sum, item) => sum + (Number(item.dr_amount) || 0), 0);
-const totalCR = filteredData.reduce((sum, item) => sum + (Number(item.cr_amount) || 0), 0);
-const closingBalance = totalCR - totalDR; // Closing balance calculation
 
+  const filteredData = combinedData.filter((item) =>
+    (item.credited_account && item.credited_account.toLowerCase().includes(searchAccount.toLowerCase())) ||
+    (item.parent_account && item.parent_account.toLowerCase().includes(searchAccount.toLowerCase()))
+  );
+
+  const totalDR = filteredData.reduce((sum, item) => sum + (Number(item.dr_amount) || 0), 0);
+  const totalCR = filteredData.reduce((sum, item) => sum + (Number(item.cr_amount) || 0), 0);
+  const closingBalance = totalCR - totalDR;
 
   const formatNumber = (num) => {
     if (num === 0 || !num) return "0.00";
@@ -104,7 +103,6 @@ const closingBalance = totalCR - totalDR; // Closing balance calculation
     <div style={styles.container}>
       <h1 style={styles.header}>Revenue Transactions</h1>
 
-      {/* Search by Account */}
       <div style={styles.searchContainer}>
         <input
           type="text"
@@ -115,7 +113,6 @@ const closingBalance = totalCR - totalDR; // Closing balance calculation
         />
       </div>
 
-      {/* Display Combined Data in One Table */}
       <table style={styles.table}>
         <thead>
           <tr style={styles.tableHeader}>
@@ -140,14 +137,13 @@ const closingBalance = totalCR - totalDR; // Closing balance calculation
               <td>{item.description}</td>
               <td>{item.credited_account}</td>
               <td>{item.parent_account}</td>
-              <td>{formatNumber(item.dr_amount)}</td> {/* DR Amount */}
-              <td>{formatNumber(item.cr_amount)}</td> {/* CR Amount */}
+              <td>{formatNumber(item.dr_amount)}</td>
+              <td>{formatNumber(item.cr_amount)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Display Total Amounts and Closing Balance */}
       <div style={styles.totalAmount}>
         <div>Total DR: {formatNumber(totalDR)}</div>
         <div>Total CR: {formatNumber(totalCR)}</div>
@@ -159,14 +155,13 @@ const closingBalance = totalCR - totalDR; // Closing balance calculation
   );
 };
 
-// Styling
 const styles = {
   container: {
     fontFamily: 'Arial, sans-serif',
     padding: '20px',
     maxWidth: '1200px',
     margin: '0 auto',
-    backgroundColor: '#f4f6f9', // Light gray background
+    backgroundColor: '#f4f6f9',
     borderRadius: '8px',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   },
@@ -175,7 +170,7 @@ const styles = {
     marginBottom: '30px',
     fontSize: '2rem',
     fontFamily: 'Georgia, serif',
-    color: '#003366', // Darker blue for header
+    color: '#003366',
   },
   searchContainer: {
     display: 'flex',
@@ -201,7 +196,7 @@ const styles = {
     overflow: 'hidden',
   },
   tableHeader: {
-    backgroundColor: '#003366', // Dark blue header
+    backgroundColor: '#003366',
     color: 'black',
     textAlign: 'left',
     fontWeight: 'bold',
@@ -218,7 +213,7 @@ const styles = {
     fontWeight: 'bold',
     fontSize: '1.2rem',
     textAlign: 'right',
-    color: '#003366', // Dark blue for total
+    color: '#003366',
     padding: '10px',
     backgroundColor: '#fff',
     borderRadius: '8px',
