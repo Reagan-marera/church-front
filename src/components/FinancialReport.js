@@ -8,10 +8,20 @@ import RevenueTransactions from './RevenueTransactions'; // Import the Revenue T
 import CashTransactions from './CashandCash'; // Import the Cash and Cash Transactions component
 
 const FinancialStatements = () => {
+  // Function to trigger the print functionality
+  const handlePrint = () => {
+    window.print();  // This will open the browser's print dialog
+  };
+
   return (
     <div className="financial-statements">
       <h1>Financial Statements Overview</h1>
-      
+
+      {/* Print Button */}
+      <button onClick={handlePrint} className="btn btn-primary">
+        Print
+      </button>
+
       <div className="statement-section">
         <h2>Expense Transactions</h2>
         <ExpenseTransactions />
@@ -20,8 +30,8 @@ const FinancialStatements = () => {
       <div className="statement-section">
         <h2>Cash and Cash</h2>
         <CashTransactions />
-      </div> {/* Correct closing div for CashTransactions */}
-      
+      </div>
+
       <div className="statement-section">
         <h2>Asset Transactions</h2>
         <AssetTransactions />

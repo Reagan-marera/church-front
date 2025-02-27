@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import './incomestatement.css'; // Reusing the same styling as before
+import './incomestatement.css';
 
-const Trial = () => {
+const IncomeStatement = () => {
   const [incomeData, setIncomeData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,6 +36,7 @@ const Trial = () => {
 
     fetchData();
   }, []);
+
   const handleSearch = (event) => {
     setSearchQuery(event.target.value.toLowerCase());
   };
@@ -77,20 +78,30 @@ const Trial = () => {
         <div className="income-statement-content">
           {filteredData.map(([note, data]) => (
             <div className="note-group" key={note}>
+              {/* Display account names as the heading */}
               <div className="parent-account">
-                <h2>{data.parent_account}</h2>
+                <h2>{data.account_names.join(', ')}</h2>
               </div>
-              {data.account_names.map((accountName, index) => (
-                <div className="account-section" key={index}>
-                  <h3>{accountName}</h3>
-                  <ul>
-                    {data.relevant_accounts.map((account, idx) => (
-                      <li key={idx}>{account}</li>
-                    ))}
-                  </ul>
-                  <div>Total Amount: {data.total_amount}</div>
-                </div>
-              ))}
+
+              {/* Table to display the data */}
+              <table className="income-table">
+                <thead>
+                  <tr>
+                    <th>Parent Account</th>
+                    <th>Note Number</th>
+                  
+                    <th>Total Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{data.parent_account}</td>
+                    <td>{note}</td>
+                   
+                    <td>{data.total_amount}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           ))}
         </div>
@@ -101,4 +112,4 @@ const Trial = () => {
   );
 };
 
-export default Trial;
+export default IncomeStatement;
