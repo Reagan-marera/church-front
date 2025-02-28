@@ -11,7 +11,7 @@
 /* Title styles */
 h1 {
   text-align: center;
-  color: #2c3e50;
+  color: #fefeff;
   margin-bottom: 20px;
 }
 
@@ -81,7 +81,7 @@ h1 {
 
 /* Header row */
 .balance-sheet-table th {
-  background-color: #2c3e50; /* Dark background for header */
+  background-color: #ffffff; /* Dark background for header */
   color: white;
   font-weight: bold;
   text-transform: uppercase;
@@ -150,25 +150,25 @@ h1 {
 /* Optional: Add styling for the Account Type rows in different colors */
 .asset-row {
   background-color: #3498db; /* Blue for Assets */
-  color: white;
+  color: rgb(0, 0, 0);
 }
 
 .liability-row {
   background-color: #e74c3c; /* Red for Liabilities */
-  color: white;
+  color: rgb(0, 0, 0);
 }
 
 .equity-row {
   background-color: #2ecc71; /* Green for Equity */
-  color: white;
+  color: rgb(0, 0, 0);
 }
 
 .revenue-row {
   background-color: #f39c12; /* Yellow for Revenue */
-  color: white;
+  color: rgb(0, 0, 0);
 }
 
 .expense-row {
   background-color: #9b59b6; /* Purple for Expenses */
-  color: white;
+  color: rgb(0, 0, 0);
 }
