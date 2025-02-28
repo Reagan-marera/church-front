@@ -94,7 +94,7 @@ const TrialBalance = () => {
         </tbody>
         <tfoot>
           <tr>
-            <td colSpan="3" className="mose"><strong>Total</strong></td>
+            <td colSpan="2" className="mose"><strong>Total</strong></td>
             <td>{totalDebits}</td>
             <td>{totalCredits}</td>
           </tr>
