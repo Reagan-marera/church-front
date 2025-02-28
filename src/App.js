@@ -25,7 +25,7 @@ import LiabilityTransactions from './components/LiabilityTransactions';
 import NetAssets from './components/NetAssets';
 import TrialBalance from './components/TrialBalance';
 import AccountsTransactions from './components/AccountsTransactions';
-import IncomeStatement from './components/IncomeStatement';
+import Balance from './components/Balance';
 
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
@@ -237,10 +237,10 @@ function App() {
             }
           />
            <Route
-            path="/income-transactions"
+            path="/balance-transactions"
             element={
               
-                <IncomeStatement />
+                <Balance />
               
             }
           />

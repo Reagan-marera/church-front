@@ -73,7 +73,6 @@ const TrialBalance = () => {
       <table>
         <thead>
           <tr>
-            <th className="mose">Note Number</th>
             <th className="mose">Parent Account</th>
             <th className="mose">Relevant Accounts</th>
             <th className="mose">Total Debits</th>
@@ -85,7 +84,6 @@ const TrialBalance = () => {
             const { parent_account, relevant_accounts, total_debits, total_credits } = filteredTrialBalance[noteNumber];
             return (
               <tr key={noteNumber}>
-                <td>{noteNumber}</td>
                 <td>{parent_account}</td>
                 <td>{relevant_accounts.join(', ')}</td>
                 <td>{total_debits}</td>

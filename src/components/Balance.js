@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import './incomestatement.css';
 
-const Trial = () => {
+const Balance = () => {
   const [incomeData, setIncomeData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-// interchanged endpoints for both income and balance
+
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://127.0.0.1:5000/income-statement/accounts', {
+      const response = await fetch('http://127.0.0.1:5000/balance-statement/accounts', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -59,7 +59,7 @@ const Trial = () => {
 
   return (
     <div className="income-statement-container">
-      <h1>Income Statement</h1>
+      <h1>Balance Statement</h1>
       <div className="search-container">
         <input
           type="text"
@@ -78,29 +78,31 @@ const Trial = () => {
               </div>
 
               {/* Table to display the data */}
-              <table className="excel-like-table">
-                <thead>
-                  <tr>
-                    <th>Parent Account</th>
-                    <th>Note Number</th>
-                    <th>Total Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.parent_accounts.map((parentAccount, index) => (
-                    <tr key={index}>
-                      <td>{parentAccount}</td>
-                      <td>{data.notes[index]}</td>
-                      {/* Display the total amount only in the first row */}
-                      {index === 0 ? (
-                        <td rowSpan={data.parent_accounts.length}>
-                          {data.total_amount}
-                        </td>
-                      ) : null}
+              <div className="tables-container">
+                <table className="excel-like-table">
+                  <thead>
+                    <tr>
+                      <th>Parent Account</th>
+                      <th>Note Number</th>
+                      <th>Total Amount</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {data.parent_accounts.map((parentAccount, index) => (
+                      <tr key={index}>
+                        <td>{parentAccount}</td>
+                        <td>{data.notes[index]}</td>
+                        {/* Display the total amount only in the first row */}
+                        {index === 0 ? (
+                          <td rowSpan={data.parent_accounts.length}>
+                            {data.total_amount}
+                          </td>
+                        ) : null}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ))}
         </div>
@@ -111,4 +113,4 @@ const Trial = () => {
   );
 };
 
-export default Trial;
+export default Balance;

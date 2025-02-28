@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import AccountsTransactions from './AccountsTransactions';
-import IncomeStatement from './IncomeStatement';
+import IncomeStatement from './Balance';
 import Trial from './Trial';
 import './trialbalance.css'; // Import the CSS file for styling
 import TrialBalance from './TrialBalance'; // Ensure this is used or adjust accordingly
@@ -36,8 +36,8 @@ const FinancialOverview = () => {
       <div className="tabs">
         <button onClick={() => setActiveTab('AccountsTransactions')}>Notes</button>
         <button onClick={() => setActiveTab('TrialBalance')}>Trial Balance</button> {/* Corrected the label */}
-        <button onClick={() => setActiveTab('IncomeStatement')}>Income Statement</button> {/* Corrected the label */}
-        <button onClick={() => setActiveTab('Trial')}>Trial</button> {/* If you want to show Trial component */}
+        <button onClick={() => setActiveTab('IncomeStatement')}>Balance sheet</button> {/* Corrected the label */}
+        <button onClick={() => setActiveTab('Trial')}>Income Statement</button> {/* If you want to show Trial component */}
       </div>
 
       {/* Component content based on active tab */}

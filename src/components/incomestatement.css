@@ -1,94 +1,49 @@
-/* IncomeStatement.css */
-
-/* Container for the entire income statement */
+/* General container styling */
 .income-statement-container {
-  font-family: Arial, sans-serif;
   padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
+  font-family: Arial, sans-serif;
 }
 
-/* Search input field */
+/* Search input styling */
 .search-container {
   margin-bottom: 20px;
-  text-align: right;
 }
 
 .search-input {
+  width: 100%;
   padding: 10px;
   font-size: 16px;
-  width: 300px;
-  border-radius: 5px;
   border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
-/* Styling for the overall content */
-.income-statement-content {
-  margin-top: 20px;
-}
-
-.note-group {
-  margin-bottom: 40px;
-  padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  background-color: #f9f9f9;
-}
-
-.parent-account {
-  margin-bottom: 10px;
-}
-
-.parent-account h2 {
-  font-size: 20px;
-  font-weight: bold;
-}
-
-.account-section {
-  margin-left: 20px;
-}
-
-.account-section h3 {
-  font-size: 18px;
-  font-weight: normal;
-  color: #333;
-  margin-bottom: 10px;
-}
-
-.account-section ul {
-  list-style-type: disc;
-  padding-left: 20px;
-}
-
-.account-section li {
-  font-size: 14px;
-  color: #555;
-}
-
-.account-section div {
+/* Table styling */
+.excel-like-table {
+  width: 100%;
+  border-collapse: collapse; /* Ensures thin borders */
   margin-top: 10px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
 }
 
-/* Responsive styling for smaller screens */
-@media (max-width: 768px) {
-  .income-statement-content {
-    margin-left: 10px;
-    margin-right: 10px;
-  }
+.excel-like-table th,
+.excel-like-table td {
+  border: 1px solid #ddd; /* Thin borders for cells */
+  padding: 8px;
+  text-align: left;
+}
 
-  .income-statement-container h1 {
-    font-size: 22px;
-  }
+.excel-like-table th {
+  background-color: #000000; /* Light gray background for headers */
+  font-weight: bold;
+}
 
-  .income-statement-table th,
-  .income-statement-table td {
-    padding: 10px;
-  }
+.excel-like-table tr:hover {
+  background-color: #131212; /* Hover effect for rows */
+}
 
-  .search-input {
-    width: 100%;
-  }
+/* Heading styling */
+.parent-account h2 {
+  margin-top: 20px;
+  margin-bottom: 10px;
+  font-size: 18px;
+  color: #f5f4f4;
 }
