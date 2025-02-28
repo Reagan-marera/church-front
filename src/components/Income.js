@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const BalanceStatement = () => {
+const Incomestatement = () => {
   const [balanceData, setBalanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -9,7 +9,7 @@ const BalanceStatement = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://127.0.0.1:5000/balance-statement/accounts', {
+        const response = await fetch('http://127.0.0.1:5000/income-statement/accounts', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -43,7 +43,7 @@ const BalanceStatement = () => {
 
   return (
     <div className="balance-statement-container">
-      <h1>Balance Statement</h1>
+      <h1>Income Statement </h1>
       {Object.entries(balanceData).map(([accountName, data]) => (
         <div key={accountName} className="account-group">
           <h2>{accountName}</h2>
@@ -83,4 +83,4 @@ const BalanceStatement = () => {
   );
 };
 
-export default BalanceStatement;
+export default Incomestatement;

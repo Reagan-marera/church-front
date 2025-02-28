@@ -74,9 +74,9 @@ const TrialBalance = () => {
         <thead>
           <tr>
             <th className="mose">Parent Account</th>
-            <th className="mose">Relevant Accounts</th>
-            <th className="mose">Total Debits</th>
-            <th className="mose">Total Credits</th>
+            <th className="mose">Subaccounts</th>
+            <th className="mose"> Debits</th>
+            <th className="mose"> Credits</th>
           </tr>
         </thead>
         <tbody>

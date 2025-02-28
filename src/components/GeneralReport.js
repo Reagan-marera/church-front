@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import AccountsTransactions from './AccountsTransactions';
 import IncomeStatement from './Balance';
-import Trial from './Trial';
+import Trial from './Income';
 import './trialbalance.css'; // Import the CSS file for styling
 import TrialBalance from './TrialBalance'; // Ensure this is used or adjust accordingly
 
