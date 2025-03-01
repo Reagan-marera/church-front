@@ -100,7 +100,7 @@ const AssetTransactions = () => {
             parent_account: txn.parent_account || '', // Default to empty string if undefined
             amount: txn.amount_debited || txn.amount_credited || 0, // Default to 0 if undefined
             dr: txn.amount_debited || 0, // Use DR for Transactions
-            cr: txn.amount_credited || 0, // Use CR for Transactions
+            cr:0, // Use CR for Transactions
           })),
         ];
 

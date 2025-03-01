@@ -86,6 +86,11 @@ const Navbar = () => {
           </span>
           {showTransactions && (
             <ul className="dropdown-menu">
+                 <li>
+                  <Link to="/subaccounts" className="dropdown-link">
+                    <FaBook className="dropdown-icon" /> General Journal
+                  </Link>
+                </li>
               <li>
                 <Link to="/cash-receipt-journal" className="dropdown-link">
                   <FaFileInvoice className="dropdown-icon" /> Cash Receipt Journal
@@ -116,7 +121,7 @@ const Navbar = () => {
         {storedToken && (
           <li>
             <Link to="/financial-report" className="nav-link">
-              <FaChartLine className="nav-icon" /> Financial Report
+              <FaChartLine className="nav-icon" /> General Ledger
             </Link>
           </li>
         )}
@@ -124,7 +129,7 @@ const Navbar = () => {
         {/* General Ledger Accounts Link */}
         <li>
           <Link to="/general-report" className="nav-link">
-            <FaBook className="nav-icon" /> General Ledger Accounts
+            <FaBook className="nav-icon" /> FinancialReport
           </Link>
         </li>
 
@@ -140,11 +145,7 @@ const Navbar = () => {
             </span>
             {showMore && (
               <ul className="dropdown-menu">
-                <li>
-                  <Link to="/subaccounts" className="dropdown-link">
-                    <FaBook className="dropdown-icon" /> Subaccounts
-                  </Link>
-                </li>
+             
                 {storedUserId && (
                   <>
                     <li>

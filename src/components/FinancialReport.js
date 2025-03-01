@@ -15,7 +15,7 @@ const FinancialStatements = () => {
 
   return (
     <div className="financial-statements">
-      <h1>Financial Statements Overview</h1>
+      <h1>General Ledger Report</h1>
 
       {/* Print Button */}
       <button onClick={handlePrint} className="btn btn-primary">

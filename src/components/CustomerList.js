@@ -194,7 +194,7 @@ const CustomerList = () => {
 
       <form onSubmit={handleFormSubmit} style={styles.form}>
         <div style={styles.formGroup}>
-          <label style={styles.label}>Account Type:</label>
+          <label style={styles.label}>Customer Type:</label>
           <input
             type="text"
             name="account_type"
@@ -205,7 +205,7 @@ const CustomerList = () => {
           />
         </div>
         <div style={styles.formGroup}>
-          <label style={styles.label}>Account Class:</label>
+          <label style={styles.label}>customer Class:</label>
           <input
             type="text"
             name="account_name"
@@ -228,7 +228,7 @@ const CustomerList = () => {
         </div>
 
         <div>
-          <h3>Subaccounts</h3>
+          <h3>Customer Details</h3>
           {formData.sub_account_details.map((subAccount, index) => (
             <div key={index} style={styles.formGroup}>
               <label style={styles.label}>Subaccount Name:</label>
@@ -278,10 +278,10 @@ const CustomerList = () => {
       <table style={styles.table}>
         <thead>
           <tr>
-            <th style={styles.tableHeader}>Account Type</th>
-            <th style={styles.tableHeader}>Account Name</th>
-            <th style={styles.tableHeader}>Parent Account</th>
-            <th style={styles.tableHeader}>Sub Account Details</th>
+            <th style={styles.tableHeader}>customer Type</th>
+            <th style={styles.tableHeader}>customer Name</th>
+            <th style={styles.tableHeader}>General Ledger</th>
+            <th style={styles.tableHeader}>Customer Details</th>
             <th style={styles.tableHeader}>Actions</th>
           </tr>
         </thead>
@@ -419,8 +419,9 @@ const styles = {
     padding: '12px',
     border: '1px solid #ddd',
     textAlign: 'left',
-    color: '#333',
+    color: 'black',
     fontWeight: 'normal',
+    backgroundColor: 'white',
   },
   tableRow: {
     backgroundColor: '#fff',

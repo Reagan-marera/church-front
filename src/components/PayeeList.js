@@ -200,7 +200,7 @@ const PayeeList = () => {
 
       <form onSubmit={handleFormSubmit} style={styles.form}>
         <div style={styles.formGroup}>
-          <label style={styles.label}>Account Type:</label>
+          <label style={styles.label}>Payee Type:</label>
           <input
             type="text"
             name="account_type"
@@ -211,7 +211,7 @@ const PayeeList = () => {
           />
         </div>
         <div style={styles.formGroup}>
-          <label style={styles.label}>Account Class:</label>
+          <label style={styles.label}>Payee Class:</label>
           <input
             type="text"
             name="account_name"
@@ -234,7 +234,7 @@ const PayeeList = () => {
         </div>
 
         <div>
-          <h3>Subaccounts</h3>
+          <h3>Payee Details</h3>
           {formData.sub_account_details.map((subAccount, index) => (
             <div key={index} style={styles.formGroup}>
               <div style={styles.formGroup}>
@@ -269,10 +269,10 @@ const PayeeList = () => {
       <table style={styles.table}>
         <thead>
           <tr>
-            <th style={styles.tableHeader}>Account Type</th>
-            <th style={styles.tableHeader}>Account Class</th>
+            <th style={styles.tableHeader}>Payee Type</th>
+            <th style={styles.tableHeader}>Payee Class</th>
             <th style={styles.tableHeader}>General Ledger</th>
-            <th style={styles.tableHeader}>Sub Account Details</th>
+            <th style={styles.tableHeader}>Payee Details</th>
             <th style={styles.tableHeader}>Actions</th>
           </tr>
         </thead>
@@ -314,7 +314,13 @@ const PayeeList = () => {
 const styles = {
   container: {
     padding: '20px',
-    fontFamily: 'Arial Black, Impact, sans-serif',
+    fontFamily: 'Arial, sans-serif',
+  },
+  heading: {
+    fontSize: '24px',
+    marginBottom: '20px',
+    fontWeight: 'bold',
+    color: '#003366',
   },
   form: {
     marginBottom: '20px',
@@ -324,84 +330,92 @@ const styles = {
   },
   label: {
     fontWeight: 'bold',
-    color: 'blue',
+    color: '#003366',
   },
   input: {
     width: '100%',
     padding: '12px',
     marginTop: '5px',
     borderRadius: '6px',
-    border: '1px solid #333',
-    backgroundColor: '#f0f0f0',
-    fontFamily: 'Arial Black, Impact, sans-serif',
+    border: '1px solid #003366',
+    backgroundColor: '#f4f6f9',
+    color: '#333',
     fontWeight: 'bold',
-    color: 'black',
   },
   addButton: {
-    backgroundColor: 'blue',
+    backgroundColor: '#003366', 
     color: 'white',
-    padding: '10px 15px',
+    padding: '12px 18px',
     border: 'none',
     cursor: 'pointer',
-    marginTop: '10px',
     fontWeight: 'bold',
+    borderRadius: '5px',
+    marginTop: '10px',
+    transition: 'all 0.3s ease',
   },
   removeButton: {
     backgroundColor: '#e53935',
     color: 'white',
-    padding: '5px 10px',
+    padding: '8px 15px',
     border: 'none',
     cursor: 'pointer',
-    marginTop: '10px',
     fontWeight: 'bold',
+    borderRadius: '5px',
+    transition: 'all 0.3s ease',
   },
   button: {
-    backgroundColor: 'green',
+    backgroundColor: '#007bff',
     color: 'white',
-    padding: '10px 15px',
+    padding: '12px 18px',
     border: 'none',
     cursor: 'pointer',
     fontWeight: 'bold',
-    marginBottom: '5px',
+    borderRadius: '5px',
+    transition: 'background-color 0.3s, transform 0.2s',
   },
   editButton: {
-    backgroundColor: 'orange',
+    backgroundColor: '#ffbb33',
     color: 'white',
-    padding: '10px 15px',
+    padding: '12px 18px',
     border: 'none',
     cursor: 'pointer',
     fontWeight: 'bold',
-    marginBottom: '5px',
+    borderRadius: '5px',
+    transition: 'background-color 0.3s, transform 0.2s',
+  },
+  deleteButton: {
+    backgroundColor: '#e53935',
+    color: 'white',
+    padding: '12px 18px',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    borderRadius: '5px',
+    transition: 'background-color 0.3s, transform 0.2s',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
     marginTop: '20px',
-    fontFamily: 'Arial Black, Impact, sans-serif',
+    fontFamily: 'Arial, sans-serif',
   },
   tableHeader: {
     backgroundColor: '#003366',
+    color: 'white',
     padding: '12px',
     textAlign: 'left',
-    color: 'white',
     fontWeight: 'bold',
   },
   tableCell: {
     padding: '12px',
-    border: '1px solid #333',
+    border: '1px solid #ddd',
+    textAlign: 'left',
     color: 'black',
-    borderRadius: '5px',
-  },
-  tableRow: {
+    fontWeight: 'normal',
     backgroundColor: 'white',
   },
-  deleteButton: {
-    backgroundColor: '#e53935',
-    color: 'white',
-    padding: '5px 10px',
-    border: 'none',
-    cursor: 'pointer',
-    fontWeight: 'bold',
+  tableRow: {
+    backgroundColor: '#fff',
   },
   loader: {
     textAlign: 'center',
@@ -411,34 +425,23 @@ const styles = {
   },
 };
 
-// Changing colors animation
+// Smooth Hover Animation
 const style = document.createElement('style');
 style.innerHTML = `
-  .color-changing-words {
-    font-size: 2rem;
-    font-weight: bold;
-    animation: colorChange 5s infinite;
-    color: #003A5C; /* Initial color */
+  .button:hover,
+  .removeButton:hover,
+  .editButton:hover,
+  .deleteButton:hover {
+    transform: scale(1.05);
   }
 
-  @keyframes colorChange {
-    0% {
-      color: #003A5C; /* Dark Blue */
-    }
-    25% {
-      color: #0071BC; /* Blue */
-    }
-    50% {
-      color: blue; /* Light Blue */
-    }
-    75% {
-      color: red; /* Red */
-    }
-    100% {
-      color: black; /* black */
-    }
+  .button:focus,
+  .removeButton:focus,
+  .editButton:focus,
+  .deleteButton:focus {
+    outline: none;
+    box-shadow: 0 0 5px 2px rgba(0, 123, 255, 0.6);
   }
 `;
 document.head.appendChild(style);
-
 export default PayeeList;

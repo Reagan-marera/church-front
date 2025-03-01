@@ -3,12 +3,12 @@ import './AccountSelection.css';
 
 const AccountSelection = () => {
   const [accounts, setAccounts] = useState([]);
-  const [selectedCreditedAccount, setSelectedCreditedAccount] = useState(null);
-  const [selectedDebitedAccount, setSelectedDebitedAccount] = useState(null);
+  const [selectedCreditedAccount, setSelectedCreditedAccount] = useState('');
+  const [selectedDebitedAccount, setSelectedDebitedAccount] = useState('');
   const [amountCredited, setAmountCredited] = useState('');
   const [amountDebited, setAmountDebited] = useState('');
   const [description, setDescription] = useState('');
-  const [dateIssued, setDateIssued] = useState(''); // Add dateIssued state
+  const [dateIssued, setDateIssued] = useState('');
   const [transactions, setTransactions] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -76,20 +76,31 @@ const AccountSelection = () => {
       setAmountCredited(transaction.amount_credited || '');
       setAmountDebited(transaction.amount_debited || '');
       setDescription(transaction.description || '');
-      setDateIssued(transaction.date_issued || ''); // Set dateIssued when editing
+      setDateIssued(transaction.date_issued || '');
       setCurrentTransactionId(transaction.id);
       setIsEditing(true);
     }
   };
 
-  // Function to check for duplicate transaction
   const isDuplicateTransaction = () => {
     return transactions.some(transaction =>
       transaction.credited_account_name === selectedCreditedAccount &&
       transaction.debited_account_name === selectedDebitedAccount &&
       transaction.amount_credited === parseFloat(amountCredited) &&
-      transaction.amount_debited === parseFloat(amountDebited)
+      transaction.amount_debited === parseFloat(amountDebited) &&
+      transaction.date_issued === dateIssued
     );
+  };
+
+  const clearForm = () => {
+    setSelectedCreditedAccount('');
+    setSelectedDebitedAccount('');
+    setAmountCredited('');
+    setAmountDebited('');
+    setDescription('');
+    setDateIssued('');
+    setIsEditing(false);
+    setCurrentTransactionId(null);
   };
 
   const handleSubmit = async (e) => {
@@ -97,19 +108,19 @@ const AccountSelection = () => {
 
     if (!amountCredited || !amountDebited || isNaN(amountCredited) || isNaN(amountDebited)) {
       setSuccessMessage("Please enter valid amounts for credited and debited accounts.");
-      setTimeout(() => setSuccessMessage(''), 3000);  // Clear message after 3 seconds
+      setTimeout(() => setSuccessMessage(''), 3000);
       return;
     }
 
     if (!dateIssued) {
       setSuccessMessage("Please enter a valid date.");
-      setTimeout(() => setSuccessMessage(''), 3000);  // Clear message after 3 seconds
+      setTimeout(() => setSuccessMessage(''), 3000);
       return;
     }
 
     if (isDuplicateTransaction()) {
       setSuccessMessage("This transaction already exists.");
-      setTimeout(() => setSuccessMessage(''), 3000);  // Clear message after 3 seconds
+      setTimeout(() => setSuccessMessage(''), 3000);
       return;
     }
 
@@ -119,7 +130,7 @@ const AccountSelection = () => {
       amountCredited: parseFloat(amountCredited),
       amountDebited: parseFloat(amountDebited),
       description,
-      dateIssued, // Include dateIssued in the transaction data
+      dateIssued,
     };
 
     if (isEditing && !currentTransactionId) {
@@ -141,22 +152,25 @@ const AccountSelection = () => {
       if (response.ok) {
         const data = await response.json();
         setSuccessMessage(data.message);
-        setIsEditing(false);
-        setCurrentTransactionId(null);
-        const updatedTransactions = isEditing
-          ? transactions.map((transaction) =>
-              transaction.id === currentTransactionId ? { ...transaction, ...transactionData } : transaction
-            )
-          : [...transactions, data.transaction];
 
-        setTransactions(updatedTransactions);
+        if (isEditing) {
+          // Update the existing transaction in the state
+          setTransactions(transactions.map(transaction =>
+            transaction.id === currentTransactionId ? { ...transaction, ...transactionData } : transaction
+          ));
+        } else {
+          // Add the new transaction to the state
+          setTransactions([...transactions, { id: data.transactionId, ...transactionData }]);
+        }
+
+        clearForm();
       } else {
         throw new Error('Failed to submit or update transaction');
       }
     } catch (error) {
       console.error('Error:', error);
       setSuccessMessage("Failed to submit or update transaction. Please try again.");
-      setTimeout(() => setSuccessMessage(''), 3000);  // Clear message after 3 seconds
+      setTimeout(() => setSuccessMessage(''), 3000);
     }
   };
 
@@ -169,8 +183,8 @@ const AccountSelection = () => {
       if (response.ok) {
         const data = await response.json();
         setSuccessMessage(data.message);
-        const updatedTransactions = transactions.filter(t => t.id !== id);
-        setTransactions(updatedTransactions);
+        // Remove the deleted transaction from the state
+        setTransactions(transactions.filter(t => t.id !== id));
       } else {
         throw new Error('Failed to delete transaction');
       }
@@ -196,7 +210,7 @@ const AccountSelection = () => {
               account?.subaccounts?.map((subaccount) => (
                 subaccount?.id ? (
                   <option key={subaccount?.id} value={subaccount?.name}>
-                    {subaccount?.name} ({account?.type})
+                    {subaccount?.name} 
                   </option>
                 ) : null
               ))
@@ -214,7 +228,7 @@ const AccountSelection = () => {
               account?.subaccounts?.map((subaccount) => (
                 subaccount?.id ? (
                   <option key={subaccount?.id} value={subaccount?.name}>
-                    {subaccount?.name} ({account?.type})
+                    {subaccount?.name} 
                   </option>
                 ) : null
               ))
@@ -245,7 +259,7 @@ const AccountSelection = () => {
         </div>
 
         <div className="form-field">
-          <label className="form-label">Date Issued</label>
+          <label className="form-label">Date </label>
           <input
             type="date"
             value={dateIssued}
@@ -280,7 +294,7 @@ const AccountSelection = () => {
             <th>Debited Account</th>
             <th>Amount Credited</th>
             <th>Amount Debited</th>
-            <th>Date Issued</th> {/* Add Date Issued column */}
+            <th>Date Issued</th>
             <th>Description</th>
             <th>Actions</th>
           </tr>
@@ -291,9 +305,9 @@ const AccountSelection = () => {
               <tr key={transaction?.id}>
                 <td>{transaction?.credited_account_name || "N/A"}</td>
                 <td>{transaction?.debited_account_name || "N/A"}</td>
-                <td>{transaction?.amount_credited || "N/A"}</td>
-                <td>{transaction?.amount_debited || "N/A"}</td>
-                <td>{transaction?.date_issued || "N/A"}</td> {/* Display Date Issued */}
+                <td>{transaction?.amount_credited || "0"}</td>
+                <td>{transaction?.amount_debited || "0"}</td>
+                <td>{transaction?.date_issued || "N/A"}</td>
                 <td>{transaction?.description || "N/A"}</td>
                 <td>
                   <button onClick={() => handleEdit(transaction)}>Edit</button>

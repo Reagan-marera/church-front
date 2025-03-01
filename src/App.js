@@ -17,7 +17,7 @@ import GeneralReport from './components/GeneralReport'; // Add the import for Ge
 import CustomerList from './components/CustomerList'; // Import CustomerList
 import PayeeList from './components/PayeeList'; // Import PayeeList
 import InvoiceReceived from './components/InvoiceReceived'; // Import the InvoiceReceived component
-import Subaccounts from './components/Subaccounts ';
+import Subaccounts from './components/GeneralJournal';
 import RevenueTransactions from './components/RevenueTransactions'; // Import the RevenueTransactions component
 import ExpenseTransactions from './components/ExpenseTransactions';
 import AssetTransactions from './components/AssetTransactions';

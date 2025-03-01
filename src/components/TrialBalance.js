@@ -75,28 +75,37 @@ const TrialBalance = () => {
           <tr>
             <th className="mose">Parent Account</th>
             <th className="mose">Subaccounts</th>
-            <th className="mose"> Debits</th>
-            <th className="mose"> Credits</th>
+            <th className="mose">Total Debits</th>
+            <th className="mose">Total Credits</th>
           </tr>
         </thead>
         <tbody>
           {Object.keys(filteredTrialBalance).map((noteNumber) => {
             const { parent_account, relevant_accounts, total_debits, total_credits } = filteredTrialBalance[noteNumber];
             return (
-              <tr key={noteNumber}>
-                <td>{parent_account}</td>
-                <td>{relevant_accounts.join(', ')}</td>
-                <td>{total_debits}</td>
-                <td>{total_credits}</td>
-              </tr>
+              <React.Fragment key={noteNumber}>
+                <tr>
+                  <td rowSpan={Object.keys(relevant_accounts).length + 1}>{parent_account}</td>
+                </tr>
+                {Object.keys(relevant_accounts).map((account) => {
+                  const { amounts, total } = relevant_accounts[account];
+                  return (
+                    <tr key={account}>
+                      <td>{account}</td>
+                      <td>{total_debits > 0 ? total.toFixed(2) : '0.00'}</td>
+                      <td>{total_credits > 0 ? total.toFixed(2) : '0.00'}</td>
+                    </tr>
+                  );
+                })}
+              </React.Fragment>
             );
           })}
         </tbody>
         <tfoot>
           <tr>
             <td colSpan="2" className="mose"><strong>Total</strong></td>
-            <td>{totalDebits}</td>
-            <td>{totalCredits}</td>
+            <td>{totalDebits.toFixed(2)}</td>
+            <td>{totalCredits.toFixed(2)}</td>
           </tr>
         </tfoot>
       </table>
