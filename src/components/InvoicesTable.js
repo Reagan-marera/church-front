@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Select from "react-select"; // Import react-select
 import "./InvoicesTable.css"; // Ensure this file exists for styling
 import { FaEdit, FaTrash } from "react-icons/fa"; // Import icons
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -6,8 +7,8 @@ import {
   faFileInvoiceDollar,
   faMoneyBill,
   faCreditCard,
-  
 } from "@fortawesome/free-solid-svg-icons";
+
 const InvoiceIssued = () => {
   // State for storing form fields
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -29,6 +30,26 @@ const InvoiceIssued = () => {
   // State for customer and chart of accounts data
   const [customers, setCustomers] = useState([]);
   const [chartOfAccounts, setChartOfAccounts] = useState([]);
+
+  // Custom styles for react-select
+  const customStyles = {
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isFocused ? "#e2e8f0" : "white", // Background color on hover
+      color: state.isSelected ? "#4a5568" : "black", // Text color for selected option
+      padding: "10px",
+      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? "bold" : "normal", // Bold matching options
+    }),
+    control: (provided) => ({
+      ...provided,
+      border: "1px solid #cbd5e0",
+      borderRadius: "4px",
+      boxShadow: "none",
+      "&:hover": {
+        borderColor: "#a0aec0",
+      },
+    }),
+  };
 
   // Fetch invoices and other data on component mount
   useEffect(() => {
@@ -124,13 +145,13 @@ const InvoiceIssued = () => {
           (account) =>
             account.sub_account_details &&
             account.sub_account_details.some(
-              (subAccount) => subAccount.name === "1150-Trade Debtors  Control Account"
+              (subAccount) => subAccount.name === "1150- Trade Debtors Control Account"
             )
         );
 
         if (tradeDebtorsAccount) {
           const subAccount = tradeDebtorsAccount.sub_account_details.find(
-            (subAccount) => subAccount.name === "1150-Trade Debtors  Control Account"
+            (subAccount) => subAccount.name === "1150- Trade Debtors Control Account"
           );
           setAccountDebited(subAccount.name);
         } else {
@@ -268,20 +289,30 @@ const InvoiceIssued = () => {
     return revenueSubAccounts.map((subAccount) => subAccount.name);
   };
 
-  // Handle change of selected customer and update related sub-accounts for "Account Debited"
-  const handleCustomerChange = (e) => {
-    const selectedCustomerName = e.target.value;
-    setCustomerName(selectedCustomerName);
-  };
+  // Prepare customer options for react-select
+  const customerOptions = customers.flatMap((customer) =>
+    customer.sub_account_details.map((subAccount) => ({
+      value: subAccount.name,
+      label: subAccount.name,
+    }))
+  );
+
+  // Prepare credited account options for react-select
+  const creditedAccountOptions = getSubAccountNames().map((subAccountName) => ({
+    value: subAccountName,
+    label: subAccountName,
+  }));
 
   return (
     <div className="invoice-issued">
-     <h1 className="head">
+      <h1 className="head">
         <FontAwesomeIcon icon={faFileInvoiceDollar} className="icon" /> Invoice Issued
       </h1>
 
       {/* Toggle to show/hide the form */}
-      <button className="invoice-issued button" onClick={() => setShowForm(true)}>Add New Invoice</button>
+      <button className="invoice-issued button" onClick={() => setShowForm(true)}>
+        Add New Invoice
+      </button>
 
       {/* Modal for the form */}
       {showForm && (
@@ -330,20 +361,18 @@ const InvoiceIssued = () => {
               {/* Customer Name Selection */}
               <div>
                 <label>Customer Name:</label>
-                <select
-                  value={customerName}
-                  onChange={handleCustomerChange}
-                  required
-                >
-                  <option value="">Select Customer</option>
-                  {customers.flatMap((customer) =>
-                    customer.sub_account_details.map((subAccount) => (
-                      <option key={subAccount.id} value={subAccount.name}>
-                        {subAccount.name}
-                      </option>
-                    ))
+                <Select
+                  value={customerOptions.find(
+                    (option) => option.value === customerName
                   )}
-                </select>
+                  onChange={(selectedOption) =>
+                    setCustomerName(selectedOption.value)
+                  }
+                  options={customerOptions}
+                  placeholder="Select Customer"
+                  isSearchable
+                  styles={customStyles}
+                />
               </div>
 
               {/* Account Debited Selection */}
@@ -359,18 +388,18 @@ const InvoiceIssued = () => {
               {/* Account Credited Selection */}
               <div>
                 <label>Account Credited:</label>
-                <select
-                  value={accountCredited}
-                  onChange={(e) => setAccountCredited(e.target.value)}
-                  required
-                >
-                  <option value="">Select Credited Account</option>
-                  {getSubAccountNames().map((subAccountName) => (
-                    <option key={subAccountName} value={subAccountName}>
-                      {subAccountName}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  value={creditedAccountOptions.find(
+                    (option) => option.value === accountCredited
+                  )}
+                  onChange={(selectedOption) =>
+                    setAccountCredited(selectedOption.value)
+                  }
+                  options={creditedAccountOptions}
+                  placeholder="Select Credited Account"
+                  isSearchable
+                  styles={customStyles}
+                />
               </div>
 
               <button type="submit" disabled={loading}>
@@ -381,51 +410,45 @@ const InvoiceIssued = () => {
         </div>
       )}
 
-      {/* Display any error messages */}
-      {error && <div className="error">{error}</div>}
+      {/* Display error messages */}
+      {error && <p className="error">{error}</p>}
 
-      <h2>Invoices List</h2>
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <table className="compact-table">
-          <thead>
-            <tr>
-              <th>Invoice Number</th>
-              <th>Date Issued</th>
-              <th>Description</th>
-              <th>Amount</th>
-              <th>Account Debited</th>
-              <th>Account Credited</th>
-              <th>Customer Name</th>
-              <th>Actions</th>
+      {/* Display invoices in a table */}
+      <table className="invoice-table">
+        <thead>
+          <tr>
+            <th>Invoice Number</th>
+            <th>Date Issued</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Customer Name</th>
+            <th>Account Debited</th>
+            <th>Account Credited</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {invoices.map((invoice) => (
+            <tr key={invoice.id}>
+              <td>{invoice.invoice_number}</td>
+              <td>{invoice.date_issued}</td>
+              <td>{invoice.description}</td>
+              <td>{invoice.amount}</td>
+              <td>{invoice.name}</td>
+              <td>{invoice.account_debited}</td>
+              <td>{invoice.account_credited}</td>
+              <td>
+                <button onClick={() => handleUpdate(invoice)}>
+                  <FaEdit /> Edit
+                </button>
+                <button onClick={() => handleDelete(invoice.id)}>
+                  <FaTrash /> Delete
+                </button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {invoices.length > 0 ? (
-              invoices.map((invoice) => (
-                <tr key={invoice.id}>
-                  <td>{invoice.invoice_number}</td>
-                  <td>{invoice.date_issued}</td>
-                  <td>{invoice.description}</td>
-                  <td>{invoice.amount}</td>
-                  <td>{invoice.account_debited}</td>
-                  <td>{invoice.account_credited}</td>
-                  <td>{invoice.name}</td>
-                  <td>
-                    <button onClick={() => handleUpdate(invoice)}><FaEdit /></button>
-                    <button onClick={() => handleDelete(invoice.id)}><FaTrash /></button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="8">No invoices found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      )}
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };

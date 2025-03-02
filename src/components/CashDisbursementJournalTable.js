@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from "react";
+import Select from "react-select"; // Import react-select
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPlus, faEdit, faTrash, faCalendar, faFileAlt, faUser, faDollarSign, faWallet, faBook } from "@fortawesome/free-solid-svg-icons";
+import {
+  faPlus,
+  faEdit,
+  faTrash,
+  faCalendar,
+  faFileAlt,
+  faUser,
+  faDollarSign,
+  faWallet,
+  faBook,
+} from "@fortawesome/free-solid-svg-icons";
 import "./DisbursementForm.css";
 
 const DisbursementForm = () => {
@@ -29,6 +40,26 @@ const DisbursementForm = () => {
   const [disbursements, setDisbursements] = useState([]);
   const [totalDisbursed, setTotalDisbursed] = useState(0);
   const [editingDisbursement, setEditingDisbursement] = useState(null);
+
+  // Custom styles for react-select
+  const customStyles = {
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isFocused ? "#e2e8f0" : "white", // Background color on hover
+      color: state.isSelected ? "#4a5568" : "black", // Text color for selected option
+      padding: "10px",
+      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? "bold" : "normal", // Bold matching options
+    }),
+    control: (provided) => ({
+      ...provided,
+      border: "1px solid #cbd5e0",
+      borderRadius: "4px",
+      boxShadow: "none",
+      "&:hover": {
+        borderColor: "#a0aec0",
+      },
+    }),
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -75,7 +106,6 @@ const DisbursementForm = () => {
 
     fetchData();
   }, []);
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => {
@@ -295,9 +325,9 @@ const DisbursementForm = () => {
       return cashAccounts;
     } else if (formData.payment_type === "Invoiced") {
       const invoicedAccount = coaAccounts.flatMap((account) => {
-        if (account.account_name === "200-current Liabilities") {
+        if (account.account_name === "200-Current Liabilities") {
           return account.sub_account_details?.filter(
-            (subAccount) => subAccount.name === "2250-Trade Creditors Control Account"
+            (subAccount) => subAccount.name === "2250 - Trade Creditors Control Account"
           ) || [];
         }
         return [];
@@ -309,11 +339,13 @@ const DisbursementForm = () => {
   };
 
   const getCreditAccounts = () => {
-    const liabilitiesAccount = coaAccounts.find(
-      (account) => account.parent_account === "1000"
+    const assetsAccount = coaAccounts.find(
+      (account) => account.account_name === "100-Current Assets"
+
     );
-    return liabilitiesAccount?.sub_account_details || [];
+    return assetsAccount?.sub_account_details || [];
   };
+
 
   const openFormPopup = () => {
     setShowForm(true);
@@ -339,11 +371,31 @@ const DisbursementForm = () => {
     setEditingDisbursement(null);
   };
 
+  // Prepare payee options for react-select
+  const payeeOptions = payees.flatMap((payee) =>
+    payee.sub_account_details?.map((subAccount) => ({
+      value: subAccount.name,
+      label: subAccount.name,
+    })) || []
+  );
+
+  // Prepare debit and credit account options for react-select
+  const debitAccountOptions = getDebitAccounts().map((subAccount) => ({
+    value: subAccount.name,
+    label: subAccount.name,
+  }));
+
+  const creditAccountOptions = getCreditAccounts().map((subAccount) => ({
+    value: subAccount.name,
+    label: subAccount.name,
+  }));
+
   return (
     <div className="disbursement-container">
-  <h1 className="head">
-        <FontAwesomeIcon icon={faWallet} className="icon" /> Cash disbursement Journal
-      </h1>      <button onClick={openFormPopup} className="add-button">
+      <h1 className="head">
+        <FontAwesomeIcon icon={faWallet} className="icon" /> Cash Disbursement Journal
+      </h1>
+      <button onClick={openFormPopup} className="add-button">
         <FontAwesomeIcon icon={faPlus} className="icon" /> Add New Disbursement
       </button>
 
@@ -401,23 +453,19 @@ const DisbursementForm = () => {
                 <label htmlFor="to_whom_paid">
                   <FontAwesomeIcon icon={faUser} className="icon" /> To Whom Paid
                 </label>
-                <select
-                  id="to_whom_paid"
-                  name="to_whom_paid"
-                  value={formData.to_whom_paid}
-                  onChange={handleInputChange}
-                  required
-                  className="form-input"
-                >
-                  <option value="">Select Payee</option>
-                  {payees.flatMap((payee) =>
-                    payee.sub_account_details?.map((subAccount) => (
-                      <option key={subAccount.id} value={subAccount.name}>
-                        {subAccount.name}
-                      </option>
-                    )) || []
-                  )}
-                </select>
+                <Select
+                  value={payeeOptions.find((option) => option.value === formData.to_whom_paid)}
+                  onChange={(selectedOption) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      to_whom_paid: selectedOption.value,
+                    }))
+                  }
+                  options={payeeOptions}
+                  placeholder="Select Payee"
+                  isSearchable
+                  styles={customStyles}
+                />
               </div>
 
               <div className="form-row">
@@ -471,44 +519,42 @@ const DisbursementForm = () => {
 
               <div className="form-row">
                 <label htmlFor="account_debited">Account Debited</label>
-                <select
-                  id="account_debited"
-                  name="account_debited"
-                  value={formData.account_debited}
-                  onChange={handleInputChange}
-                  required
-                  className="form-input"
-                >
-                  <option value="">Select Account Debited</option>
-                  {getDebitAccounts().map((subAccount, index) => (
-                    <option key={index} value={subAccount.name}>
-                      {subAccount.name}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  value={debitAccountOptions.find((option) => option.value === formData.account_debited)}
+                  onChange={(selectedOption) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      account_debited: selectedOption.value,
+                    }))
+                  }
+                  options={debitAccountOptions}
+                  placeholder="Select Account Debited"
+                  isSearchable
+                  styles={customStyles}
+                />
               </div>
 
               <div className="form-row">
                 <label htmlFor="account_credited">Account Credited</label>
-                <select
-                  id="account_credited"
-                  name="account_credited"
-                  value={formData.account_credited}
-                  onChange={handleInputChange}
-                  required
-                  className="form-input"
-                >
-                  <option value="">Select Account Credited</option>
-                  {getCreditAccounts().map((subAccount, index) => (
-                    <option key={index} value={subAccount.name}>
-                      {subAccount.name}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  value={creditAccountOptions.find((option) => option.value === formData.account_credited)}
+                  onChange={(selectedOption) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      account_credited: selectedOption.value,
+                    }))
+                  }
+                  options={creditAccountOptions}
+                  placeholder="Select Account Credited"
+                  isSearchable
+                  styles={customStyles}
+                />
               </div>
 
               <div className="form-row">
-                <label htmlFor="cash">Cash Amount</label>
+                <label htmlFor="cash">
+                  <FontAwesomeIcon icon={faDollarSign} className="icon" /> Cash
+                </label>
                 <input
                   type="number"
                   id="cash"
@@ -521,7 +567,9 @@ const DisbursementForm = () => {
               </div>
 
               <div className="form-row">
-                <label htmlFor="bank">Bank Amount</label>
+                <label htmlFor="bank">
+                  <FontAwesomeIcon icon={faBook} className="icon" /> Bank
+                </label>
                 <input
                   type="number"
                   id="bank"
@@ -534,9 +582,13 @@ const DisbursementForm = () => {
               </div>
 
               <div className="form-row">
-                <label>Total</label>
+                <label htmlFor="total">
+                  <FontAwesomeIcon icon={faDollarSign} className="icon" /> Total
+                </label>
                 <input
-                  type="text"
+                  type="number"
+                  id="total"
+                  name="total"
                   value={formData.total}
                   readOnly
                   className="form-input"
@@ -556,83 +608,76 @@ const DisbursementForm = () => {
                 />
               </div>
 
-              <div className="form-row">
+              <div className="form-actions">
                 <button type="submit" className="submit-button">
-                  {editingDisbursement ? (
-                    <>
-                      <FontAwesomeIcon icon={faEdit} className="icon" /> Update
-                    </>
-                  ) : (
-                    <>
-                      <FontAwesomeIcon icon={faPlus} className="icon" /> Submit
-                    </>
-                  )}
+                  <FontAwesomeIcon icon={faWallet} className="icon" /> {editingDisbursement ? "Update" : "Submit"}
                 </button>
                 <button type="button" onClick={closeFormPopup} className="cancel-button">
-                  Cancel
+                  <FontAwesomeIcon icon={faTrash} className="icon" /> Cancel
                 </button>
               </div>
-
-              {errorMessage && <div className="error-message">{errorMessage}</div>}
             </form>
           </div>
         </div>
       )}
 
-      <div className="submitted-disbursements">
-        <h2>Disbursements</h2>
-        <table>
-          <thead>
-            <tr >
-              <th className="ths">Disbursement Date</th>
-              <th className="ths">Cheque No</th>
-              <th className="ths">Payment Voucher No</th>
-              <th className="ths">To Whom Paid</th>
-              <th className="ths">Description</th>
-              <th className="ths">Payment Type</th>
-              <th className="ths">Account Debited</th>
-              <th className="ths">Account Credited</th>
-              <th className="ths">Cash</th>
-              <th className="ths">Bank</th>
-              <th className="ths">Total</th>
-              <th className="ths">Cashbook</th>
-              <th className="ths">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {disbursements.map((disbursement, index) => (
-              <tr key={index}>
-                <td>{disbursement.disbursement_date}</td>
-                <td>{disbursement.cheque_no}</td>
-                <td>{disbursement.p_voucher_no}</td>
-                <td>{disbursement.to_whom_paid}</td>
-                <td>{disbursement.description}</td>
-                <td>{disbursement.payment_type}</td>
-                <td>{disbursement.account_debited}</td>
-                <td>{disbursement.account_credited}</td>
-                <td>{disbursement.cash}</td>
-                <td>{disbursement.bank}</td>
-                <td>{disbursement.total}</td>
-                <td>{disbursement.cashbook}</td>
-                <td>
-                  <button
-                    onClick={() => handleEditClick(disbursement)}
-                    className="edit-button"
-                  >
-                    <FontAwesomeIcon icon={faEdit} className="icon" /> Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteDisbursement(disbursement.id)}
-                    className="delete-button"
-                  >
-                    <FontAwesomeIcon icon={faTrash} className="icon" /> Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <div className="disbursements-list">
+          <h2>Disbursements</h2>
+          {errorMessage && <p className="error-message">{errorMessage}</p>}
+          {disbursements.length > 0 ? (
+            <table className="disbursements-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Cheque No</th>
+                  <th>Voucher No</th>
+                  <th>To Whom Paid</th>
+                  <th>Description</th>
+                  <th>Payment Type</th>
+                  <th>Account Debited</th>
+                  <th>Account Credited</th>
+                  <th>Cash</th>
+                  <th>Bank</th>
+                  <th>Total</th>
+                  <th>Cashbook</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {disbursements.map((disbursement) => (
+                  <tr key={disbursement.id}>
+                    <td>{disbursement.disbursement_date}</td>
+                    <td>{disbursement.cheque_no}</td>
+                    <td>{disbursement.p_voucher_no}</td>
+                    <td>{disbursement.to_whom_paid}</td>
+                    <td>{disbursement.description}</td>
+                    <td>{disbursement.payment_type}</td>
+                    <td>{disbursement.account_debited}</td>
+                    <td>{disbursement.account_credited}</td>
+                    <td>{disbursement.cash}</td>
+                    <td>{disbursement.bank}</td>
+                    <td>{disbursement.total}</td>
+                    <td>{disbursement.cashbook}</td>
+                    <td>
+                      <button onClick={() => handleEditClick(disbursement)} className="edit-button">
+                        <FontAwesomeIcon icon={faEdit} className="icon" /> Edit
+                      </button>
+                      <button onClick={() => handleDeleteDisbursement(disbursement.id)} className="delete-button">
+                        <FontAwesomeIcon icon={faTrash} className="icon" /> Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p>No disbursements available.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,201 +1,208 @@
-/* InvoicesTable.css */
-
-/* Global styles */
+/* General Styles */
 body {
-  font-family: Arial, sans-serif;
-  background-color: #000000;
-  color: #fff;
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f4f4; /* Light grey background */
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
-/* Header and title */
-h1 {
-  color: #FFA500; /* Orange */
-  text-align: center;
-  margin-top: 20px;
-}
-
-h2 {
-  color: #FFA500; /* Orange */
-  margin-left: 20px;
-}
-
-/* Button styling */
-button {
-  background-color: #FFA500; /* Orange */
-  color: #fff;
-  border: none;
-  padding: 10px 20px;
-  margin: 5px;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.3s ease;
-}
-
-button:hover {
-  background-color: #e68900; /* Darker orange */
-}
-
-button:disabled {
-  background-color: #666;
-  cursor: not-allowed;
-}
-
-/* Table styling */
-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-
-th, td {
-  padding: 10px;
-  text-align: left;
-  border: 1px solid #1d1c1c;
-}
-
-th {
-  background-color: #1b1b1b;
-  color: #FFA500; /* Orange */
-}
-
-td {
-  background-color: #383838;
-}
-
-tr:hover {
-  background-color: #444;
-}
-
-td, th {
-  color: #0c0b0b;
-}
-
-/* Error message styling */
-.error {
-  color: red;
-  text-align: center;
-  margin-top: 20px;
-  font-weight: bold;
-}
-
-/* Form and modal styling */
-.modal {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.6); /* Overlay */
-}
-
-.modal-content {
-  background-color: #444;
+/* Main container */
+.invoice-received {
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 20px;
+}
+
+h1, h2 {
+  font-size: 1.5rem;
+  color: #003366; /* Dark blue */
+  margin-bottom: 10px;
+}
+
+.head {
+  font-size: 2rem;
+  margin-bottom: 30px;
+}
+
+/* Form Styles */
+.invoice-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 20px;
+  background-color: #ffffff;
   border-radius: 8px;
-  width: 400px;
-  max-width: 90%;
-  color: #080404;
-}
-
-.modal .close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  color: #fff;
-  font-size: 30px;
-  cursor: pointer;
-}
-
-.invoice-form div {
-  margin-bottom: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .invoice-form label {
-  display: block;
-  margin-bottom: 5px;
+  font-weight: bold;
+  font-size: 1rem;
+  color: #333333; /* Dark grey */
 }
 
 .invoice-form input,
 .invoice-form select {
-  width: 100%;
-  padding: 10px;
-  background-color: #333;
-  border: 1px solid #555;
-  color: #fff;
+  padding: 12px;
+  border: 1px solid #ccc;
   border-radius: 5px;
+  font-size: 1rem;
+  background-color: #f9f9f9;
+  width: 100%;
 }
 
 .invoice-form input:focus,
 .invoice-form select:focus {
-  border-color: #FFA500; /* Orange */
+  border-color: #007bff;
   outline: none;
 }
 
-/* For form submission button */
-.invoice-form button {
-  width: 100%;
-  padding: 12px;
-  background-color: #FFA500;
-  color: #fff;
+button {
+  padding: 12px 24px;
+  background-color: #007bff; /* Primary blue */
+  color: white;
   border: none;
   border-radius: 5px;
-  font-size: 16px;
   cursor: pointer;
+  font-size: 1rem;
   transition: background-color 0.3s ease;
 }
 
-.invoice-form button:hover {
-  background-color: #e68900;
+button:hover {
+  background-color: #0056b3; /* Darker blue */
 }
 
-/* Compact table styles */
-.compact-table {
+button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed; /* Fixed to the screen */
+  top: 0;
+  left: 0;
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.3); /* Slightly transparent background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 900;
+  transition: opacity 0.3s ease;
 }
 
-.compact-table th, .compact-table td {
-  padding: 10px;
-  border: 1px solid #444;
+.modal-content {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%; /* Use a percentage of the screen size */
+  max-width: 500px; /* Limit to a smaller max width */
+  max-height: 80vh; /* Ensure modal is never too tall */
+  position: relative;
+  overflow-y: auto; /* Allow scrolling if content exceeds the modal size */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease-in-out;
 }
 
-.compact-table th {
-  background-color: #222;
-  color: #FFA500;
-}
-
-.compact-table td {
-  background-color: #333;
-}
-
-.compact-table tr:hover {
-  background-color: #444;
-}
-
-.compact-table td,
-.compact-table th {
-  color:#ffffff;
-  background-color: #000000;
-}
-
-/* Styling for action buttons in the table */
-button {
-  background: #FFA500;
-  border: none;
-  color: #fcfcfc;
-  font-size: 20px;
+.close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 1.5rem;
   cursor: pointer;
-  transition: color 0.3s ease;
-  border-radius: 10px;
+  color: #333;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.close:hover {
+  color: #007bff;
+}
+
+/* Error message */
+.error {
+  color: red;
+  font-size: 1rem;
+  margin-top: 10px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Table Styles */
+table {
+  width: 100%;
+  margin-top: 30px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 12px;
+  text-align: left;
+  font-size: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  background-color: #f2f2f2;
+  color: #003366;
+}
+
+td {
+  background-color: #ffffff;
+}
+
+tr:hover {
+  background-color: #f1f1f1;
+}
+
+button {
+  padding: 6px 12px;
+  background-color: #ff6f61; /* Red */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
 }
 
 button:hover {
-  color: hsl(251, 100%, 45%);
+  background-color: #e65c53;
 }
-.head{color:#e68900;}
+
+button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Responsive Table Styles */
+@media screen and (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  th, td {
+    white-space: nowrap;
+  }
+
+  .invoice-form {
+    padding: 15px;
+  }
+
+  .modal-content {
+    padding: 20px;
+    width: 90%;
+  }
+
+  button {
+    width: 100%;
+  }
+}

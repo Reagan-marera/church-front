@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Select from "react-select"; // Import react-select
 import "./InvoicesTable.css"; // Ensure this file exists for styling
 import { FaEdit, FaTrash } from "react-icons/fa"; // Import icons
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -6,8 +7,8 @@ import {
   faFileInvoiceDollar,
   faMoneyBill,
   faCreditCard,
-  
 } from "@fortawesome/free-solid-svg-icons";
+
 const InvoiceReceived = () => {
   // State for storing form fields
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -31,6 +32,26 @@ const InvoiceReceived = () => {
 
   // State to manage editing invoices
   const [editingInvoice, setEditingInvoice] = useState(null);
+
+  // Custom styles for react-select
+  const customStyles = {
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isFocused ? "#e2e8f0" : "white", // Background color on hover
+      color: state.isSelected ? "#4a5568" : "black", // Text color for selected option
+      padding: "10px",
+      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? "bold" : "normal", // Bold matching options
+    }),
+    control: (provided) => ({
+      ...provided,
+      border: "1px solid #cbd5e0",
+      borderRadius: "4px",
+      boxShadow: "none",
+      "&:hover": {
+        borderColor: "#a0aec0",
+      },
+    }),
+  };
 
   // Fetch invoices and other data on component mount
   useEffect(() => {
@@ -126,13 +147,13 @@ const InvoiceReceived = () => {
           (account) =>
             account.sub_account_details &&
             account.sub_account_details.some(
-              (subAccount) => subAccount.name === "2250-Trade Creditors Control Account"
+              (subAccount) => subAccount.name === "2250 - Trade Creditors Control Account"
             )
         );
 
         if (tradeCreditorsAccount) {
           const subAccount = tradeCreditorsAccount.sub_account_details.find(
-            (subAccount) => subAccount.name === "2250-Trade Creditors Control Account"
+            (subAccount) => subAccount.name === "2250 - Trade Creditors Control Account"
           );
           setAccountCredited(subAccount.name); // Set the account credited to the found account name
         } else {
@@ -147,9 +168,8 @@ const InvoiceReceived = () => {
   };
 
   // Handle change of selected payee and update related sub-accounts for "Account Debited"
-  const handlePayeeChange = (e) => {
-    const selectedPayeeName = e.target.value;
-    setPayeeName(selectedPayeeName);
+  const handlePayeeChange = (selectedOption) => {
+    setPayeeName(selectedOption.value);
     setAccountDebited("");
   };
 
@@ -267,6 +287,20 @@ const InvoiceReceived = () => {
     }
   };
 
+  // Prepare payee options for react-select
+  const payeeOptions = payees.flatMap((payee) =>
+    payee.sub_account_details.map((subAccount) => ({
+      value: subAccount.name,
+      label: subAccount.name,
+    }))
+  );
+
+  // Prepare debited account options for react-select
+  const debitedAccountOptions = getSubAccountNames().map((subAccountName) => ({
+    value: subAccountName,
+    label: subAccountName,
+  }));
+
   return (
     <div className="invoice-received">
       <h1 className="head">
@@ -274,19 +308,19 @@ const InvoiceReceived = () => {
       </h1>
 
       {/* Toggle to show/hide the form */}
-      <button 
-  onClick={() => setShowForm(true)} 
-  style={{ 
-    backgroundColor: '#FFA500', 
-    color: 'white', 
-    padding: '10px 20px', 
-    border: 'none', 
-    borderRadius: '5px', 
-    cursor: 'pointer'
-  }}
->
-  Add New Invoice
-</button>
+      <button
+        onClick={() => setShowForm(true)}
+        style={{
+          backgroundColor: "#FFA500",
+          color: "white",
+          padding: "10px 20px",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+        }}
+      >
+        Add New Invoice
+      </button>
 
       {/* Modal for the form */}
       {showForm && (
@@ -335,37 +369,27 @@ const InvoiceReceived = () => {
               {/* Payee Name Selection */}
               <div>
                 <label>Payee Name:</label>
-                <select
-                  value={payeeName}
+                <Select
+                  value={payeeOptions.find((option) => option.value === payeeName)}
                   onChange={handlePayeeChange}
-                  required
-                >
-                  <option value="">Select Payee</option>
-                  {payees.flatMap((payee) =>
-                    payee.sub_account_details.map((subAccount) => (
-                      <option key={subAccount.id} value={subAccount.name}>
-                        {subAccount.name}
-                      </option>
-                    ))
-                  )}
-                </select>
+                  options={payeeOptions}
+                  placeholder="Select Payee"
+                  isSearchable
+                  styles={customStyles}
+                />
               </div>
 
               {/* Account Debited Selection */}
               <div>
                 <label>Account Debited:</label>
-                <select
-                  value={accountDebited}
-                  onChange={(e) => setAccountDebited(e.target.value)}
-                  required
-                >
-                  <option value="">Select Debited Account</option>
-                  {getSubAccountNames().map((subAccountName) => (
-                    <option key={subAccountName} value={subAccountName}>
-                      {subAccountName}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  value={debitedAccountOptions.find((option) => option.value === accountDebited)}
+                  onChange={(selectedOption) => setAccountDebited(selectedOption.value)}
+                  options={debitedAccountOptions}
+                  placeholder="Select Debited Account"
+                  isSearchable
+                  styles={customStyles}
+                />
               </div>
 
               {/* Account Credited Selection */}

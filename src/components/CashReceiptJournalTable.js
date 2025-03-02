@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Select from "react-select"; // Import react-select
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFileInvoiceDollar } from "@fortawesome/free-solid-svg-icons"; // Example icon
 import {
@@ -40,6 +41,26 @@ const CashReceiptJournalTable = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [showForm, setShowForm] = useState(false);
+
+  // Custom styles for react-select
+  const customStyles = {
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isFocused ? "#e2e8f0" : "white", // Background color on hover
+      color: state.isSelected ? "#4a5568" : "black", // Text color for selected option
+      padding: "10px",
+      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? "bold" : "normal", // Bold matching options
+    }),
+    control: (provided) => ({
+      ...provided,
+      border: "1px solid #cbd5e0",
+      borderRadius: "4px",
+      boxShadow: "none",
+      "&:hover": {
+        borderColor: "#a0aec0",
+      },
+    }),
+  };
 
   useEffect(() => {
     fetchJournals();
@@ -120,8 +141,8 @@ const CashReceiptJournalTable = () => {
     }
   };
 
-  const handleCustomerChange = (e) => {
-    const selectedCustomerName = e.target.value;
+  const handleCustomerChange = (selectedOption) => {
+    const selectedCustomerName = selectedOption.value;
     setCustomerName(selectedCustomerName);
 
     const customerInvoices = invoices.filter(
@@ -145,6 +166,11 @@ const CashReceiptJournalTable = () => {
 
     const customerBalance = totalAmount - totalReceipts;
     setBalance(customerBalance);
+
+    setFormData((prev) => ({
+      ...prev,
+      from_whom_received: selectedCustomerName,
+    }));
   };
 
   const handleInputChange = (e) => {
@@ -342,9 +368,26 @@ const CashReceiptJournalTable = () => {
     }
   };
 
+  // Prepare customer options for react-select
+  const customerOptions = customers.map((customer) => ({
+    value: customer.name,
+    label: customer.name,
+  }));
+
+  // Prepare debit and credit account options for react-select
+  const debitAccountOptions = getDebitAccounts().map((subAccount) => ({
+    value: subAccount.name,
+    label: subAccount.name,
+  }));
+
+  const creditAccountOptions = getCreditAccounts().map((subAccount) => ({
+    value: subAccount.name,
+    label: subAccount.name,
+  }));
+
   return (
     <div className="cash-receipt-journal">
-       <h1>
+      <h1>
         <FontAwesomeIcon icon={faBook} className="icon" /> Cash Receipt Journal
       </h1>
       {error && <p className="error">{error}</p>}
@@ -397,22 +440,16 @@ const CashReceiptJournalTable = () => {
                 <label>
                   <FontAwesomeIcon icon={faUser} className="icon" /> From Whom Received:
                 </label>
-                <select
-                  name="from_whom_received"
-                  value={formData.from_whom_received}
-                  onChange={(e) => {
-                    handleInputChange(e);
-                    handleCustomerChange(e);
-                  }}
-                  required
-                >
-                  <option value="">Select Customer</option>
-                  {customers.map((customer) => (
-                    <option key={customer.id} value={customer.name}>
-                      {customer.name}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  value={customerOptions.find(
+                    (option) => option.value === formData.from_whom_received
+                  )}
+                  onChange={handleCustomerChange}
+                  options={customerOptions}
+                  placeholder="Select Customer"
+                  isSearchable
+                  styles={customStyles}
+                />
               </div>
               <div>
                 <label>
@@ -457,35 +494,39 @@ const CashReceiptJournalTable = () => {
               </div>
               <div>
                 <label>Account Debited:</label>
-                <select
-                  name="account_debited"
-                  value={formData.account_debited}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Select Account Debited</option>
-                  {getDebitAccounts().map((subAccount) => (
-                    <option key={subAccount.id} value={subAccount.name}>
-                      {subAccount.name}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  value={debitAccountOptions.find(
+                    (option) => option.value === formData.account_debited
+                  )}
+                  onChange={(selectedOption) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      account_debited: selectedOption.value,
+                    }))
+                  }
+                  options={debitAccountOptions}
+                  placeholder="Select Account Debited"
+                  isSearchable
+                  styles={customStyles}
+                />
               </div>
               <div>
                 <label>Account Credited:</label>
-                <select
-                  name="account_credited"
-                  value={formData.account_credited}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="">Select Account Credited</option>
-                  {getCreditAccounts().map((subAccount) => (
-                    <option key={subAccount.id} value={subAccount.name}>
-                      {subAccount.name}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  value={creditAccountOptions.find(
+                    (option) => option.value === formData.account_credited
+                  )}
+                  onChange={(selectedOption) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      account_credited: selectedOption.value,
+                    }))
+                  }
+                  options={creditAccountOptions}
+                  placeholder="Select Account Credited"
+                  isSearchable
+                  styles={customStyles}
+                />
               </div>
               <div>
                 <label>

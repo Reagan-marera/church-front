@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import Select from 'react-select'; // Import react-select
 import './AccountSelection.css';
 
 const AccountSelection = () => {
   const [accounts, setAccounts] = useState([]);
-  const [selectedCreditedAccount, setSelectedCreditedAccount] = useState('');
-  const [selectedDebitedAccount, setSelectedDebitedAccount] = useState('');
+  const [selectedCreditedAccount, setSelectedCreditedAccount] = useState(null);
+  const [selectedDebitedAccount, setSelectedDebitedAccount] = useState(null);
   const [amountCredited, setAmountCredited] = useState('');
   const [amountDebited, setAmountDebited] = useState('');
   const [description, setDescription] = useState('');
@@ -13,6 +14,27 @@ const AccountSelection = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [currentTransactionId, setCurrentTransactionId] = useState(null);
+  const [accountOptions, setAccountOptions] = useState([]); // Options for react-select
+
+  // Custom styles for react-select
+  const customStyles = {
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isFocused ? '#e2e8f0' : 'white', // Background color on hover
+      color: state.isSelected ? '#4a5568' : 'black', // Text color for selected option
+      padding: '10px',
+      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? 'bold' : 'normal', // Bold matching options
+    }),
+    control: (provided) => ({
+      ...provided,
+      border: '1px solid #cbd5e0',
+      borderRadius: '4px',
+      boxShadow: 'none',
+      '&:hover': {
+        borderColor: '#a0aec0',
+      },
+    }),
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,6 +78,16 @@ const AccountSelection = () => {
 
         setAccounts(allAccounts);
 
+        // Prepare options for react-select
+        const options = allAccounts.flatMap(account =>
+          account.subaccounts.map(subaccount => ({
+            value: subaccount.name,
+            label: subaccount.name,
+            type: account.type, // Add account type for color coding
+          }))
+        );
+        setAccountOptions(options);
+
         const transactionsResponse = await fetch('http://127.0.0.1:5000/get-transactions', { headers });
         const data = await transactionsResponse.json();
 
@@ -71,8 +103,8 @@ const AccountSelection = () => {
 
   const handleEdit = (transaction) => {
     if (transaction) {
-      setSelectedCreditedAccount(transaction.credited_account_name || '');
-      setSelectedDebitedAccount(transaction.debited_account_name || '');
+      setSelectedCreditedAccount({ value: transaction.credited_account_name, label: transaction.credited_account_name });
+      setSelectedDebitedAccount({ value: transaction.debited_account_name, label: transaction.debited_account_name });
       setAmountCredited(transaction.amount_credited || '');
       setAmountDebited(transaction.amount_debited || '');
       setDescription(transaction.description || '');
@@ -84,8 +116,8 @@ const AccountSelection = () => {
 
   const isDuplicateTransaction = () => {
     return transactions.some(transaction =>
-      transaction.credited_account_name === selectedCreditedAccount &&
-      transaction.debited_account_name === selectedDebitedAccount &&
+      transaction.credited_account_name === selectedCreditedAccount?.value &&
+      transaction.debited_account_name === selectedDebitedAccount?.value &&
       transaction.amount_credited === parseFloat(amountCredited) &&
       transaction.amount_debited === parseFloat(amountDebited) &&
       transaction.date_issued === dateIssued
@@ -93,8 +125,8 @@ const AccountSelection = () => {
   };
 
   const clearForm = () => {
-    setSelectedCreditedAccount('');
-    setSelectedDebitedAccount('');
+    setSelectedCreditedAccount(null);
+    setSelectedDebitedAccount(null);
     setAmountCredited('');
     setAmountDebited('');
     setDescription('');
@@ -125,8 +157,8 @@ const AccountSelection = () => {
     }
 
     const transactionData = {
-      creditedAccount: selectedCreditedAccount,
-      debitedAccount: selectedDebitedAccount,
+      creditedAccount: selectedCreditedAccount?.value,
+      debitedAccount: selectedDebitedAccount?.value,
       amountCredited: parseFloat(amountCredited),
       amountDebited: parseFloat(amountDebited),
       description,
@@ -200,40 +232,26 @@ const AccountSelection = () => {
       <form onSubmit={handleSubmit}>
         <div className="form-field">
           <label className="form-label">Credited Account</label>
-          <select
+          <Select
             value={selectedCreditedAccount}
-            onChange={(e) => setSelectedCreditedAccount(e.target.value)}
-            className="form-select"
-          >
-            <option value="">Select a credited account</option>
-            {accounts?.map((account) =>
-              account?.subaccounts?.map((subaccount) => (
-                subaccount?.id ? (
-                  <option key={subaccount?.id} value={subaccount?.name}>
-                    {subaccount?.name} 
-                  </option>
-                ) : null
-              ))
-            )}
-          </select>
+            onChange={(selectedOption) => setSelectedCreditedAccount(selectedOption)}
+            options={accountOptions}
+            placeholder="Select a credited account"
+            isSearchable
+            styles={customStyles} // Apply custom styles
+          />
+        </div>
 
+        <div className="form-field">
           <label className="form-label">Debited Account</label>
-          <select
+          <Select
             value={selectedDebitedAccount}
-            onChange={(e) => setSelectedDebitedAccount(e.target.value)}
-            className="form-select"
-          >
-            <option value="">Select a debited account</option>
-            {accounts?.map((account) =>
-              account?.subaccounts?.map((subaccount) => (
-                subaccount?.id ? (
-                  <option key={subaccount?.id} value={subaccount?.name}>
-                    {subaccount?.name} 
-                  </option>
-                ) : null
-              ))
-            )}
-          </select>
+            onChange={(selectedOption) => setSelectedDebitedAccount(selectedOption)}
+            options={accountOptions}
+            placeholder="Select a debited account"
+            isSearchable
+            styles={customStyles} // Apply custom styles
+          />
         </div>
 
         <div className="form-field">
@@ -294,7 +312,7 @@ const AccountSelection = () => {
             <th>Debited Account</th>
             <th>Amount Credited</th>
             <th>Amount Debited</th>
-            <th>Date Issued</th>
+            <th>Date </th>
             <th>Description</th>
             <th>Actions</th>
           </tr>
