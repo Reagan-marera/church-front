@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select"; // Import react-select
 import "./InvoicesTable.css"; // Ensure this file exists for styling
-import { FaEdit, FaTrash } from "react-icons/fa"; // Import icons
+import { FaEdit, FaTrash, FaPrint, FaCheck } from "react-icons/fa"; // Import icons
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faFileInvoiceDollar,
@@ -14,9 +14,9 @@ const InvoiceIssued = () => {
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [dateIssued, setDateIssued] = useState("");
   const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
+  const [totalAmount, setTotalAmount] = useState(0);
   const [accountDebited, setAccountDebited] = useState("");
-  const [accountCredited, setAccountCredited] = useState("");
+  const [accountsCredited, setAccountsCredited] = useState([]);
   const [customerName, setCustomerName] = useState("");
 
   // State to manage the invoices, form visibility, loading, and errors
@@ -29,6 +29,7 @@ const InvoiceIssued = () => {
 
   // State for customer and chart of accounts data
   const [customers, setCustomers] = useState([]);
+  const [allCustomers, setAllCustomers] = useState([]);
   const [chartOfAccounts, setChartOfAccounts] = useState([]);
 
   // Custom styles for react-select
@@ -94,12 +95,12 @@ const InvoiceIssued = () => {
   // Function to fetch customer data for the "Customer Name" select
   const fetchCustomers = async () => {
     const token = localStorage.getItem("token");
-
+  
     if (!token) {
       setError("User is not authenticated");
       return;
     }
-
+  
     try {
       const response = await fetch("http://127.0.0.1:5000/customer", {
         method: "GET",
@@ -107,10 +108,14 @@ const InvoiceIssued = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-
+  
       if (response.ok) {
         const data = await response.json();
-        setCustomers(data);
+        setCustomers(data); // Set detailed customer data (one customer)
+  
+        // Extract all customer account names (all customers)
+        const allCustomersList = data.map((customer) => customer.account_name);
+        setAllCustomers(allCustomersList);
       } else {
         setError("Error fetching customers");
       }
@@ -165,6 +170,15 @@ const InvoiceIssued = () => {
     }
   };
 
+  // Function to generate a unique invoice number
+  const generateUniqueInvoiceNumber = (existingInvoices) => {
+    let newInvoiceNumber;
+    do {
+      newInvoiceNumber = `INV-${Math.floor(100000 + Math.random() * 900000)}`;
+    } while (existingInvoices.some((invoice) => invoice.invoice_number === newInvoiceNumber));
+    return newInvoiceNumber;
+  };
+
   // Function to handle form submission (POST or PUT)
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -185,46 +199,63 @@ const InvoiceIssued = () => {
       return;
     }
 
-    const payload = {
-      invoice_number: invoiceNumber,
-      date_issued: dateIssued,
-      description,
-      amount: parseFloat(amount),
-      account_debited: accountDebited,
-      account_credited: accountCredited,
-      name: customerName,
-    };
+    const selectedCustomer = customers.find((customer) => customer.account_name === customerName);
 
-    try {
-      const url = isEditing
-        ? `http://127.0.0.1:5000/invoices/${editingInvoiceId}`
-        : "http://127.0.0.1:5000/invoices";
-      const method = isEditing ? "PUT" : "POST";
+    if (!selectedCustomer) {
+      setError("Selected customer not found.");
+      return;
+    }
 
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
+    const subAccounts = selectedCustomer.sub_account_details || [];
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText);
+    for (const subAccount of subAccounts) {
+      const uniqueInvoiceNumber = generateUniqueInvoiceNumber(invoices);
+
+      const payload = {
+        invoice_number: uniqueInvoiceNumber,
+        date_issued: dateIssued,
+        description,
+        amount: totalAmount,
+        account_debited: accountDebited,
+        account_credited: accountsCredited.map(account => ({
+          name: account.value,
+          amount: account.amount
+        })),
+        name: subAccount.name,
+      };
+
+      try {
+        const url = isEditing
+          ? `http://127.0.0.1:5000/invoices/${editingInvoiceId}`
+          : "http://127.0.0.1:5000/invoices";
+        const method = isEditing ? "PUT" : "POST";
+
+        const response = await fetch(url, {
+          method: method,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText);
+        }
+      } catch (err) {
+        setError(err.message);
+        return;
       }
+    }
 
-      fetchInvoices();
-      resetForm();
-      setError("");
-      setShowForm(false);
-      if (isEditing) {
-        setIsEditing(false);
-        setEditingInvoiceId(null);
-      }
-    } catch (err) {
-      setError(err.message);
+    fetchInvoices();
+    resetForm();
+    setError("");
+    setShowForm(false);
+    if (isEditing) {
+      setIsEditing(false);
+      setEditingInvoiceId(null);
     }
   };
 
@@ -233,8 +264,11 @@ const InvoiceIssued = () => {
     setInvoiceNumber(invoice.invoice_number);
     setDateIssued(invoice.date_issued);
     setDescription(invoice.description);
-    setAmount(invoice.amount);
-    setAccountCredited(invoice.account_credited);
+    setAccountsCredited(invoice.account_credited.map(account => ({
+      value: account.name,
+      label: account.name,
+      amount: account.amount
+    })));
     setCustomerName(invoice.name);
     setIsEditing(true);
     setEditingInvoiceId(invoice.id);
@@ -268,14 +302,41 @@ const InvoiceIssued = () => {
     }
   };
 
+  // Function to handle posting an invoice
+  const handlePost = async (id) => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("User is not authenticated");
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://127.0.0.1:5000/invoices/${id}/post`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        fetchInvoices();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || "Error posting invoice");
+      }
+    } catch (error) {
+      setError("Error posting invoice");
+    }
+  };
+
   // Function to reset the form fields
   const resetForm = () => {
     setInvoiceNumber("");
     setDateIssued("");
     setDescription("");
-    setAmount("");
-    setAccountCredited("");
+    setAccountsCredited([]);
     setCustomerName("");
+    setTotalAmount(0);
   };
 
   // Function to get all sub-account names for the "Account Credited" dropdown
@@ -297,11 +358,84 @@ const InvoiceIssued = () => {
     }))
   );
 
+  // Prepare all customers options for react-select
+  const allCustomersOptions = allCustomers.map((accountName) => ({
+    value: accountName,
+    label: accountName,
+  }));
+
   // Prepare credited account options for react-select
   const creditedAccountOptions = getSubAccountNames().map((subAccountName) => ({
     value: subAccountName,
     label: subAccountName,
   }));
+
+  // Handle adding a new credited account
+  const handleAddCreditedAccount = () => {
+    setAccountsCredited([...accountsCredited, { value: "", label: "", amount: 0 }]);
+  };
+
+  // Handle removing a credited account
+  const handleRemoveCreditedAccount = (index) => {
+    setAccountsCredited(accountsCredited.filter((_, i) => i !== index));
+  };
+
+  // Handle changes to credited accounts
+  const handleCreditedAccountChange = (index, value, amount) => {
+    const updatedAccounts = [...accountsCredited];
+    updatedAccounts[index] = { value, label: value, amount: parseFloat(amount) };
+    setAccountsCredited(updatedAccounts);
+
+    // Update total amount
+    const newTotalAmount = updatedAccounts.reduce((sum, account) => sum + account.amount, 0);
+    setTotalAmount(newTotalAmount);
+  };
+
+  // Function to handle printing an invoice
+  const handlePrint = (invoice) => {
+    const printContents = `
+      <style>
+        body { font-family: Arial, sans-serif; }
+        h2 { text-align: center; }
+        .invoice-details { border-collapse: collapse; width: 100%; }
+        .invoice-details th, .invoice-details td { border: 1px solid #ddd; padding: 8px; }
+        .invoice-details th { background-color: #f2f2f2; }
+      </style>
+      <h2>Invoice Details</h2>
+      <table class="invoice-details">
+        <tr><th>Invoice Number</th><td>${invoice.invoice_number}</td></tr>
+        <tr><th>Date Issued</th><td>${invoice.date_issued}</td></tr>
+        <tr><th>Description</th><td>${invoice.description}</td></tr>
+        <tr><th>Total Amount</th><td>${invoice.amount}</td></tr>
+        <tr><th>Customer Name</th><td>${invoice.name}</td></tr>
+        <tr><th>Fees Vote Heads</th><td>
+          ${invoice.account_credited.map(account => `<div>${account.name}: ${account.amount}</div>`).join('')}
+        </td></tr>
+      </table>
+    `;
+
+    const printWindow = window.open("", "_blank");
+    printWindow.document.open();
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Invoice</title>
+        </head>
+        <body>
+          ${printContents}
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() {
+                window.close();
+              };
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   return (
     <div className="invoice-issued">
@@ -318,7 +452,7 @@ const InvoiceIssued = () => {
       {showForm && (
         <div className="modal">
           <div className="modal-content">
-            <button className="close" onClick={() => setShowForm(false)}>
+            <button className="close" onClick={() => { setShowForm(false); resetForm(); }}>
               &times;
             </button>
             <form onSubmit={handleSubmit} className="invoice-form">
@@ -349,12 +483,12 @@ const InvoiceIssued = () => {
                 />
               </div>
               <div>
-                <label>Amount:</label>
+                <label>Total Amount:</label>
                 <input
                   type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
+                  value={totalAmount}
+                  readOnly
+                  className="form-input"
                 />
               </div>
 
@@ -375,6 +509,23 @@ const InvoiceIssued = () => {
                 />
               </div>
 
+              {/* All Customers Selection */}
+              <div>
+                <label>All Customers:</label>
+                <Select
+                  value={allCustomersOptions.find(
+                    (option) => option.value === customerName
+                  )}
+                  onChange={(selectedOption) =>
+                    setCustomerName(selectedOption.value)
+                  }
+                  options={allCustomersOptions}
+                  placeholder="Select All Customers"
+                  isSearchable
+                  styles={customStyles}
+                />
+              </div>
+
               {/* Account Debited Selection */}
               <div>
                 <label>Account Debited:</label>
@@ -388,18 +539,41 @@ const InvoiceIssued = () => {
               {/* Account Credited Selection */}
               <div>
                 <label>Account Credited:</label>
-                <Select
-                  value={creditedAccountOptions.find(
-                    (option) => option.value === accountCredited
-                  )}
-                  onChange={(selectedOption) =>
-                    setAccountCredited(selectedOption.value)
-                  }
-                  options={creditedAccountOptions}
-                  placeholder="Select Credited Account"
-                  isSearchable
-                  styles={customStyles}
-                />
+                {accountsCredited.map((account, index) => (
+                  <div key={index} style={{ display: "flex", alignItems: "center" }}>
+                    <Select
+                      value={creditedAccountOptions.find(
+                        (option) => option.value === account.value
+                      )}
+                      onChange={(selectedOption) =>
+                        handleCreditedAccountChange(index, selectedOption.value, account.amount)
+                      }
+                      options={creditedAccountOptions}
+                      placeholder="Select Credited Account"
+                      isSearchable
+                      styles={customStyles}
+                    />
+                    <input
+                      type="number"
+                      value={account.amount}
+                      onChange={(e) =>
+                        handleCreditedAccountChange(index, account.value, e.target.value)
+                      }
+                      placeholder="Amount"
+                      style={{ marginLeft: "10px" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCreditedAccount(index)}
+                      style={{ marginLeft: "10px" }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button type="button" onClick={handleAddCreditedAccount}>
+                  Add Another Account
+                </button>
               </div>
 
               <button type="submit" disabled={loading}>
@@ -420,7 +594,7 @@ const InvoiceIssued = () => {
             <th>Invoice Number</th>
             <th>Date Issued</th>
             <th>Description</th>
-            <th>Amount</th>
+            <th>Total Amount</th>
             <th>Customer Name</th>
             <th>Account Debited</th>
             <th>Account Credited</th>
@@ -436,13 +610,25 @@ const InvoiceIssued = () => {
               <td>{invoice.amount}</td>
               <td>{invoice.name}</td>
               <td>{invoice.account_debited}</td>
-              <td>{invoice.account_credited}</td>
+              <td>
+                {invoice.account_credited.map((account, index) => (
+                  <div key={index}>
+                    {account.name}: {account.amount}
+                  </div>
+                ))}
+              </td>
               <td>
                 <button onClick={() => handleUpdate(invoice)}>
                   <FaEdit /> Edit
                 </button>
                 <button onClick={() => handleDelete(invoice.id)}>
                   <FaTrash /> Delete
+                </button>
+                <button onClick={() => handlePost(invoice.id)}>
+                  <FaCheck /> Post
+                </button>
+                <button onClick={() => handlePrint(invoice)}>
+                  <FaPrint /> Print
                 </button>
               </td>
             </tr>
