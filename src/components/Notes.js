@@ -76,7 +76,7 @@ const AccountsTransactions = () => {
                 </tr>
               ))}
               <tr>
-                <td colSpan="3"><strong>Total for Note</strong></td>
+                <td colSpan="2"><strong>Total for {data.parent_account}</strong></td>
                 <td><strong>{data.total_amount}</strong></td>
               </tr>
             </tbody>

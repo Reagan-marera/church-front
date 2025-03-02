@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import AccountsTransactions from './AccountsTransactions';
+import AccountsTransactions from './Notes';
 import IncomeStatement from './Balance';
 import Trial from './Income';
 import './trialbalance.css'; // Import the CSS file for styling

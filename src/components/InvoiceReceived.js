@@ -147,13 +147,13 @@ const InvoiceReceived = () => {
           (account) =>
             account.sub_account_details &&
             account.sub_account_details.some(
-              (subAccount) => subAccount.name === "2250 - Trade Creditors Control Account"
+              (subAccount) => subAccount.name === "2250- Trade Creditors Control Account"
             )
         );
 
         if (tradeCreditorsAccount) {
           const subAccount = tradeCreditorsAccount.sub_account_details.find(
-            (subAccount) => subAccount.name === "2250 - Trade Creditors Control Account"
+            (subAccount) => subAccount.name === "2250- Trade Creditors Control Account"
           );
           setAccountCredited(subAccount.name); // Set the account credited to the found account name
         } else {
