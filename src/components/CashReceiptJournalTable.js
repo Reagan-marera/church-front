@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import Select from "react-select"; // Import react-select
+import Select from "react-select";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faFileInvoiceDollar } from "@fortawesome/free-solid-svg-icons"; // Example icon
 import {
+  faFileInvoiceDollar,
   faPlus,
   faEdit,
   faTrash,
@@ -31,25 +31,27 @@ const CashReceiptJournalTable = () => {
     from_whom_received: "",
     description: "",
     receipt_type: "",
-    account_debited: "",
-    account_credited: "",
-    cash: 0,
-    bank: 0,
+    accounts_credited: {},
     total: 0,
     cashbook: "",
+    selectedInvoice: null,
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Custom styles for react-select
   const customStyles = {
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isFocused ? "#e2e8f0" : "white", // Background color on hover
-      color: state.isSelected ? "#4a5568" : "black", // Text color for selected option
+      backgroundColor: state.isFocused ? "#e2e8f0" : "white",
+      color: state.isSelected ? "#4a5568" : "black",
       padding: "10px",
-      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? "bold" : "normal", // Bold matching options
+      fontWeight:
+        state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase())
+          ? "bold"
+          : "normal",
     }),
     control: (provided) => ({
       ...provided,
@@ -173,25 +175,57 @@ const CashReceiptJournalTable = () => {
     }));
   };
 
+  const handleInvoiceChange = (selectedOption) => {
+    const selectedInvoice = invoices.find(
+      (invoice) => invoice.invoice_number === selectedOption.value
+    );
+
+    const accountsCredited = {};
+    selectedInvoice.account_credited.forEach((account) => {
+      accountsCredited[account.name] = 0; // Initialize amounts to 0
+    });
+
+    setFormData((prev) => ({
+      ...prev,
+      selectedInvoice: selectedInvoice,
+      accounts_credited: accountsCredited,
+      total: selectedInvoice.amount,
+    }));
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    const newFormData = { ...formData, [name]: value };
 
-    if (name === "cash" || name === "bank") {
-      newFormData.total =
-        parseFloat(newFormData.cash || 0) + parseFloat(newFormData.bank || 0);
+    if (name.startsWith("account_")) {
+      const accountName = name.replace("account_", "");
+      const accountsCredited = { ...formData.accounts_credited };
+      accountsCredited[accountName] = parseFloat(value) || 0;
+
+      const totalAllocated = Object.values(accountsCredited).reduce(
+        (sum, amount) => sum + amount,
+        0
+      );
+
+      setFormData((prev) => ({
+        ...prev,
+        accounts_credited: accountsCredited,
+        total: totalAllocated,
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
     }
-
-    setFormData(newFormData);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    let cash = parseFloat(formData.cash) || 0;
-    let bank = parseFloat(formData.bank) || 0;
-    if (isNaN(cash) || isNaN(bank)) {
-      setError("Cash and Bank values must be numeric.");
+    const totalAllocated = Object.values(formData.accounts_credited).reduce(
+      (sum, amount) => sum + amount,
+      0
+    );
+
+    if (totalAllocated !== parseFloat(formData.total)) {
+      setError("The total allocated amount must match the invoice amount.");
       return;
     }
 
@@ -208,10 +242,7 @@ const CashReceiptJournalTable = () => {
       from_whom_received: formData.from_whom_received,
       description: formData.description,
       receipt_type: formData.receipt_type,
-      account_debited: formData.account_debited,
-      account_credited: formData.account_credited,
-      cash: cash,
-      bank: bank,
+      accounts_credited: formData.accounts_credited,
       total: formData.total,
       cashbook: formData.cashbook,
     };
@@ -222,6 +253,7 @@ const CashReceiptJournalTable = () => {
         : "http://127.0.0.1:5000/cash-receipt-journals";
       const method = isEditing ? "PUT" : "POST";
 
+      setLoading(true);
       const response = await fetch(url, {
         method: method,
         headers: {
@@ -246,6 +278,8 @@ const CashReceiptJournalTable = () => {
       }
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -257,16 +291,14 @@ const CashReceiptJournalTable = () => {
       setError("User is not authenticated.");
       return;
     }
+
     try {
-      const response = await fetch(
-        `http://127.0.0.1:5000/cash-receipt-journals/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await fetch(`http://127.0.0.1:5000/cash-receipt-journals/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -283,6 +315,12 @@ const CashReceiptJournalTable = () => {
     if (journal) {
       setIsEditing(true);
       setEditingData(journal);
+
+      const accountsCredited = {};
+      journal.accounts_credited.forEach((account) => {
+        accountsCredited[account.name] = parseFloat(account.amount) || 0;
+      });
+
       setFormData({
         receipt_date: journal.receipt_date,
         receipt_no: journal.receipt_no,
@@ -290,12 +328,10 @@ const CashReceiptJournalTable = () => {
         from_whom_received: journal.from_whom_received,
         description: journal.description,
         receipt_type: journal.receipt_type,
-        account_debited: journal.account_debited,
-        account_credited: journal.account_credited,
-        cash: journal.cash,
-        bank: journal.bank,
+        accounts_credited: accountsCredited,
         total: journal.total,
         cashbook: journal.cashbook,
+        selectedInvoice: null,
       });
     } else {
       setIsEditing(false);
@@ -307,12 +343,10 @@ const CashReceiptJournalTable = () => {
         from_whom_received: "",
         description: "",
         receipt_type: "",
-        account_debited: "",
-        account_credited: "",
-        cash: 0,
-        bank: 0,
+        accounts_credited: {},
         total: 0,
         cashbook: "",
+        selectedInvoice: null,
       });
     }
     setShowForm(true);
@@ -326,118 +360,175 @@ const CashReceiptJournalTable = () => {
     setEditingData(null);
   };
 
-  const getDebitAccounts = () => {
-    if (formData.receipt_type === "Invoiced") {
-      const currentAssetsAccount = coa.find(
-        (account) => account.account_name  === "100-Current Assets"
-      );
-      return currentAssetsAccount?.sub_account_details || [];
-    } else if (formData.receipt_type === "Cash") {
-      const cashAccount = coa.find(
-        (account) => account.account_name === "100-Current Assets"
-      );
-      return cashAccount?.sub_account_details || [];
-    } else {
-      return coa.filter((account) => account.parent_account === "1000");
-    }
+  const printReceipt = (journal) => {
+    const printWindow = window.open("", "_blank");
+    printWindow.document.open();
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Cash Receipt Journal - Print</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 20px;
+              padding: 0;
+              line-height: 1.6;
+            }
+            .receipt-container {
+              max-width: 800px;
+              margin: 0 auto;
+              border: 1px solid #ccc;
+              padding: 20px;
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+            h1 {
+              text-align: center;
+              font-size: 24px;
+              margin-bottom: 20px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            th, td {
+              border: 1px solid #ddd;
+              padding: 10px;
+              text-align: left;
+            }
+            th {
+              background-color: #f4f4f4;
+              font-weight: bold;
+            }
+            .accounts-list {
+              margin-top: 20px;
+              padding: 10px;
+              background-color: #f9f9f9;
+              border: 1px solid #ddd;
+            }
+            .accounts-list p {
+              margin: 5px 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-container">
+            <h1>Cash Receipt Journal</h1>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Value</th>
+              </tr>
+              <tr>
+                <td>Receipt Date</td>
+                <td>${journal.receipt_date || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>Receipt No</td>
+                <td>${journal.receipt_no || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>Reference No</td>
+                <td>${journal.ref_no || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>From Whom Received</td>
+                <td>${journal.from_whom_received || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>Description</td>
+                <td>${journal.description || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>Receipt Type</td>
+                <td>${journal.receipt_type || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>Total</td>
+                <td>${journal.total || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>Cashbook</td>
+                <td>${journal.cashbook || "N/A"}</td>
+              </tr>
+            </table>
+  
+            <div class="accounts-list">
+              <h3>Accounts Credited:</h3>
+              ${journal.accounts_credited
+                ? Object.entries(journal.accounts_credited)
+                    .map(([account, amount]) => `<p>${account}: ${amount}</p>`)
+                    .join("")
+                : "<p>No accounts credited.</p>"}
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
   };
 
-  const getCreditAccounts = (isInvoiced = false) => {
-    const getParentAccountNumber = (parentAccount) => {
-      if (!parentAccount) return null;
-      const match = parentAccount.match(/^\d+/);
-      return match ? parseInt(match[0], 10) : null;
-    };
-  
-    return coa.flatMap((account) => {
-      const subAccounts = account.sub_account_details || [];
-      return subAccounts.filter((subAccount) => {
-        if (!subAccount) return false;
-  
-        if (isInvoiced) {
-          // For invoiced receipts, only return "1150- Trade Debtors Control Account"
-          return subAccount.name === "1150- Trade Debtors Control Account";
-        } else {
-          // For non-invoiced receipts, exclude "50-Expenses" and filter by parentAccountNumber
-          if (subAccount.account_type === "50-Expenses") return false;
-          const parentAccountNumber = getParentAccountNumber(subAccount.parent_account);
-          return parentAccountNumber === null || parentAccountNumber <= 5000;
-        }
-      });
-    });
-  };
-  // Prepare customer options for react-select
   const customerOptions = customers.map((customer) => ({
     value: customer.name,
     label: customer.name,
   }));
 
-  // Prepare debit and credit account options for react-select
-  const debitAccountOptions = getDebitAccounts().map((subAccount) => ({
-    value: subAccount.name,
-    label: subAccount.name,
-  }));
-
-  const creditAccountOptions = getCreditAccounts().map((subAccount) => ({
-    value: subAccount.name,
-    label: subAccount.name,
-  }));
+  const invoiceOptions = invoices
+    .filter((invoice) => invoice.name === customerName)
+    .map((invoice) => ({
+      value: invoice.invoice_number,
+      label: `Invoice ${invoice.invoice_number} - ${invoice.amount}`,
+    }));
 
   return (
-    <div className="cash-receipt-journal">
-      <h1>
-        <FontAwesomeIcon icon={faBook} className="icon" /> Cash Receipt Journal
-      </h1>
-      {error && <p className="error">{error}</p>}
-      <button onClick={() => openFormPopup()}>
-        <FontAwesomeIcon icon={faPlus} className="icon" /> Add New Receipt
-      </button>
+    <div>
+      <h1>Cash Receipt Journal</h1>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      <button onClick={() => openFormPopup()}>Add New Receipt</button>
 
       {showForm && (
-        <div className="modal">
+        <div className="modal-popup">
           <div className="modal-content">
-            <span className="close" onClick={closeFormPopup}>
-              &times;
-            </span>
+            <button className="close-button" onClick={closeFormPopup}>
+              ×
+            </button>
             <h2>{isEditing ? "Edit Receipt" : "Add New Receipt"}</h2>
-            <form onSubmit={handleSubmit} className="form-container">
-              <div>
-                <label>
-                  <FontAwesomeIcon icon={faCalendar} className="icon" /> Receipt Date:
-                </label>
+            <form onSubmit={handleSubmit}>
+              <label>
+                Receipt Date:
                 <input
                   type="date"
                   name="receipt_date"
                   value={formData.receipt_date}
                   onChange={handleInputChange}
-                  required
                 />
-              </div>
-              <div>
-                <label>
-                  <FontAwesomeIcon icon={faFileAlt} className="icon" /> Receipt No:
-                </label>
+              </label>
+              <label>
+                Receipt No:
                 <input
                   type="text"
                   name="receipt_no"
                   value={formData.receipt_no}
                   onChange={handleInputChange}
-                  required
                 />
-              </div>
-              <div>
-                <label>Reference No:</label>
+              </label>
+              <label>
+                Reference No:
                 <input
                   type="text"
                   name="ref_no"
                   value={formData.ref_no}
                   onChange={handleInputChange}
                 />
-              </div>
-              <div>
-                <label>
-                  <FontAwesomeIcon icon={faUser} className="icon" /> From Whom Received:
-                </label>
+              </label>
+              <label>
+                From Whom Received:
                 <Select
                   value={customerOptions.find(
                     (option) => option.value === formData.from_whom_received
@@ -448,137 +539,95 @@ const CashReceiptJournalTable = () => {
                   isSearchable
                   styles={customStyles}
                 />
-              </div>
-              <div>
-                <label>
-                  <FontAwesomeIcon icon={faDollarSign} className="icon" /> Invoice Amount:
-                </label>
+              </label>
+              <label>
+                Invoice Amount:
                 <input
                   type="number"
-                  name="invoice_amount"
                   value={invoiceAmount}
                   readOnly
                 />
-              </div>
-              <div>
-                <label>Balance:</label>
+              </label>
+              <label>
+                Balance:
                 <input
                   type="number"
-                  name="balance"
                   value={balance}
                   readOnly
                 />
-              </div>
-              <div>
-                <label>Description:</label>
-                <textarea
+              </label>
+              <label>
+                Select Invoice:
+                <Select
+                  value={invoiceOptions.find(
+                    (option) => option.value === formData.selectedInvoice?.invoice_number
+                  )}
+                  onChange={handleInvoiceChange}
+                  options={invoiceOptions}
+                  placeholder="Select Invoice"
+                  isSearchable
+                  styles={customStyles}
+                />
+              </label>
+              <label>
+                Description:
+                <input
+                  type="text"
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
                 />
-              </div>
-              <div>
-                <label>Receipt Type:</label>
+              </label>
+              <label>
+                Receipt Type:
                 <select
                   name="receipt_type"
                   value={formData.receipt_type}
                   onChange={handleInputChange}
-                  required
                 >
                   <option value="">Select Receipt Type</option>
                   <option value="Cash">Cash</option>
                   <option value="Invoiced">Invoiced</option>
                 </select>
-              </div>
-              <div>
-                <label>Account Debited:</label>
-                <Select
-                  value={debitAccountOptions.find(
-                    (option) => option.value === formData.account_debited
-                  )}
-                  onChange={(selectedOption) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      account_debited: selectedOption.value,
-                    }))
-                  }
-                  options={debitAccountOptions}
-                  placeholder="Select Account Debited"
-                  isSearchable
-                  styles={customStyles}
-                />
-              </div>
-              <div>
-                <label>Account Credited:</label>
-                <Select
-                  value={creditAccountOptions.find(
-                    (option) => option.value === formData.account_credited
-                  )}
-                  onChange={(selectedOption) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      account_credited: selectedOption.value,
-                    }))
-                  }
-                  options={creditAccountOptions}
-                  placeholder="Select Account Credited"
-                  isSearchable
-                  styles={customStyles}
-                />
-              </div>
-              <div>
-                <label>
-                  <FontAwesomeIcon icon={faWallet} className="icon" /> Cash:
-                </label>
+              </label>
+
+              {/* Display accounts credited in the invoice */}
+              {formData.selectedInvoice &&
+                Object.keys(formData.accounts_credited).map((accountName) => (
+                  <label key={accountName}>
+                    {accountName}:
+                    <input
+                      type="number"
+                      name={`account_${accountName}`}
+                      value={formData.accounts_credited[accountName]}
+                      onChange={handleInputChange}
+                    />
+                  </label>
+                ))}
+
+              <label>
+                Total:
                 <input
                   type="number"
-                  name="cash"
-                  value={formData.cash}
-                  onChange={handleInputChange}
-                  step="0.01"
-                />
-              </div>
-              <div>
-                <label>Bank:</label>
-                <input
-                  type="number"
-                  name="bank"
-                  value={formData.bank}
-                  onChange={handleInputChange}
-                  step="0.01"
-                />
-              </div>
-              <div>
-                <label>Total:</label>
-                <input
-                  type="number"
-                  name="total"
                   value={formData.total}
                   readOnly
                 />
-              </div>
-              <div>
-                <label>
-                  <FontAwesomeIcon icon={faBook} className="icon" /> Cashbook:
-                </label>
+              </label>
+              <label>
+                Cashbook:
                 <input
                   type="text"
                   name="cashbook"
                   value={formData.cashbook}
                   onChange={handleInputChange}
-                  required
                 />
-              </div>
+              </label>
               <button type="submit">
-                {isEditing ? (
-                  <>
-                    <FontAwesomeIcon icon={faEdit} className="icon" /> Update
-                  </>
-                ) : (
-                  <>
-                    <FontAwesomeIcon icon={faPlus} className="icon" /> Submit
-                  </>
-                )}
+                {loading
+                  ? "Submitting..."
+                  : isEditing
+                  ? "Update Receipt"
+                  : "Submit Receipt"}
               </button>
               <button type="button" onClick={closeFormPopup}>
                 Cancel
@@ -588,12 +637,7 @@ const CashReceiptJournalTable = () => {
         </div>
       )}
 
-      <div className="balance-info">
-        <p>Invoice Amount: {invoiceAmount}</p>
-        <p>Balance: {balance}</p>
-      </div>
-
-      <table className="compact-table">
+      <table>
         <thead>
           <tr>
             <th>Receipt Date</th>
@@ -602,10 +646,6 @@ const CashReceiptJournalTable = () => {
             <th>From Whom Received</th>
             <th>Description</th>
             <th>Receipt Type</th>
-            <th>Account Debited</th>
-            <th>Account Credited</th>
-            <th>Cash</th>
-            <th>Bank</th>
             <th>Total</th>
             <th>Cashbook</th>
             <th>Actions</th>
@@ -620,19 +660,12 @@ const CashReceiptJournalTable = () => {
               <td>{journal.from_whom_received}</td>
               <td>{journal.description}</td>
               <td>{journal.receipt_type}</td>
-              <td>{journal.account_debited}</td>
-              <td>{journal.account_credited}</td>
-              <td>{journal.cash}</td>
-              <td>{journal.bank}</td>
               <td>{journal.total}</td>
               <td>{journal.cashbook}</td>
               <td>
-                <button onClick={() => openFormPopup(journal)}>
-                  <FontAwesomeIcon icon={faEdit} className="icon" /> Edit
-                </button>
-                <button onClick={() => handleDelete(journal.id)}>
-                  <FontAwesomeIcon icon={faTrash} className="icon" /> Delete
-                </button>
+                <button onClick={() => openFormPopup(journal)}>Edit</button>
+                <button onClick={() => handleDelete(journal.id)}>Delete</button>
+                <button onClick={() => printReceipt(journal)}>Print</button>
               </td>
             </tr>
           ))}
