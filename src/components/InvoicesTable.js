@@ -17,7 +17,8 @@ const InvoiceIssued = () => {
   const [totalAmount, setTotalAmount] = useState(0);
   const [accountDebited, setAccountDebited] = useState("");
   const [accountsCredited, setAccountsCredited] = useState([]);
-  const [customerName, setCustomerName] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState("");
+  const [allCustomersSelected, setAllCustomersSelected] = useState("");
 
   // State to manage the invoices, form visibility, loading, and errors
   const [invoices, setInvoices] = useState([]);
@@ -95,12 +96,12 @@ const InvoiceIssued = () => {
   // Function to fetch customer data for the "Customer Name" select
   const fetchCustomers = async () => {
     const token = localStorage.getItem("token");
-  
+
     if (!token) {
       setError("User is not authenticated");
       return;
     }
-  
+
     try {
       const response = await fetch("http://127.0.0.1:5000/customer", {
         method: "GET",
@@ -108,11 +109,11 @@ const InvoiceIssued = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-  
+
       if (response.ok) {
         const data = await response.json();
         setCustomers(data); // Set detailed customer data (one customer)
-  
+
         // Extract all customer account names (all customers)
         const allCustomersList = data.map((customer) => customer.account_name);
         setAllCustomers(allCustomersList);
@@ -179,38 +180,46 @@ const InvoiceIssued = () => {
     return newInvoiceNumber;
   };
 
-  // Function to handle form submission (POST or PUT)
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     const token = localStorage.getItem("token");
     if (!token) {
       setError("User is not authenticated");
       return;
     }
-
+  
     // Ensure date is in the correct format (YYYY-MM-DD)
     const isValidDate = (date) => {
       return /^\d{4}-\d{2}-\d{2}$/.test(date);
     };
-
+  
     if (!isValidDate(dateIssued)) {
       setError("Invalid date format. Please use YYYY-MM-DD.");
       return;
     }
-
-    const selectedCustomer = customers.find((customer) => customer.account_name === customerName);
-
-    if (!selectedCustomer) {
+  
+    // Find the selected customer using the sub-account name
+    const selectedCustomerData = customers.find((customer) =>
+      customer.sub_account_details.some(subAccount => subAccount.name === selectedCustomer)
+    );
+  
+    const allCustomersData = customers.filter((customer) =>
+      allCustomersSelected.includes(customer.account_name)
+    );
+  
+    if (!selectedCustomerData && allCustomersSelected.length === 0) {
       setError("Selected customer not found.");
       return;
     }
-
-    const subAccounts = selectedCustomer.sub_account_details || [];
-
-    for (const subAccount of subAccounts) {
+  
+    const accountsToProcess = selectedCustomerData
+      ? selectedCustomerData.sub_account_details.filter(subAccount => subAccount.name === selectedCustomer)
+      : allCustomersData.flatMap((customer) => customer.sub_account_details || []);
+  
+    for (const subAccount of accountsToProcess) {
       const uniqueInvoiceNumber = generateUniqueInvoiceNumber(invoices);
-
+  
       const payload = {
         invoice_number: uniqueInvoiceNumber,
         date_issued: dateIssued,
@@ -223,13 +232,13 @@ const InvoiceIssued = () => {
         })),
         name: subAccount.name,
       };
-
+  
       try {
         const url = isEditing
           ? `http://127.0.0.1:5000/invoices/${editingInvoiceId}`
           : "http://127.0.0.1:5000/invoices";
         const method = isEditing ? "PUT" : "POST";
-
+  
         const response = await fetch(url, {
           method: method,
           headers: {
@@ -238,7 +247,7 @@ const InvoiceIssued = () => {
           },
           body: JSON.stringify(payload),
         });
-
+  
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText);
@@ -248,7 +257,7 @@ const InvoiceIssued = () => {
         return;
       }
     }
-
+  
     fetchInvoices();
     resetForm();
     setError("");
@@ -258,6 +267,9 @@ const InvoiceIssued = () => {
       setEditingInvoiceId(null);
     }
   };
+  
+  
+
 
   // Function to handle updating an invoice
   const handleUpdate = (invoice) => {
@@ -269,7 +281,7 @@ const InvoiceIssued = () => {
       label: account.name,
       amount: account.amount
     })));
-    setCustomerName(invoice.name);
+    setSelectedCustomer(invoice.name);
     setIsEditing(true);
     setEditingInvoiceId(invoice.id);
     setShowForm(true);
@@ -335,7 +347,8 @@ const InvoiceIssued = () => {
     setDateIssued("");
     setDescription("");
     setAccountsCredited([]);
-    setCustomerName("");
+    setSelectedCustomer("");
+    setAllCustomersSelected([]);
     setTotalAmount(0);
   };
 
@@ -497,10 +510,10 @@ const InvoiceIssued = () => {
                 <label>Customer Name:</label>
                 <Select
                   value={customerOptions.find(
-                    (option) => option.value === customerName
+                    (option) => option.value === selectedCustomer
                   )}
                   onChange={(selectedOption) =>
-                    setCustomerName(selectedOption.value)
+                    setSelectedCustomer(selectedOption.value)
                   }
                   options={customerOptions}
                   placeholder="Select Customer"
@@ -513,15 +526,16 @@ const InvoiceIssued = () => {
               <div>
                 <label>All Customers:</label>
                 <Select
-                  value={allCustomersOptions.find(
-                    (option) => option.value === customerName
+                  value={allCustomersOptions.filter(
+                    (option) => allCustomersSelected.includes(option.value)
                   )}
-                  onChange={(selectedOption) =>
-                    setCustomerName(selectedOption.value)
+                  onChange={(selectedOptions) =>
+                    setAllCustomersSelected(selectedOptions.map(option => option.value))
                   }
                   options={allCustomersOptions}
                   placeholder="Select All Customers"
                   isSearchable
+                  isMulti
                   styles={customStyles}
                 />
               </div>
@@ -624,9 +638,7 @@ const InvoiceIssued = () => {
                 <button onClick={() => handleDelete(invoice.id)}>
                   <FaTrash /> Delete
                 </button>
-                <button onClick={() => handlePost(invoice.id)}>
-                  <FaCheck /> Post
-                </button>
+               
                 <button onClick={() => handlePrint(invoice)}>
                   <FaPrint /> Print
                 </button>

@@ -329,7 +329,7 @@ const CashReceiptJournalTable = () => {
   const getDebitAccounts = () => {
     if (formData.receipt_type === "Invoiced") {
       const currentAssetsAccount = coa.find(
-        (account) => account.parent_account === "1000"
+        (account) => account.account_name  === "100-Current Assets"
       );
       return currentAssetsAccount?.sub_account_details || [];
     } else if (formData.receipt_type === "Cash") {
@@ -342,32 +342,30 @@ const CashReceiptJournalTable = () => {
     }
   };
 
-  const getCreditAccounts = () => {
+  const getCreditAccounts = (isInvoiced = false) => {
     const getParentAccountNumber = (parentAccount) => {
-      const match = parentAccount?.match(/^\d+/);
+      if (!parentAccount) return null;
+      const match = parentAccount.match(/^\d+/);
       return match ? parseInt(match[0], 10) : null;
     };
-
-    if (formData.receipt_type === "Invoiced") {
-      const invoicedAccount = coa.find(
-        (account) => account.parent_account === "1100-Trade Debtors Control account"
-      );
-      return invoicedAccount?.sub_account_details?.filter(
-        (subAccount) => subAccount.name === "1150-Trade Debtors  Control Account"
-      ) || [];
-    } else {
-      return coa.flatMap((account) =>
-        account.sub_account_details?.filter((subAccount) => {
+  
+    return coa.flatMap((account) => {
+      const subAccounts = account.sub_account_details || [];
+      return subAccounts.filter((subAccount) => {
+        if (!subAccount) return false;
+  
+        if (isInvoiced) {
+          // For invoiced receipts, only return "1150- Trade Debtors Control Account"
+          return subAccount.name === "1150- Trade Debtors Control Account";
+        } else {
+          // For non-invoiced receipts, exclude "50-Expenses" and filter by parentAccountNumber
+          if (subAccount.account_type === "50-Expenses") return false;
           const parentAccountNumber = getParentAccountNumber(subAccount.parent_account);
-          return (
-            subAccount.account_type !== "50-Expenses" &&
-            (parentAccountNumber === null || parentAccountNumber <= 5000)
-          );
-        }) || []
-      );
-    }
+          return parentAccountNumber === null || parentAccountNumber <= 5000;
+        }
+      });
+    });
   };
-
   // Prepare customer options for react-select
   const customerOptions = customers.map((customer) => ({
     value: customer.name,
