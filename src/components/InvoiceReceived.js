@@ -1,46 +1,37 @@
 import React, { useState, useEffect } from "react";
-import Select from "react-select"; // Import react-select
-import "./InvoicesTable.css"; // Ensure this file exists for styling
-import { FaEdit, FaTrash } from "react-icons/fa"; // Import icons
+import Select from "react-select";
+import "./InvoicesTable.css";
+import { FaEdit, FaTrash } from "react-icons/fa";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faFileInvoiceDollar,
-  faMoneyBill,
-  faCreditCard,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCreditCard } from "@fortawesome/free-solid-svg-icons";
 
 const InvoiceReceived = () => {
-  // State for storing form fields
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [dateIssued, setDateIssued] = useState("");
   const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
-  const [accountDebited, setAccountDebited] = useState("");
+  const [totalAmount, setTotalAmount] = useState(0);
+  const [accountsDebited, setAccountsDebited] = useState([]);
   const [accountCredited, setAccountCredited] = useState("");
   const [grnNumber, setGrnNumber] = useState("");
   const [payeeName, setPayeeName] = useState("");
 
-  // State to manage the invoices, form visibility, loading, and errors
   const [invoices, setInvoices] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // State for payee and chart of accounts data
   const [payees, setPayees] = useState([]);
   const [chartOfAccounts, setChartOfAccounts] = useState([]);
 
-  // State to manage editing invoices
   const [editingInvoice, setEditingInvoice] = useState(null);
 
-  // Custom styles for react-select
   const customStyles = {
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isFocused ? "#e2e8f0" : "white", // Background color on hover
-      color: state.isSelected ? "#4a5568" : "black", // Text color for selected option
+      backgroundColor: state.isFocused ? "#e2e8f0" : "white",
+      color: state.isSelected ? "#4a5568" : "black",
       padding: "10px",
-      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? "bold" : "normal", // Bold matching options
+      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? "bold" : "normal",
     }),
     control: (provided) => ({
       ...provided,
@@ -53,14 +44,12 @@ const InvoiceReceived = () => {
     }),
   };
 
-  // Fetch invoices and other data on component mount
   useEffect(() => {
     fetchInvoices();
     fetchPayees();
     fetchChartOfAccounts();
   }, []);
 
-  // Function to fetch invoices from the API
   const fetchInvoices = async () => {
     setLoading(true);
     const token = localStorage.getItem("token");
@@ -93,7 +82,6 @@ const InvoiceReceived = () => {
     }
   };
 
-  // Function to fetch payee data for the "Payee Name" select
   const fetchPayees = async () => {
     const token = localStorage.getItem("token");
 
@@ -121,7 +109,6 @@ const InvoiceReceived = () => {
     }
   };
 
-  // Function to fetch chart of accounts for the "Account Debited" and "Account Credited" select
   const fetchChartOfAccounts = async () => {
     const token = localStorage.getItem("token");
 
@@ -142,7 +129,6 @@ const InvoiceReceived = () => {
         const data = await response.json();
         setChartOfAccounts(data);
 
-        // Find the "2250-Trade Creditors Control Account" from the fetched chart of accounts
         const tradeCreditorsAccount = data.find(
           (account) =>
             account.sub_account_details &&
@@ -155,7 +141,7 @@ const InvoiceReceived = () => {
           const subAccount = tradeCreditorsAccount.sub_account_details.find(
             (subAccount) => subAccount.name === "2250- Trade Creditors Control Account"
           );
-          setAccountCredited(subAccount.name); // Set the account credited to the found account name
+          setAccountCredited(subAccount.name);
         } else {
           setError("2250-Trade Creditors Control Account not found in COA");
         }
@@ -167,13 +153,11 @@ const InvoiceReceived = () => {
     }
   };
 
-  // Handle change of selected payee and update related sub-accounts for "Account Debited"
   const handlePayeeChange = (selectedOption) => {
     setPayeeName(selectedOption.value);
-    setAccountDebited("");
+    setAccountsDebited([]);
   };
 
-  // Function to handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -187,8 +171,11 @@ const InvoiceReceived = () => {
       invoice_number: invoiceNumber,
       date_issued: dateIssued,
       description,
-      amount: parseInt(amount),
-      account_debited: accountDebited,
+      amount: totalAmount,
+      account_debited: accountsDebited.map(account => ({
+        name: account.value,
+        amount: account.amount
+      })),
       account_credited: accountCredited,
       grn_number: grnNumber,
       name: payeeName,
@@ -221,18 +208,16 @@ const InvoiceReceived = () => {
     }
   };
 
-  // Function to reset form fields
   const resetForm = () => {
     setInvoiceNumber("");
     setDateIssued("");
     setDescription("");
-    setAmount("");
-    setAccountDebited("");
+    setTotalAmount(0);
+    setAccountsDebited([]);
     setGrnNumber("");
     setPayeeName("");
   };
 
-  // Get all sub_account_details from payees and chartOfAccounts and merge them
   const getSubAccountNames = () => {
     const payeeSubAccounts = payees.flatMap((payee) =>
       payee.sub_account_details.map((subAccount) => subAccount.name)
@@ -247,20 +232,22 @@ const InvoiceReceived = () => {
     return [...new Set([...payeeSubAccounts, ...coaSubAccounts])];
   };
 
-  // Function to handle editing an invoice
   const handleEdit = (invoice) => {
     setInvoiceNumber(invoice.invoice_number);
     setDateIssued(invoice.date_issued);
     setDescription(invoice.description);
-    setAmount(invoice.amount);
-    setAccountDebited(invoice.account_debited);
+    setTotalAmount(invoice.amount);
+    setAccountsDebited(invoice.account_debited.map(account => ({
+      value: account.name,
+      label: account.name,
+      amount: account.amount
+    })));
     setGrnNumber(invoice.grn_number);
     setPayeeName(invoice.name);
     setEditingInvoice(invoice.id);
     setShowForm(true);
   };
 
-  // Function to handle deleting an invoice
   const handleDelete = async (invoiceId) => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -287,7 +274,6 @@ const InvoiceReceived = () => {
     }
   };
 
-  // Prepare payee options for react-select
   const payeeOptions = payees.flatMap((payee) =>
     payee.sub_account_details.map((subAccount) => ({
       value: subAccount.name,
@@ -295,11 +281,27 @@ const InvoiceReceived = () => {
     }))
   );
 
-  // Prepare debited account options for react-select
   const debitedAccountOptions = getSubAccountNames().map((subAccountName) => ({
     value: subAccountName,
     label: subAccountName,
   }));
+
+  const handleAddDebitedAccount = () => {
+    setAccountsDebited([...accountsDebited, { value: "", label: "", amount: 0 }]);
+  };
+
+  const handleRemoveDebitedAccount = (index) => {
+    setAccountsDebited(accountsDebited.filter((_, i) => i !== index));
+  };
+
+  const handleDebitedAccountChange = (index, value, amount) => {
+    const updatedAccounts = [...accountsDebited];
+    updatedAccounts[index] = { value, label: value, amount: parseFloat(amount) };
+    setAccountsDebited(updatedAccounts);
+
+    const newTotalAmount = updatedAccounts.reduce((sum, account) => sum + account.amount, 0);
+    setTotalAmount(newTotalAmount);
+  };
 
   return (
     <div className="invoice-received">
@@ -307,7 +309,6 @@ const InvoiceReceived = () => {
         <FontAwesomeIcon icon={faCreditCard} className="icon" /> Invoice Received
       </h1>
 
-      {/* Toggle to show/hide the form */}
       <button
         onClick={() => setShowForm(true)}
         style={{
@@ -322,11 +323,10 @@ const InvoiceReceived = () => {
         Add New Invoice
       </button>
 
-      {/* Modal for the form */}
       {showForm && (
         <div className="modal">
           <div className="modal-content">
-            <span className="close" onClick={() => setShowForm(false)}>
+            <span className="close" onClick={() => { setShowForm(false); resetForm(); }}>
               &times;
             </span>
             <form onSubmit={handleSubmit} className="invoice-form">
@@ -357,16 +357,15 @@ const InvoiceReceived = () => {
                 />
               </div>
               <div>
-                <label>Amount:</label>
+                <label>Total Amount:</label>
                 <input
                   type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
+                  value={totalAmount}
+                  readOnly
+                  className="form-input"
                 />
               </div>
 
-              {/* Payee Name Selection */}
               <div>
                 <label>Payee Name:</label>
                 <Select
@@ -379,20 +378,39 @@ const InvoiceReceived = () => {
                 />
               </div>
 
-              {/* Account Debited Selection */}
               <div>
                 <label>Account Debited:</label>
-                <Select
-                  value={debitedAccountOptions.find((option) => option.value === accountDebited)}
-                  onChange={(selectedOption) => setAccountDebited(selectedOption.value)}
-                  options={debitedAccountOptions}
-                  placeholder="Select Debited Account"
-                  isSearchable
-                  styles={customStyles}
-                />
+                {accountsDebited.map((account, index) => (
+                  <div key={index} style={{ display: "flex", alignItems: "center" }}>
+                    <Select
+                      value={debitedAccountOptions.find((option) => option.value === account.value)}
+                      onChange={(selectedOption) => handleDebitedAccountChange(index, selectedOption.value, account.amount)}
+                      options={debitedAccountOptions}
+                      placeholder="Select Debited Account"
+                      isSearchable
+                      styles={customStyles}
+                    />
+                    <input
+                      type="number"
+                      value={account.amount}
+                      onChange={(e) => handleDebitedAccountChange(index, account.value, e.target.value)}
+                      placeholder="Amount"
+                      style={{ marginLeft: "10px" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveDebitedAccount(index)}
+                      style={{ marginLeft: "10px" }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button type="button" onClick={handleAddDebitedAccount}>
+                  Add Another Account
+                </button>
               </div>
 
-              {/* Account Credited Selection */}
               <div>
                 <label>Account Credited:</label>
                 <input
@@ -419,7 +437,6 @@ const InvoiceReceived = () => {
         </div>
       )}
 
-      {/* Display any error messages */}
       {error && <div className="error">{error}</div>}
 
       <h2>Invoices List</h2>
@@ -436,38 +453,45 @@ const InvoiceReceived = () => {
               <th>Account Debited</th>
               <th>Account Credited</th>
               <th>Payee Name</th>
-              <th>GRN Number</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {invoices.length > 0 ? (
-              invoices.map((invoice) => (
-                <tr key={invoice.id}>
-                  <td>{invoice.invoice_number}</td>
-                  <td>{invoice.date_issued}</td>
-                  <td>{invoice.description}</td>
-                  <td>{invoice.amount}</td>
-                  <td>{invoice.account_debited}</td>
-                  <td>{invoice.account_credited}</td>
-                  <td>{invoice.name}</td>
-                  <td>{invoice.grn_number}</td>
-                  <td>
-                    <button onClick={() => handleEdit(invoice)}><FaEdit /></button>
-                    <button onClick={() => handleDelete(invoice.id)}><FaTrash /></button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="9">No invoices found.</td>
+            <th>GRN Number</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {invoices.length > 0 ? (
+            invoices.map((invoice) => (
+              <tr key={invoice.id}>
+                <td>{invoice.invoice_number}</td>
+                <td>{invoice.date_issued}</td>
+                <td>{invoice.description}</td>
+                <td>{invoice.amount}</td>
+                <td>
+                  {invoice.account_debited.map((account, index) => (
+                    <div key={index}>
+                      {account.name}: {account.amount}
+                    </div>
+                  ))}
+                </td>
+                <td>{invoice.account_credited}</td>
+                <td>{invoice.name}</td>
+                <td>{invoice.grn_number}</td>
+                <td>
+                  <button onClick={() => handleEdit(invoice)}><FaEdit /></button>
+                  <button onClick={() => handleDelete(invoice.id)}><FaTrash /></button>
+                </td>
               </tr>
-            )}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
+            ))
+          ) : (
+            <tr>
+              <td colSpan="9">No invoices found.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    )}
+  </div>
+);
+
 };
 
 export default InvoiceReceived;
