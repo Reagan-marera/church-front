@@ -13,13 +13,15 @@ import {
   faWallet,
   faBook,
 } from "@fortawesome/free-solid-svg-icons";
-
+import'./CashReceiptJournalTable.css'
 const CashReceiptJournalTable = () => {
   const [journals, setJournals] = useState([]);
   const [coa, setCoa] = useState([]);
   const [customers, setCustomers] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [singleCustomerName, setSingleCustomerName] = useState("");
+  const [allCustomersSelected, setAllCustomersSelected] = useState([]);
+  const [allCustomersSubAccounts, setAllCustomersSubAccounts] = useState([]);
   const [invoiceAmount, setInvoiceAmount] = useState(0);
   const [balance, setBalance] = useState(0);
   const [error, setError] = useState("");
@@ -42,8 +44,6 @@ const CashReceiptJournalTable = () => {
   const [editingData, setEditingData] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [allCustomersSelected, setAllCustomersSelected] = useState([]);
-  const [accountName, setAccountName] = useState("");
 
   // Custom styles for react-select
   const customStyles = {
@@ -140,6 +140,10 @@ const CashReceiptJournalTable = () => {
 
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
+
+      // Debugging: Log the raw COA data
+      console.log("Raw Chart of Accounts Data:", data);
+
       setCoa(data);
     } catch (err) {
       setError(err.message);
@@ -157,57 +161,21 @@ const CashReceiptJournalTable = () => {
 
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
-      setCustomers(
-        data.flatMap((customer) =>
-          customer.sub_account_details?.map((subAccount) => ({
-            ...subAccount,
-            parentName: customer.name,
-          }))
-        )
-      );
+
+      // Debugging: Log the raw customer data
+      console.log("Raw Customer Data:", data);
+
+      setCustomers(data);
     } catch (err) {
       setError(err.message);
     }
   };
 
-  const handleAccountNameChange = (selectedOption) => {
-    const selectedAccountName = selectedOption.value;
-    setAccountName(selectedAccountName);
-    setSingleCustomerName("");
-    setAllCustomersSelected([]);
-
-    const accountCustomers = customers.filter(
-      (customer) => customer.parentName === selectedAccountName
-    );
-
-    const totalAmount = accountCustomers.reduce(
-      (sum, customer) => sum + parseFloat(customer.amount),
-      0
-    );
-    setInvoiceAmount(totalAmount);
-
-    const customerReceipts = journals.filter((journal) =>
-      accountCustomers.some((customer) => customer.name === journal.from_whom_received)
-    );
-
-    const totalReceipts = customerReceipts.reduce(
-      (sum, journal) => sum + parseFloat(journal.total),
-      0
-    );
-
-    const customerBalance = totalAmount - totalReceipts;
-    setBalance(customerBalance);
-
-    setFormData((prev) => ({
-      ...prev,
-      from_whom_received: accountCustomers.map((customer) => customer.name).join(", "),
-    }));
-  };
-
-  const handleSingleCustomerChange = (selectedOption) => {
+  const handleCustomerChange = (selectedOption) => {
     const selectedCustomerName = selectedOption.value;
     setSingleCustomerName(selectedCustomerName);
     setAllCustomersSelected([]); // Clear all customers selection
+    setAllCustomersSubAccounts([]); // Clear all customers sub-accounts
 
     const customerInvoices = invoices.filter(
       (invoice) => invoice.name === selectedCustomerName
@@ -241,34 +209,49 @@ const CashReceiptJournalTable = () => {
     const selectedCustomerNames = selectedOptions.map((option) => option.value);
     setAllCustomersSelected(selectedCustomerNames);
     setSingleCustomerName(""); // Clear single customer selection
-
+  
+    const selectedSubAccounts = customers
+      .filter((customer) => selectedCustomerNames.includes(customer.account_name))
+      .flatMap((customer) =>
+        customer.sub_account_details.map((subAccount) => ({
+          value: subAccount.name,
+          label: subAccount.name,
+        }))
+      );
+  
+    setAllCustomersSubAccounts(selectedSubAccounts);
+  
     const customerInvoices = invoices.filter((invoice) =>
       selectedCustomerNames.includes(invoice.name)
     );
-
+  
     const totalAmount = customerInvoices.reduce(
       (sum, invoice) => sum + parseFloat(invoice.amount),
       0
     );
     setInvoiceAmount(totalAmount);
-
+  
     const customerReceipts = journals.filter((journal) =>
       selectedCustomerNames.includes(journal.from_whom_received)
     );
-
+  
     const totalReceipts = customerReceipts.reduce(
       (sum, journal) => sum + parseFloat(journal.total),
       0
     );
-
+  
     const customerBalance = totalAmount - totalReceipts;
     setBalance(customerBalance);
-
+  
+    // Update the form data with the selected customer names
     setFormData((prev) => ({
       ...prev,
       from_whom_received: selectedCustomerNames.join(", "),
     }));
   };
+  
+  // In the JSX
+ 
 
   const handleInvoiceChange = (selectedOption) => {
     const selectedInvoice = invoices.find(
@@ -326,11 +309,12 @@ const CashReceiptJournalTable = () => {
       return;
     }
 
-    const payload = {
+    // Prepare the payload for each selected customer
+    const payloads = allCustomersSelected.map((customerName) => ({
       receipt_date: formData.receipt_date,
       receipt_no: formData.receipt_no,
       ref_no: formData.ref_no,
-      from_whom_received: formData.from_whom_received,
+      from_whom_received: customerName,
       description: formData.description,
       receipt_type: formData.receipt_type,
       account_debited: formData.account_debited,
@@ -340,37 +324,33 @@ const CashReceiptJournalTable = () => {
       total: parseFloat(formData.total),
       cashbook: formData.cashbook,
       selected_invoice_id: formData.selectedInvoice?.id,
-    };
+    }));
 
     try {
-      const url = isEditing
-        ? `http://127.0.0.1:5000/cash-receipt-journals/${editingData.id}`
-        : "http://127.0.0.1:5000/cash-receipt-journals";
-      const method = isEditing ? "PUT" : "POST";
-
       setLoading(true);
-      const response = await fetch(url, {
-        method: method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText);
+      // Submit a receipt for each selected customer
+      for (const payload of payloads) {
+        const response = await fetch("http://127.0.0.1:5000/cash-receipt-journals", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText);
+        }
       }
 
       refreshData();
       setFormData({});
       setError("");
       setShowForm(false);
-      if (isEditing) {
-        setIsEditing(false);
-        setEditingData(null);
-      }
+      setAllCustomersSelected([]); // Clear selected customers after submission
     } catch (err) {
       setError(err.message);
     } finally {
@@ -573,7 +553,7 @@ const CashReceiptJournalTable = () => {
               <td>${journal.total || "N/A"}</td>
             </tr>
             <tr>
-              <td>Account Deposited</td>
+              <td>Cashbook</td>
               <td>${journal.cashbook || "N/A"}</td>
             </tr>
           </table>
@@ -624,14 +604,17 @@ const CashReceiptJournalTable = () => {
     printWindow.print();
   };
 
-  const accountOptions = coa.map((account) => ({
-    value: account.account_name,
-    label: account.account_name,
-  }));
+  const customerOptions = customers.flatMap((customer) =>
+    customer.sub_account_details.map((subAccount) => ({
+      value: subAccount.name,
+      label: subAccount.name,
+    }))
+  );
 
-  const customerOptions = customers.map((customer) => ({
-    value: customer.parentName,
-    label: customer.parentName,
+  // Prepare all customers options for react-select
+  const allcustomerOptions = customers.map((customer) => ({
+    value: customer.account_name,
+    label: customer.account_name,
   }));
 
   const invoiceOptions = invoices
@@ -657,239 +640,212 @@ const CashReceiptJournalTable = () => {
       <button onClick={() => openFormPopup()}>Add New Receipt</button>
 
       {showForm && (
-        <form onSubmit={handleSubmit}>
-          <h3>{isEditing ? "Edit Receipt" : "Add New Receipt"}</h3>
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h3>{isEditing ? "Edit Receipt" : "Add New Receipt"}</h3>
+              <button onClick={closeFormPopup}>&times;</button>
+            </div>
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label>Receipt Date:</label>
+                <input
+                  type="date"
+                  name="receipt_date"
+                  value={formData.receipt_date}
+                  onChange={handleInputChange}
+                />
+              </div>
 
-          {/* Form Fields */}
-          <label>
-            Receipt Date:
-            <input
-              type="date"
-              name="receipt_date"
-              value={formData.receipt_date}
-              onChange={handleInputChange}
-            />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Receipt No:</label>
+                <input
+                  type="text"
+                  name="receipt_no"
+                  value={formData.receipt_no}
+                  onChange={handleInputChange}
+                />
+              </div>
 
-          <label>
-            Receipt No:
-            <input
-              type="text"
-              name="receipt_no"
-              value={formData.receipt_no}
-              onChange={handleInputChange}
-            />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Reference No:</label>
+                <input
+                  type="text"
+                  name="ref_no"
+                  value={formData.ref_no}
+                  onChange={handleInputChange}
+                />
+              </div>
 
-          <label>
-            Reference No:
-            <input
-              type="text"
-              name="ref_no"
-              value={formData.ref_no}
-              onChange={handleInputChange}
-            />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Single Customer:</label>
+                <Select
+                  value={customerOptions.find(
+                    (option) => option.value === singleCustomerName
+                  )}
+                  onChange={handleCustomerChange}
+                  options={customerOptions}
+                  placeholder="Select Customer"
+                  isSearchable
+                  styles={customStyles}
+                />
+              </div>
 
-          <label>
-            Account Name:
-            <Select
-              value={accountOptions.find(
-                (option) => option.value === accountName
-              )}
-              onChange={handleAccountNameChange}
-              options={accountOptions}
-              placeholder="Select Account Name"
-              isSearchable
-              styles={customStyles}
-            />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>All Customers in Account:</label>
+                <Select
+                  value={allcustomerOptions.filter(
+                    (option) => allCustomersSelected.includes(option.value)
+                  )}
+                  onChange={handleAllCustomersChange}
+                  options={allcustomerOptions}
+                  placeholder="Select All Customers in Account"
+                  isSearchable
+                  isMulti
+                  styles={customStyles}
+                />
+              </div>
 
-          <label>
-            Single Customer:
-            <Select
-              value={customerOptions.find(
-                (option) => option.value === singleCustomerName
-              )}
-              onChange={handleSingleCustomerChange}
-              options={customerOptions}
-              placeholder="Select Customer"
-              isSearchable
-              styles={customStyles}
-            />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Invoice Amount:</label>
+                <input value={invoiceAmount} readOnly />
+              </div>
 
-          <label>
-            All Customers in Account:
-            <Select
-              value={customerOptions.filter(
-                (option) => allCustomersSelected.includes(option.value)
-              )}
-              onChange={handleAllCustomersChange}
-              options={customerOptions}
-              placeholder="Select All Customers in Account"
-              isSearchable
-              isMulti
-              styles={customStyles}
-            />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Balance:</label>
+                <input value={balance} readOnly />
+              </div>
 
-          <label>
-            Invoice Amount:
-            <input value={invoiceAmount} readOnly />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Select Invoice:</label>
+                <Select
+                  value={invoiceOptions.find(
+                    (option) => option.value === formData.selectedInvoice?.invoice_number
+                  )}
+                  onChange={handleInvoiceChange}
+                  options={invoiceOptions}
+                  placeholder="Select Invoice"
+                  isSearchable
+                  styles={customStyles}
+                />
+              </div>
 
-          <label>
-            Balance:
-            <input value={balance} readOnly />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Description:</label>
+                <input
+                  type="text"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                />
+              </div>
 
-          <label>
-            Select Invoice:
-            <Select
-              value={invoiceOptions.find(
-                (option) => option.value === formData.selectedInvoice?.invoice_number
-              )}
-              onChange={handleInvoiceChange}
-              options={invoiceOptions}
-              placeholder="Select Invoice"
-              isSearchable
-              styles={customStyles}
-              className="form-input"
-            />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Receipt Type:</label>
+                <select
+                  name="receipt_type"
+                  value={formData.receipt_type}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select Receipt Type</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Invoiced">Invoiced</option>
+                </select>
+              </div>
 
-          <label>
-            Description:
-            <input
-              type="text"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-            />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Account Debited:</label>
+                <Select
+                  value={debitAccountOptions.find(
+                    (option) => option.value === formData.account_debited
+                  )}
+                  onChange={(selectedOption) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      account_debited: selectedOption.value,
+                    }))
+                  }
+                  options={debitAccountOptions}
+                  placeholder="Select Account Debited"
+                  isSearchable
+                  styles={customStyles}
+                />
+              </div>
 
-          <label>
-            Receipt Type:
-            <select
-              name="receipt_type"
-              value={formData.receipt_type}
-              onChange={handleInputChange}
-            >
-              <option value="">Select Receipt Type</option>
-              <option value="Cash">Cash</option>
-              <option value="Invoiced">Invoiced</option>
-            </select>
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Account Credited:</label>
+                <Select
+                  value={creditedAccountOptions.find(
+                    (option) => option.value === formData.account_credited
+                  )}
+                  onChange={(selectedOption) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      account_credited: selectedOption.value,
+                    }))
+                  }
+                  options={creditedAccountOptions}
+                  placeholder="Select Account Credited"
+                  isSearchable
+                  styles={customStyles}
+                />
+              </div>
 
-          <label>
-            Account Debited:
-            <Select
-              value={debitAccountOptions.find(
-                (option) => option.value === formData.account_debited
-              )}
-              onChange={(selectedOption) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  account_debited: selectedOption.value,
-                }))
-              }
-              options={debitAccountOptions}
-              placeholder="Select Account Debited"
-              isSearchable
-              styles={customStyles}
-              className="form-input"
-            />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Cash:</label>
+                <input
+                  type="number"
+                  name="cash"
+                  value={formData.cash}
+                  onChange={handleInputChange}
+                />
+              </div>
 
-          <label>
-            Account Credited:
-            <Select
-              value={creditedAccountOptions.find(
-                (option) => option.value === formData.account_credited
-              )}
-              onChange={(selectedOption) =>
-                setFormData((prev) => ({
-                  ...prev,
-                  account_credited: selectedOption.value,
-                }))
-              }
-              options={creditedAccountOptions}
-              placeholder="Select Account Credited"
-              isSearchable
-              styles={customStyles}
-              className="form-input"
-            />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Bank:</label>
+                <input
+                  type="number"
+                  name="bank"
+                  value={formData.bank}
+                  onChange={handleInputChange}
+                />
+              </div>
 
-          <label>
-            Cash:
-            <input
-              type="number"
-              name="cash"
-              value={formData.cash}
-              onChange={handleInputChange}
-            />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Total:</label>
+                <input
+                  type="number"
+                  name="total"
+                  value={formData.total}
+                  readOnly
+                />
+              </div>
 
-          <label>
-            Bank:
-            <input
-              type="number"
-              name="bank"
-              value={formData.bank}
-              onChange={handleInputChange}
-            />
-          </label>
-          <br />
+              <div className="form-group">
+                <label>Cashbook:</label>
+                <input
+                  type="text"
+                  name="cashbook"
+                  value={formData.cashbook}
+                  onChange={handleInputChange}
+                />
+              </div>
 
-          <label>
-            Total:
-            <input
-              type="number"
-              name="total"
-              value={formData.total}
-              readOnly
-            />
-          </label>
-          <br />
-
-          <label>
-            Cashbook:
-            <input
-              type="text"
-              name="cashbook"
-              value={formData.cashbook}
-              onChange={handleInputChange}
-            />
-          </label>
-          <br />
-
-          <button type="submit">
-            {loading
-              ? "Submitting..."
-              : isEditing
-              ? "Update Receipt"
-              : "Submit Receipt"}
-          </button>
-          <button type="button" onClick={closeFormPopup}>
-            Cancel
-          </button>
-        </form>
+              <div className="form-actions">
+                <button type="submit">
+                  {loading
+                    ? "Submitting..."
+                    : isEditing
+                    ? "Update Receipt"
+                    : "Submit Receipt"}
+                </button>
+                <button type="button" onClick={closeFormPopup}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+            </div>
+            </div>
       )}
 
       <table border="1">
