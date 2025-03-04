@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import Select from "react-select"; // Import react-select
+import React, { useState, useEffect, useRef } from "react";
+import Select from "react-select";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPlus,
@@ -11,6 +11,7 @@ import {
   faDollarSign,
   faWallet,
   faBook,
+  faPrint,
 } from "@fortawesome/free-solid-svg-icons";
 import "./DisbursementForm.css";
 
@@ -40,15 +41,16 @@ const DisbursementForm = () => {
   const [disbursements, setDisbursements] = useState([]);
   const [totalDisbursed, setTotalDisbursed] = useState(0);
   const [editingDisbursement, setEditingDisbursement] = useState(null);
+  const [printableDisbursement, setPrintableDisbursement] = useState(null);
+  const printRef = useRef();
 
-  // Custom styles for react-select
   const customStyles = {
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isFocused ? "#e2e8f0" : "white", // Background color on hover
-      color: state.isSelected ? "#4a5568" : "black", // Text color for selected option
+      backgroundColor: state.isFocused ? "#e2e8f0" : "white",
+      color: state.isSelected ? "#4a5568" : "black",
       padding: "10px",
-      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? "bold" : "normal", // Bold matching options
+      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? "bold" : "normal",
     }),
     control: (provided) => ({
       ...provided,
@@ -106,6 +108,7 @@ const DisbursementForm = () => {
 
     fetchData();
   }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => {
@@ -152,6 +155,12 @@ const DisbursementForm = () => {
     setTotalDisbursed(totalDisbursedAmount);
   };
 
+  const generateUniqueVoucherNumber = () => {
+    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const randomPart = Math.floor(1000 + Math.random() * 9000);
+    return `PV-${datePart}-${randomPart}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -164,6 +173,7 @@ const DisbursementForm = () => {
     const payload = {
       ...formData,
       disbursement_date: new Date(formData.disbursement_date).toISOString().split("T")[0],
+      p_voucher_no: editingDisbursement ? formData.p_voucher_no : generateUniqueVoucherNumber(),
     };
 
     try {
@@ -327,7 +337,7 @@ const DisbursementForm = () => {
       const invoicedAccount = coaAccounts.flatMap((account) => {
         if (account.account_name === "200-Current Liabilities") {
           return account.sub_account_details?.filter(
-            (subAccount) => subAccount.name === "2250 - Trade Creditors Control Account"
+            (subAccount) => subAccount.name === "2250- Trade Creditors Control Account"
           ) || [];
         }
         return [];
@@ -341,11 +351,9 @@ const DisbursementForm = () => {
   const getCreditAccounts = () => {
     const assetsAccount = coaAccounts.find(
       (account) => account.account_name === "100-Current Assets"
-
     );
     return assetsAccount?.sub_account_details || [];
   };
-
 
   const openFormPopup = () => {
     setShowForm(true);
@@ -371,7 +379,18 @@ const DisbursementForm = () => {
     setEditingDisbursement(null);
   };
 
-  // Prepare payee options for react-select
+  const openPrintableView = (disbursement) => {
+    setPrintableDisbursement(disbursement);
+    setTimeout(() => {
+      window.print();
+      closePrintableView(); // Close the printable view after printing
+    }, 100);
+  };
+
+  const closePrintableView = () => {
+    setPrintableDisbursement(null);
+  };
+
   const payeeOptions = payees.flatMap((payee) =>
     payee.sub_account_details?.map((subAccount) => ({
       value: subAccount.name,
@@ -379,7 +398,6 @@ const DisbursementForm = () => {
     })) || []
   );
 
-  // Prepare debit and credit account options for react-select
   const debitAccountOptions = getDebitAccounts().map((subAccount) => ({
     value: subAccount.name,
     label: subAccount.name,
@@ -668,6 +686,9 @@ const DisbursementForm = () => {
                       <button onClick={() => handleDeleteDisbursement(disbursement.id)} className="delete-button">
                         <FontAwesomeIcon icon={faTrash} className="icon" /> Delete
                       </button>
+                      <button onClick={() => openPrintableView(disbursement)} className="print-button">
+                        <FontAwesomeIcon icon={faPrint} className="icon" /> Print
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -678,6 +699,156 @@ const DisbursementForm = () => {
           )}
         </div>
       )}
+
+      {printableDisbursement && (
+        <div className="printable-voucher" ref={printRef}>
+          <Voucher disbursement={printableDisbursement} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const Voucher = ({ disbursement }) => {
+  return (
+    <div className="voucher">
+      <h2 className="voucher-title">UNHCR Payment Voucher</h2>
+
+      {/* Voucher Details Table */}
+      <table className="voucher-table">
+        <tbody>
+          <tr>
+            <td><strong>Date:</strong></td>
+            <td>{disbursement.disbursement_date}</td>
+            <td><strong>Cheque No:</strong></td>
+            <td>{disbursement.cheque_no}</td>
+          </tr>
+          <tr>
+            <td><strong>Voucher No:</strong></td>
+            <td>{disbursement.p_voucher_no}</td>
+            <td><strong>To Whom Paid:</strong></td>
+            <td>{disbursement.to_whom_paid}</td>
+          </tr>
+          <tr>
+            <td><strong>Description:</strong></td>
+            <td colSpan="3">{disbursement.description}</td>
+          </tr>
+          <tr>
+            <td><strong>Payment Type:</strong></td>
+            <td>{disbursement.payment_type}</td>
+            <td><strong>Account Debited:</strong></td>
+            <td>{disbursement.account_debited}</td>
+          </tr>
+          <tr>
+            <td><strong>Account Credited:</strong></td>
+            <td>{disbursement.account_credited}</td>
+            <td><strong>Cash:</strong></td>
+            <td>{disbursement.cash}</td>
+          </tr>
+          <tr>
+            <td><strong>Bank:</strong></td>
+            <td>{disbursement.bank}</td>
+            <td><strong>Total:</strong></td>
+            <td>{disbursement.total}</td>
+          </tr>
+          <tr>
+            <td><strong>Cashbook:</strong></td>
+            <td colSpan="3">{disbursement.cashbook}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* Signature and Approval Section */}
+      <div className="signature-section">
+        <table className="signature-table">
+          <tbody>
+            <tr>
+              <td><strong>Paid By:</strong></td>
+              <td>____________________</td>
+              <td><strong>Signature:</strong></td>
+              <td>____________________</td>
+            </tr>
+            <tr>
+              <td><strong>Approved By:</strong></td>
+              <td>____________________</td>
+              <td><strong>Signature:</strong></td>
+              <td>____________________</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <style jsx>{`
+        .voucher {
+          font-family: Arial, sans-serif;
+          max-width: 800px;
+          margin: 20px auto;
+          padding: 20px;
+          border: 2px solid #0072BC; /* UNHCR blue */
+          background-color: #fff;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .voucher-title {
+          text-align: center;
+          font-size: 24px;
+          margin-bottom: 20px;
+          color: #0072BC; /* UNHCR blue */
+        }
+
+        .voucher-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+        }
+
+        .voucher-table td {
+          padding: 8px;
+          border: 1px solid #ddd;
+          font-size: 14px;
+        }
+
+        .voucher-table strong {
+          color: #0072BC; /* UNHCR blue */
+        }
+
+        .signature-section {
+          margin-top: 20px;
+        }
+
+        .signature-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        .signature-table td {
+          padding: 8px;
+          border: 1px solid #ddd;
+          font-size: 14px;
+        }
+
+        .signature-table strong {
+          color: #0072BC; /* UNHCR blue */
+        }
+
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .voucher, .voucher * {
+            visibility: visible;
+          }
+          .voucher {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            font-size: 14px;
+            border: none;
+            box-shadow: none;
+          }
+        }
+      `}</style>
     </div>
   );
 };
