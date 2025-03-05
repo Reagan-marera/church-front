@@ -509,68 +509,116 @@ const handleSubmit = async (e) => {
     );
 
     printWindow.document.write(`
-      <h3>World Bank</h3>
-      <h4>Cash Receipt Journal</h4>
-      <p><strong>Official Receipt</strong></p>
-      <table border="1" cellpadding="5">
-        <tr>
-          <th>Field</th>
-          <th>Value</th>
-        </tr>
-        <tr>
-          <td>Receipt Date</td>
-          <td>${journal.receipt_date || "N/A"}</td>
-        </tr>
-        <tr>
-          <td>Receipt No</td>
-          <td>${journal.receipt_no || "N/A"}</td>
-        </tr>
-        <tr>
-          <td>Reference No</td>
-          <td>${journal.ref_no || "N/A"}</td>
-        </tr>
-        <tr>
-          <td>From Whom Received</td>
-          <td>${journal.from_whom_received || "N/A"}</td>
-        </tr>
-        <tr>
-          <td>Description</td>
-          <td>${journal.description || "N/A"}</td>
-        </tr>
-        <tr>
-          <td>Total Amount</td>
-          <td>${journal.total || "N/A"}</td>
-        </tr>
-      </table>
-      <h4>Votes Heads</h4>
-      <table border="1" cellpadding="5">
-        <tr>
-          <th>Name</th>
-          <th>Amount</th>
-          <th>Cleared</th>
-          <th>Remaining</th>
-        </tr>
-        ${clearedAccounts
-          .map(
-            (account) => `
-        <tr>
-          <td>${account.name}</td>
-          <td>${account.amount.toFixed(2)}</td>
-          <td>${account.clearedAmount.toFixed(2)}</td>
-          <td>${account.remainingAmount.toFixed(2)}</td>
-        </tr>`
-          )
-          .join("")}
-      </table>
-      <p><strong>Total Remaining Balance:</strong> ${totalRemainingBalance.toFixed(2)}</p>
-      <p>Thank you for your payment. This is an official receipt.</p>
-      <p>Youming Tech | www.youmingtech.org</p>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; }
+          .header { text-align: center; margin-bottom: 20px; }
+          .header h1 { font-size: 24px; margin: 0; }
+          .header h2 { font-size: 18px; margin: 5px 0; }
+          .header p { font-size: 14px; margin: 0; }
+          .section { margin-bottom: 20px; }
+          .section h3 { font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 5px; }
+          .section table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+          .section table th, .section table td { border: 1px solid #000; padding: 8px; text-align: left; }
+          .section table th { background-color: #f2f2f2; }
+          .total { font-weight: bold; text-align: right; margin-top: 10px; }
+          .footer { text-align: center; margin-top: 20px; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>youmingtech</h1>
+          <h2>Cash Receipt Journal</h2>
+          <p>Official Receipt</p>
+        </div>
+
+        <div class="section">
+          <h3>Receipt Details</h3>
+          <table>
+            <tr>
+              <th>Field</th>
+              <th>Value</th>
+            </tr>
+            <tr>
+              <td>Receipt Date</td>
+              <td>${journal.receipt_date || "N/A"}</td>
+            </tr>
+            <tr>
+              <td>Receipt No</td>
+              <td>${journal.receipt_no || "N/A"}</td>
+            </tr>
+            <tr>
+              <td>Reference No</td>
+              <td>${journal.ref_no || "N/A"}</td>
+            </tr>
+            <tr>
+              <td>From Whom Received</td>
+              <td>${journal.from_whom_received || "N/A"}</td>
+            </tr>
+            <tr>
+              <td>Description</td>
+              <td>${journal.description || "N/A"}</td>
+            </tr>
+            <tr>
+              <td>Receipt Type</td>
+              <td>${journal.receipt_type || "N/A"}</td>
+            </tr>
+            <tr>
+              <td>Total Amount</td>
+              <td>${journal.total || "N/A"}</td>
+            </tr>
+            <tr>
+              <td>Deposited accounts</td>
+              <td>${journal.cashbook || "N/A"}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="section">
+          <h3>Vote Heads</h3>
+          <table>
+            <tr>
+              <th>Account Name</th>
+              <th>Total Amount</th>
+              <th>Cleared Amount</th>
+              <th>Remaining Amount</th>
+            </tr>
+            ${
+              clearedAccounts.length > 0
+                ? clearedAccounts
+                    .map(
+                      (account) => `
+                    <tr>
+                      <td>${account.name}</td>
+                      <td>${account.amount.toFixed(2)}</td>
+                      <td>${account.clearedAmount.toFixed(2)}</td>
+                      <td>${account.remainingAmount.toFixed(2)}</td>
+                    </tr>
+                  `
+                    )
+                    .join("")
+                : `<tr><td colspan="4">No invoice accounts.</td></tr>`
+            }
+          </table>
+        </div>
+
+        <div class="section">
+          <h3>Summary</h3>
+          <p class="total">Total Remaining Balance: ${totalRemainingBalance.toFixed(2)}</p>
+        </div>
+
+        <div class="footer">
+          <p>Thank you for your payment. This is an official receipt.</p>
+          <p>Youming Tech | www.youmingtech.org</p>
+        </div>
+      </body>
+      </html>
     `);
 
     printWindow.document.close();
     printWindow.print();
   };
-
   const customerOptions = customers.flatMap((customer) =>
     customer.sub_account_details.map((subAccount) => ({
       value: subAccount.name,
