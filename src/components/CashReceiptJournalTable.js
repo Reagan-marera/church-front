@@ -13,7 +13,8 @@ import {
   faWallet,
   faBook,
 } from "@fortawesome/free-solid-svg-icons";
-import'./CashReceiptJournalTable.css'
+import "./CashReceiptJournalTable.css";
+
 const CashReceiptJournalTable = () => {
   const [journals, setJournals] = useState([]);
   const [coa, setCoa] = useState([]);
@@ -93,10 +94,6 @@ const CashReceiptJournalTable = () => {
 
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
-
-      // Debugging: Log the raw invoice data
-      console.log("Raw Invoice Data:", data);
-
       setInvoices(data);
     } catch (err) {
       setError(err.message);
@@ -115,7 +112,6 @@ const CashReceiptJournalTable = () => {
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
 
-      // Enrich journals with selectedInvoice data
       const enrichedJournals = data.map((journal) => ({
         ...journal,
         selectedInvoice: invoices.find(
@@ -140,10 +136,6 @@ const CashReceiptJournalTable = () => {
 
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
-
-      // Debugging: Log the raw COA data
-      console.log("Raw Chart of Accounts Data:", data);
-
       setCoa(data);
     } catch (err) {
       setError(err.message);
@@ -161,10 +153,6 @@ const CashReceiptJournalTable = () => {
 
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
-
-      // Debugging: Log the raw customer data
-      console.log("Raw Customer Data:", data);
-
       setCustomers(data);
     } catch (err) {
       setError(err.message);
@@ -172,44 +160,48 @@ const CashReceiptJournalTable = () => {
   };
 
   const handleCustomerChange = (selectedOption) => {
-    const selectedCustomerName = selectedOption.value;
-    setSingleCustomerName(selectedCustomerName);
-    setAllCustomersSelected([]); // Clear all customers selection
-    setAllCustomersSubAccounts([]); // Clear all customers sub-accounts
-
+    const selectedSubAccount = selectedOption.value;
+    console.log("Selected Sub-Account:", selectedSubAccount); // Debugging line
+    setSingleCustomerName(selectedSubAccount);
+    setAllCustomersSelected([]);
+  
+    // Set allCustomersSubAccounts with the single selected sub-account
+    setAllCustomersSubAccounts([{ value: selectedSubAccount, label: selectedSubAccount }]);
+  
+    // Further logic for invoices, total amount, balance, etc.
     const customerInvoices = invoices.filter(
-      (invoice) => invoice.name === selectedCustomerName
+      (invoice) => invoice.name === selectedSubAccount
     );
-
+  
     const totalAmount = customerInvoices.reduce(
       (sum, invoice) => sum + parseFloat(invoice.amount),
       0
     );
     setInvoiceAmount(totalAmount);
-
+  
     const customerReceipts = journals.filter(
-      (journal) => journal.from_whom_received === selectedCustomerName
+      (journal) => journal.from_whom_received === selectedSubAccount
     );
-
+  
     const totalReceipts = customerReceipts.reduce(
       (sum, journal) => sum + parseFloat(journal.total),
       0
     );
-
+  
     const customerBalance = totalAmount - totalReceipts;
     setBalance(customerBalance);
-
+  
     setFormData((prev) => ({
       ...prev,
-      from_whom_received: selectedCustomerName,
+      from_whom_received: selectedSubAccount,
     }));
   };
-
+  
   const handleAllCustomersChange = (selectedOptions) => {
     const selectedCustomerNames = selectedOptions.map((option) => option.value);
     setAllCustomersSelected(selectedCustomerNames);
     setSingleCustomerName(""); // Clear single customer selection
-  
+
     const selectedSubAccounts = customers
       .filter((customer) => selectedCustomerNames.includes(customer.account_name))
       .flatMap((customer) =>
@@ -218,40 +210,36 @@ const CashReceiptJournalTable = () => {
           label: subAccount.name,
         }))
       );
-  
+
     setAllCustomersSubAccounts(selectedSubAccounts);
-  
+
     const customerInvoices = invoices.filter((invoice) =>
       selectedCustomerNames.includes(invoice.name)
     );
-  
+
     const totalAmount = customerInvoices.reduce(
       (sum, invoice) => sum + parseFloat(invoice.amount),
       0
     );
     setInvoiceAmount(totalAmount);
-  
+
     const customerReceipts = journals.filter((journal) =>
       selectedCustomerNames.includes(journal.from_whom_received)
     );
-  
+
     const totalReceipts = customerReceipts.reduce(
       (sum, journal) => sum + parseFloat(journal.total),
       0
     );
-  
+
     const customerBalance = totalAmount - totalReceipts;
     setBalance(customerBalance);
-  
-    // Update the form data with the selected customer names
+
     setFormData((prev) => ({
       ...prev,
       from_whom_received: selectedCustomerNames.join(", "),
     }));
   };
-  
-  // In the JSX
- 
 
   const handleInvoiceChange = (selectedOption) => {
     const selectedInvoice = invoices.find(
@@ -261,7 +249,7 @@ const CashReceiptJournalTable = () => {
     setFormData((prev) => ({
       ...prev,
       selectedInvoice: selectedInvoice,
-      total: parseFloat(selectedInvoice.amount),
+      total: parseFloat(selectedInvoice?.amount || 0),
     }));
   };
 
@@ -296,65 +284,96 @@ const CashReceiptJournalTable = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
+  try {
+    setLoading(true);
+
+    // Fetch the token from localStorage
     const token = localStorage.getItem("token");
     if (!token) {
       setError("User is not authenticated.");
       return;
     }
 
-    // Prepare the payload for each selected customer
-    const payloads = allCustomersSelected.map((customerName) => ({
-      receipt_date: formData.receipt_date,
-      receipt_no: formData.receipt_no,
-      ref_no: formData.ref_no,
-      from_whom_received: customerName,
-      description: formData.description,
-      receipt_type: formData.receipt_type,
-      account_debited: formData.account_debited,
-      account_credited: formData.account_credited, // Single credited account
-      cash: parseFloat(formData.cash) || 0,
-      bank: parseFloat(formData.bank) || 0,
-      total: parseFloat(formData.total),
-      cashbook: formData.cashbook,
-      selected_invoice_id: formData.selectedInvoice?.id,
-    }));
+    // Fetch the last receipt number from the server or initialize with a default value
+    let lastReceiptNo = await fetchLastReceiptNumber();
+    if (!lastReceiptNo) lastReceiptNo = 0;
 
-    try {
-      setLoading(true);
+    // Prepare payloads for each sub-account of the selected customers
+    const payloads = allCustomersSubAccounts.map((subAccount, index) => {
+      // Increment the receipt number for each sub-account
+      const newReceiptNo = `${parseInt(lastReceiptNo) + index + 1}`;
 
-      // Submit a receipt for each selected customer
-      for (const payload of payloads) {
-        const response = await fetch("http://127.0.0.1:5000/cash-receipt-journals", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        });
+      return {
+        receipt_date: formData.receipt_date,
+        receipt_no: newReceiptNo, // Assign unique receipt number
+        ref_no: formData.ref_no,
+        from_whom_received: subAccount.value, // Use sub-account name
+        description: formData.description,
+        receipt_type: formData.receipt_type,
+        account_debited: formData.account_debited,
+        account_credited: formData.account_credited, // Single credited account
+        cash: parseFloat(formData.cash) || 0,
+        bank: parseFloat(formData.bank) || 0,
+        total: parseFloat(formData.total),
+        cashbook: formData.cashbook,
+        selected_invoice_id: formData.selectedInvoice?.id,
+      };
+    });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText);
-        }
+    console.log("Payloads:", payloads); // Debugging line
+
+    // Submit a receipt for each sub-account
+    for (const payload of payloads) {
+      const response = await fetch("http://127.0.0.1:5000/cash-receipt-journals", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // Use the fetched token here
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText);
       }
+    }
 
-      refreshData();
-      setFormData({});
-      setError("");
-      setShowForm(false);
-      setAllCustomersSelected([]); // Clear selected customers after submission
+    refreshData();
+    setFormData({});
+    setError("");
+    setShowForm(false);
+    setAllCustomersSelected([]); // Clear selected customers after submission
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // Helper function to fetch the last receipt number from the server
+  const fetchLastReceiptNumber = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("User is not authenticated");
+
+      const response = await fetch("http://127.0.0.1:5000/last-receipt-number", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) throw new Error(await response.text());
+      const data = await response.json();
+      return data.lastReceiptNo || 0; // Default to 0 if no receipts exist
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching last receipt number:", err.message);
+      return 0;
     }
   };
 
@@ -434,16 +453,16 @@ const CashReceiptJournalTable = () => {
     setError("");
     setIsEditing(false);
     setEditingData(null);
+    setSingleCustomerName(""); // Clear single customer selection
+
   };
 
   const printReceipt = async (journal) => {
     const printWindow = window.open("", "_blank");
     printWindow.document.open();
 
-    // Extract the customer name from the journal
     const customerName = journal.from_whom_received;
 
-    // Fetch invoices for the specific customer
     let invoiceCreditedAccounts = [];
     if (customerName) {
       try {
@@ -460,7 +479,6 @@ const CashReceiptJournalTable = () => {
         if (!response.ok) throw new Error(await response.text());
         const invoicesData = await response.json();
 
-        // Combine all credited accounts from the invoices
         invoiceCreditedAccounts = invoicesData.flatMap((invoice) =>
           invoice.account_credited?.map((account) => ({
             name: account.name || "N/A",
@@ -469,11 +487,10 @@ const CashReceiptJournalTable = () => {
         );
       } catch (err) {
         console.error("Error fetching invoices for customer:", err.message);
-        invoiceCreditedAccounts = []; // Default to empty array on error
+        invoiceCreditedAccounts = [];
       }
     }
 
-    // Calculate the remaining balance after clearing each invoice account
     let remainingBalance = parseFloat(journal.total) || 0;
     const clearedAccounts = invoiceCreditedAccounts.map((account) => {
       const clearedAmount = Math.min(remainingBalance, account.amount);
@@ -486,118 +503,68 @@ const CashReceiptJournalTable = () => {
       };
     });
 
-    // Calculate the total remaining balance from uncleared amounts
-    const totalRemainingBalance = clearedAccounts.reduce((total, account) => {
-      return total + account.remainingAmount;
-    }, 0);
+    const totalRemainingBalance = clearedAccounts.reduce(
+      (total, account) => total + account.remainingAmount,
+      0
+    );
 
-    // Generate the printout content
     printWindow.document.write(`
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .header { text-align: center; margin-bottom: 20px; }
-          .header h1 { font-size: 24px; margin: 0; }
-          .header h2 { font-size: 18px; margin: 5px 0; }
-          .header p { font-size: 14px; margin: 0; }
-          .section { margin-bottom: 20px; }
-          .section h3 { font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 5px; }
-          .section table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-          .section table th, .section table td { border: 1px solid #000; padding: 8px; text-align: left; }
-          .section table th { background-color: #f2f2f2; }
-          .total { font-weight: bold; text-align: right; margin-top: 10px; }
-          .footer { text-align: center; margin-top: 20px; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>World Bank</h1>
-          <h2>Cash Receipt Journal</h2>
-          <p>Official Receipt</p>
-        </div>
-
-        <div class="section">
-          <h3>Receipt Details</h3>
-          <table>
-            <tr>
-              <th>Field</th>
-              <th>Value</th>
-            </tr>
-            <tr>
-              <td>Receipt Date</td>
-              <td>${journal.receipt_date || "N/A"}</td>
-            </tr>
-            <tr>
-              <td>Receipt No</td>
-              <td>${journal.receipt_no || "N/A"}</td>
-            </tr>
-            <tr>
-              <td>Reference No</td>
-              <td>${journal.ref_no || "N/A"}</td>
-            </tr>
-            <tr>
-              <td>From Whom Received</td>
-              <td>${journal.from_whom_received || "N/A"}</td>
-            </tr>
-            <tr>
-              <td>Description</td>
-              <td>${journal.description || "N/A"}</td>
-            </tr>
-            <tr>
-              <td>Receipt Type</td>
-              <td>${journal.receipt_type || "N/A"}</td>
-            </tr>
-            <tr>
-              <td>Total Amount</td>
-              <td>${journal.total || "N/A"}</td>
-            </tr>
-            <tr>
-              <td>Cashbook</td>
-              <td>${journal.cashbook || "N/A"}</td>
-            </tr>
-          </table>
-        </div>
-
-        <div class="section">
-          <h3>Vote Heads</h3>
-          <table>
-            <tr>
-              <th>Account Name</th>
-              <th>Total Amount</th>
-              <th>Cleared Amount</th>
-              <th>Remaining Amount</th>
-            </tr>
-            ${
-              clearedAccounts.length > 0
-                ? clearedAccounts
-                    .map(
-                      (account) => `
-                    <tr>
-                      <td>${account.name}</td>
-                      <td>${account.amount.toFixed(2)}</td>
-                      <td>${account.clearedAmount.toFixed(2)}</td>
-                      <td>${account.remainingAmount.toFixed(2)}</td>
-                    </tr>
-                  `
-                    )
-                    .join("")
-                : `<tr><td colspan="4">No invoice accounts.</td></tr>`
-            }
-          </table>
-        </div>
-
-        <div class="section">
-          <h3>Summary</h3>
-          <p class="total">Total Remaining Balance: ${totalRemainingBalance.toFixed(2)}</p>
-        </div>
-
-        <div class="footer">
-          <p>Thank you for your payment. This is an official receipt.</p>
-          <p>Youming Tech | www.youmingtech.org</p>
-        </div>
-      </body>
-      </html>
+      <h3>World Bank</h3>
+      <h4>Cash Receipt Journal</h4>
+      <p><strong>Official Receipt</strong></p>
+      <table border="1" cellpadding="5">
+        <tr>
+          <th>Field</th>
+          <th>Value</th>
+        </tr>
+        <tr>
+          <td>Receipt Date</td>
+          <td>${journal.receipt_date || "N/A"}</td>
+        </tr>
+        <tr>
+          <td>Receipt No</td>
+          <td>${journal.receipt_no || "N/A"}</td>
+        </tr>
+        <tr>
+          <td>Reference No</td>
+          <td>${journal.ref_no || "N/A"}</td>
+        </tr>
+        <tr>
+          <td>From Whom Received</td>
+          <td>${journal.from_whom_received || "N/A"}</td>
+        </tr>
+        <tr>
+          <td>Description</td>
+          <td>${journal.description || "N/A"}</td>
+        </tr>
+        <tr>
+          <td>Total Amount</td>
+          <td>${journal.total || "N/A"}</td>
+        </tr>
+      </table>
+      <h4>Votes Heads</h4>
+      <table border="1" cellpadding="5">
+        <tr>
+          <th>Name</th>
+          <th>Amount</th>
+          <th>Cleared</th>
+          <th>Remaining</th>
+        </tr>
+        ${clearedAccounts
+          .map(
+            (account) => `
+        <tr>
+          <td>${account.name}</td>
+          <td>${account.amount.toFixed(2)}</td>
+          <td>${account.clearedAmount.toFixed(2)}</td>
+          <td>${account.remainingAmount.toFixed(2)}</td>
+        </tr>`
+          )
+          .join("")}
+      </table>
+      <p><strong>Total Remaining Balance:</strong> ${totalRemainingBalance.toFixed(2)}</p>
+      <p>Thank you for your payment. This is an official receipt.</p>
+      <p>Youming Tech | www.youmingtech.org</p>
     `);
 
     printWindow.document.close();
@@ -611,14 +578,16 @@ const CashReceiptJournalTable = () => {
     }))
   );
 
-  // Prepare all customers options for react-select
-  const allcustomerOptions = customers.map((customer) => ({
+  const allCustomersOptions = customers.map((customer) => ({
     value: customer.account_name,
     label: customer.account_name,
   }));
 
   const invoiceOptions = invoices
-    .filter((invoice) => invoice.name === singleCustomerName || allCustomersSelected.includes(invoice.name))
+    .filter(
+      (invoice) =>
+        invoice.name === singleCustomerName || allCustomersSelected.includes(invoice.name)
+    )
     .map((invoice) => ({
       value: invoice.invoice_number,
       label: `Invoice ${invoice.invoice_number} - ${invoice.amount}`,
@@ -640,215 +609,223 @@ const CashReceiptJournalTable = () => {
       <button onClick={() => openFormPopup()}>Add New Receipt</button>
 
       {showForm && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3>{isEditing ? "Edit Receipt" : "Add New Receipt"}</h3>
-              <button onClick={closeFormPopup}>&times;</button>
+        <div className="form-popup">
+          <h3>{isEditing ? "Edit Receipt" : "Add New Receipt"}</h3>
+          <form onSubmit={handleSubmit} className="form-container">
+            <div className="form-row">
+              <label>Receipt Date:</label>
+              <input
+                type="date"
+                name="receipt_date"
+                value={formData.receipt_date}
+                onChange={handleInputChange}
+                required
+                className="form-input"
+              />
             </div>
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Receipt Date:</label>
-                <input
-                  type="date"
-                  name="receipt_date"
-                  value={formData.receipt_date}
-                  onChange={handleInputChange}
-                />
-              </div>
 
-              <div className="form-group">
-                <label>Receipt No:</label>
-                <input
-                  type="text"
-                  name="receipt_no"
-                  value={formData.receipt_no}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Reference No:</label>
-                <input
-                  type="text"
-                  name="ref_no"
-                  value={formData.ref_no}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Single Customer:</label>
-                <Select
-                  value={customerOptions.find(
-                    (option) => option.value === singleCustomerName
-                  )}
-                  onChange={handleCustomerChange}
-                  options={customerOptions}
-                  placeholder="Select Customer"
-                  isSearchable
-                  styles={customStyles}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>All Customers in Account:</label>
-                <Select
-                  value={allcustomerOptions.filter(
-                    (option) => allCustomersSelected.includes(option.value)
-                  )}
-                  onChange={handleAllCustomersChange}
-                  options={allcustomerOptions}
-                  placeholder="Select All Customers in Account"
-                  isSearchable
-                  isMulti
-                  styles={customStyles}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Invoice Amount:</label>
-                <input value={invoiceAmount} readOnly />
-              </div>
-
-              <div className="form-group">
-                <label>Balance:</label>
-                <input value={balance} readOnly />
-              </div>
-
-              <div className="form-group">
-                <label>Select Invoice:</label>
-                <Select
-                  value={invoiceOptions.find(
-                    (option) => option.value === formData.selectedInvoice?.invoice_number
-                  )}
-                  onChange={handleInvoiceChange}
-                  options={invoiceOptions}
-                  placeholder="Select Invoice"
-                  isSearchable
-                  styles={customStyles}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Description:</label>
-                <input
-                  type="text"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Receipt Type:</label>
-                <select
-                  name="receipt_type"
-                  value={formData.receipt_type}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select Receipt Type</option>
-                  <option value="Cash">Cash</option>
-                  <option value="Invoiced">Invoiced</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Account Debited:</label>
-                <Select
-                  value={debitAccountOptions.find(
-                    (option) => option.value === formData.account_debited
-                  )}
-                  onChange={(selectedOption) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      account_debited: selectedOption.value,
-                    }))
-                  }
-                  options={debitAccountOptions}
-                  placeholder="Select Account Debited"
-                  isSearchable
-                  styles={customStyles}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Account Credited:</label>
-                <Select
-                  value={creditedAccountOptions.find(
-                    (option) => option.value === formData.account_credited
-                  )}
-                  onChange={(selectedOption) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      account_credited: selectedOption.value,
-                    }))
-                  }
-                  options={creditedAccountOptions}
-                  placeholder="Select Account Credited"
-                  isSearchable
-                  styles={customStyles}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Cash:</label>
-                <input
-                  type="number"
-                  name="cash"
-                  value={formData.cash}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Bank:</label>
-                <input
-                  type="number"
-                  name="bank"
-                  value={formData.bank}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Total:</label>
-                <input
-                  type="number"
-                  name="total"
-                  value={formData.total}
-                  readOnly
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Cashbook:</label>
-                <input
-                  type="text"
-                  name="cashbook"
-                  value={formData.cashbook}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="form-actions">
-                <button type="submit">
-                  {loading
-                    ? "Submitting..."
-                    : isEditing
-                    ? "Update Receipt"
-                    : "Submit Receipt"}
-                </button>
-                <button type="button" onClick={closeFormPopup}>
-                  Cancel
-                </button>
-              </div>
-            </form>
+            <div className="form-row">
+              <label>Receipt No:</label>
+              <input
+                type="text"
+                name="receipt_no"
+                value={formData.receipt_no}
+                readOnly
+                className="form-input read-only"
+              />
             </div>
+
+            <div className="form-row">
+              <label>Reference No:</label>
+              <input
+                type="text"
+                name="ref_no"
+                value={formData.ref_no}
+                onChange={handleInputChange}
+                className="form-input"
+              />
             </div>
+
+            <div className="form-row">
+              <label>Single Customer:</label>
+              <Select
+                value={customerOptions.find((option) => option.value === singleCustomerName)}
+                onChange={(selectedOption) => handleCustomerChange(selectedOption)}
+                options={customerOptions}
+                placeholder="Select Customer"
+                isSearchable
+                styles={customStyles}
+              />
+            </div>
+
+            <div className="form-row">
+              <label>All Customers in Account:</label>
+              <Select
+                value={allCustomersSelected.map((name) => ({ value: name, label: name }))}
+                onChange={(selectedOptions) => {
+                  handleAllCustomersChange(selectedOptions);
+                }}
+                options={allCustomersOptions}
+                placeholder="Select All Customers in Account"
+                isSearchable
+                isMulti
+                styles={customStyles}
+              />
+            </div>
+
+            <div className="form-row">
+              <label>Invoice Amount:</label>
+              <input
+                type="number"
+                value={invoiceAmount}
+                readOnly
+                className="form-input read-only"
+              />
+            </div>
+
+            <div className="form-row">
+              <label>Balance:</label>
+              <input
+                type="number"
+                value={balance}
+                readOnly
+                className="form-input read-only"
+              />
+            </div>
+
+            <div className="form-row">
+              <label>Select Invoice:</label>
+              <Select
+                value={invoiceOptions.find(
+                  (option) => option.value === formData.selectedInvoice?.invoice_number
+                )}
+                onChange={handleInvoiceChange}
+                options={invoiceOptions}
+                placeholder="Select Invoice"
+                isSearchable
+                styles={customStyles}
+              />
+            </div>
+
+            <div className="form-row">
+              <label>Description:</label>
+              <input
+                type="text"
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-row">
+              <label>Receipt Type:</label>
+              <select
+                name="receipt_type"
+                value={formData.receipt_type}
+                onChange={handleInputChange}
+                className="form-input"
+              >
+                <option value="Cash">Cash</option>
+                <option value="Invoiced">Invoiced</option>
+              </select>
+            </div>
+
+            <div className="form-row">
+              <label>Account Debited:</label>
+              <Select
+                value={debitAccountOptions.find(
+                  (option) => option.value === formData.account_debited
+                )}
+                onChange={(selectedOption) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    account_debited: selectedOption.value,
+                  }))
+                }
+                options={debitAccountOptions}
+                placeholder="Select Account Debited"
+                isSearchable
+                styles={customStyles}
+              />
+            </div>
+
+            <div className="form-row">
+              <label>Account Credited:</label>
+              <Select
+                value={creditedAccountOptions.find(
+                  (option) => option.value === formData.account_credited
+                )}
+                onChange={(selectedOption) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    account_credited: selectedOption.value,
+                  }))
+                }
+                options={creditedAccountOptions}
+                placeholder="Select Account Credited"
+                isSearchable
+                styles={customStyles}
+              />
+            </div>
+
+            <div className="form-row">
+              <label>Cash:</label>
+              <input
+                type="number"
+                name="cash"
+                value={formData.cash}
+                onChange={handleInputChange}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-row">
+              <label>Bank:</label>
+              <input
+                type="number"
+                name="bank"
+                value={formData.bank}
+                onChange={handleInputChange}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-row">
+              <label>Total:</label>
+              <input
+                type="number"
+                name="total"
+                value={formData.total}
+                onChange={handleInputChange}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-row">
+              <label>Cashbook:</label>
+              <input
+                type="text"
+                name="cashbook"
+                value={formData.cashbook}
+                onChange={handleInputChange}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-actions">
+              <button type="submit" className="submit-button">
+                {loading ? "Submitting..." : isEditing ? "Update Receipt" : "Submit Receipt"}
+              </button>
+              <button type="button" onClick={closeFormPopup} className="cancel-button">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
-      <table border="1">
+      <table border="1" cellpadding="5">
         <thead>
           <tr>
             <th>Receipt Date</th>
