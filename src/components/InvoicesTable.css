@@ -92,7 +92,6 @@ button:disabled {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 900;
   transition: opacity 0.3s ease;
 }
 
@@ -101,7 +100,7 @@ button:disabled {
   padding: 20px;
   border-radius: 8px;
   width: 90%; /* Use a percentage of the screen size */
-  max-width: 500px; /* Limit to a smaller max width */
+  max-width: 900px; /* Limit to a smaller max width */
   max-height: 80vh; /* Ensure modal is never too tall */
   position: relative;
   overflow-y: auto; /* Allow scrolling if content exceeds the modal size */

@@ -10,7 +10,6 @@ const ExpenseTransactions = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Retrieve the JWT token from local storage or wherever it's stored
         const token = localStorage.getItem('token');
 
         const response = await fetch('http://127.0.0.1:5000/expensetransactions', {
@@ -35,7 +34,7 @@ const ExpenseTransactions = () => {
             reference: cd.cheque_no,
             from: cd.to_whom_paid,
             description: cd.description,
-            debited_amount: cd.total,  // Use DR column for cash disbursement
+            debited_amount: cd.total, // DR column for cash disbursement
             credited_amount: 0, // No credited amount for cash disbursement
             parent_account: cd.parent_account,
           })),
@@ -45,7 +44,7 @@ const ExpenseTransactions = () => {
             reference: inv.invoice_number,
             from: inv.name,
             description: inv.description,
-            debited_amount: inv.amount, // Use DR column for invoices received
+            debited_amount: inv.amount, // DR column for invoices received
             credited_amount: 0, // No credited amount for invoices
             parent_account: inv.parent_account,
           })),
@@ -80,9 +79,9 @@ const ExpenseTransactions = () => {
 
     if (account) {
       const filtered = combinedData.filter((item) =>
-        item.debited_amount.toString().toLowerCase().includes(account.toLowerCase()) ||
-        item.credited_amount.toString().toLowerCase().includes(account.toLowerCase()) ||
-        item.parent_account.toLowerCase().includes(account.toLowerCase()) // Include parent account in search
+        (item.debited_amount.toString().toLowerCase().includes(account.toLowerCase())) ||
+        (item.credited_amount.toString().toLowerCase().includes(account.toLowerCase())) ||
+        (item.parent_account.toLowerCase().includes(account.toLowerCase())) // Include parent account in search
       );
       setFilteredData(filtered);
     } else {
@@ -91,8 +90,8 @@ const ExpenseTransactions = () => {
   };
 
   // Calculate total DR and CR amounts
-  const totalDR = filteredData.reduce((sum, item) => sum + (item.debited_amount || 0), 0);
-  const totalCR = filteredData.reduce((sum, item) => sum + (item.credited_amount || 0), 0);
+  const totalDR = filteredData.reduce((sum, item) => sum + (Number(item.debited_amount) || 0), 0);
+  const totalCR = filteredData.reduce((sum, item) => sum + (Number(item.credited_amount) || 0), 0);
   const closingBalance = totalDR - totalCR; // Calculate closing balance
 
   const formatNumber = (num) => {

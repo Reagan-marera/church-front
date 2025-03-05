@@ -460,37 +460,43 @@ const handleSubmit = async (e) => {
   const printReceipt = async (journal) => {
     const printWindow = window.open("", "_blank");
     printWindow.document.open();
-
+  
     const customerName = journal.from_whom_received;
-
+  
     let invoiceCreditedAccounts = [];
     if (customerName) {
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("User is not authenticated");
-
+  
         const response = await fetch(
           `http://127.0.0.1:5000/invoices?name=${encodeURIComponent(customerName)}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-
+  
         if (!response.ok) throw new Error(await response.text());
         const invoicesData = await response.json();
-
-        invoiceCreditedAccounts = invoicesData.flatMap((invoice) =>
-          invoice.account_credited?.map((account) => ({
-            name: account.name || "N/A",
-            amount: parseFloat(account.amount) || 0,
-          }))
-        );
+  
+        // Filter invoices to ensure they belong to the specified customer
+        const filteredInvoices = invoicesData.filter(invoice => invoice.name === customerName);
+  
+        // Only add accounts if filtered invoices are found for the customer
+        if (filteredInvoices.length > 0) {
+          invoiceCreditedAccounts = filteredInvoices.flatMap((invoice) =>
+            invoice.account_credited?.map((account) => ({
+              name: account.name || "N/A",
+              amount: parseFloat(account.amount) || 0,
+            }))
+          );
+        }
       } catch (err) {
         console.error("Error fetching invoices for customer:", err.message);
         invoiceCreditedAccounts = [];
       }
     }
-
+  
     let remainingBalance = parseFloat(journal.total) || 0;
     const clearedAccounts = invoiceCreditedAccounts.map((account) => {
       const clearedAmount = Math.min(remainingBalance, account.amount);
@@ -502,12 +508,12 @@ const handleSubmit = async (e) => {
         remainingAmount: account.amount - clearedAmount,
       };
     });
-
+  
     const totalRemainingBalance = clearedAccounts.reduce(
       (total, account) => total + account.remainingAmount,
       0
     );
-
+  
     printWindow.document.write(`
       <html>
       <head>
@@ -532,7 +538,7 @@ const handleSubmit = async (e) => {
           <h2>Cash Receipt Journal</h2>
           <p>Official Receipt</p>
         </div>
-
+  
         <div class="section">
           <h3>Receipt Details</h3>
           <table>
@@ -574,7 +580,7 @@ const handleSubmit = async (e) => {
             </tr>
           </table>
         </div>
-
+  
         <div class="section">
           <h3>Vote Heads</h3>
           <table>
@@ -583,6 +589,7 @@ const handleSubmit = async (e) => {
               <th>Total Amount</th>
               <th>Cleared Amount</th>
               <th>Remaining Amount</th>
+              
             </tr>
             ${
               clearedAccounts.length > 0
@@ -602,12 +609,12 @@ const handleSubmit = async (e) => {
             }
           </table>
         </div>
-
+  
         <div class="section">
           <h3>Summary</h3>
           <p class="total">Total Remaining Balance: ${totalRemainingBalance.toFixed(2)}</p>
         </div>
-
+  
         <div class="footer">
           <p>Thank you for your payment. This is an official receipt.</p>
           <p>Youming Tech | www.youmingtech.org</p>
@@ -615,10 +622,13 @@ const handleSubmit = async (e) => {
       </body>
       </html>
     `);
-
+  
     printWindow.document.close();
     printWindow.print();
   };
+  
+
+  
   const customerOptions = customers.flatMap((customer) =>
     customer.sub_account_details.map((subAccount) => ({
       value: subAccount.name,
@@ -773,7 +783,7 @@ const handleSubmit = async (e) => {
                 value={formData.receipt_type}
                 onChange={handleInputChange}
                 className="form-input"
-              >
+              ><option value="Cash"></option>
                 <option value="Cash">Cash</option>
                 <option value="Invoiced">Invoiced</option>
               </select>

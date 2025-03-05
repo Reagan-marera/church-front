@@ -68,7 +68,7 @@
 }
 
 .navbar-brand {
-  font-size: 2.5rem; /* Increased font size for more impact */
+  font-size: 1.5rem; /* Increased font size for more impact */
   font-weight: bold;
   color: #ff8c42; /* Orange text */
   font-family: 'Orbitron', sans-serif; /* Orbitron font */
@@ -93,27 +93,40 @@
   background: linear-gradient(135deg, #000, #333); /* Black gradient */
   color: #fff; /* White text */
   padding: 4rem 2rem;
-  
+  background-image: url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1600&auto=format&fit=crop&q=60&ixid=rb-4.0.3');  
+  background-size: cover; /* Ensures the image covers the entire element */
+  background-position: center; /* Keeps the focus in the center */
+  background-repeat: no-repeat; /* Prevents repetition */
+  transition: background-image 1s ease-in-out; /* Smooth transition for background image */
 }
+
+.hero:hover {
+  background-image: url('https://plus.unsplash.com/premium_photo-1661877737564-3dfd7282efcb?w=1600&auto=format&fit=crop&q=60&ixid=rb-4.0.3');
+}
+
+.hero:active {
+  background-image: url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1600&auto=format&fit=crop&q=60&ixid=rb-4.0.3');
+}
+
 
 .hero h1 {
   font-size: 2.5rem;
   margin-bottom: 1rem;
-  color: #ff8c42; /* Orange heading */
+  color: #fffc42; /* Orange heading */
   font-family: 'Georgia', serif; /* New font for hero heading */
 }
 
 .hero h2 {
   font-size: 2.2rem;
   margin-bottom: 1.5rem;
-  color: #ff8c42; /* Orange subheading */
+  color: #49e600; /* Orange subheading */
   font-family: "Moon Dance", serif;
 }
 
 .hero .intro {
   font-size: 1.5rem;
   margin-bottom: 2rem;
-  color:rgb(248, 248, 248); /* Light gray text */
+  color:rgb(252, 0, 0); /* Light gray text */
   font-family: 'Georgia', serif; 
 }
 .attractive-text {

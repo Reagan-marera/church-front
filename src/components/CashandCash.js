@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import './CashTransactions.css'; // Import the CSS file
 
 const CashTransactions = () => {
-    const [transactions, setTransactions] = useState([]);
     const [filteredGroupedAccounts, setFilteredGroupedAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -26,8 +25,15 @@ const CashTransactions = () => {
                 }
 
                 const data = await response.json();
-                setTransactions(data.transactions); // Access the `transactions` array
-                setFilteredGroupedAccounts(data.filtered_grouped_accounts); // Access the `filtered_grouped_accounts` array
+                console.log('Fetched Data:', data); // Check the structure of the data
+
+                // Safeguard to ensure that the filtered_grouped_accounts exists
+                if (data && data.filtered_grouped_accounts) {
+                    setFilteredGroupedAccounts(data.filtered_grouped_accounts);
+                } else {
+                    throw new Error('No valid data found in the response');
+                }
+
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -62,9 +68,9 @@ const CashTransactions = () => {
                     {filteredGroupedAccounts.map((account, index) => (
                         <tr key={index}>
                             <td>{account.account_code}</td>
-                            <td>{account.total_debits.toFixed(2)}</td>
-                            <td>{account.total_credits.toFixed(2)}</td>
-                            <td>{account.closing_balance.toFixed(2)}</td>
+                            <td>{(Number(account.total_debits) || 0).toFixed(2)}</td> {/* Safely handle possible NaN values */}
+                            <td>{(Number(account.total_credits) || 0).toFixed(2)}</td> {/* Safely handle possible NaN values */}
+                            <td>{(Number(account.closing_balance) || 0).toFixed(2)}</td> {/* Safely handle possible NaN values */}
                         </tr>
                     ))}
                 </tbody>
