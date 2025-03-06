@@ -23,6 +23,7 @@ const DisbursementForm = () => {
     to_whom_paid: "",
     description: "",
     payment_type: "",
+    manual_number: "", // Add manual_number to formData
     account_debited: "",
     account_credited: "",
     cash: 0,
@@ -154,40 +155,36 @@ const DisbursementForm = () => {
 
     setTotalDisbursed(totalDisbursedAmount);
   };
+
   const generateUniqueVoucherNumber = (existingVouchers) => {
     if (existingVouchers.length === 0) {
-      // If there are no existing vouchers, start from PV-1
       return "PV-1";
     }
-  
-    // Find the highest existing voucher number
+
     const highestVoucherNumber = existingVouchers.reduce((max, voucher) => {
       const number = parseInt(voucher.voucher_number.split("-")[1]);
       return number > max ? number : max;
     }, 0);
-  
-    // Generate the new voucher number by incrementing the highest number
-    const newVoucherNumber = `PV-${highestVoucherNumber + 1}`;
-  
-    return newVoucherNumber;
+
+    return `PV-${highestVoucherNumber + 1}`;
   };
-  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     const token = localStorage.getItem("token");
     if (!token) {
       setErrorMessage("Unauthorized: Missing token.");
       return;
     }
-  
+
     const payload = {
       ...formData,
       disbursement_date: new Date(formData.disbursement_date).toISOString().split("T")[0],
       p_voucher_no: editingDisbursement ? formData.p_voucher_no : generateUniqueVoucherNumber(disbursements),
+      manual_number: formData.manual_number || null, // Ensure manual_number is included
     };
-  
+
     try {
       let response;
       if (editingDisbursement) {
@@ -209,19 +206,19 @@ const DisbursementForm = () => {
           body: JSON.stringify(payload),
         });
       }
-  
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText);
       }
-  
+
       const disbursementsResponse = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
       const disbursementsData = await disbursementsResponse.json();
       setDisbursements(disbursementsData);
-  
+
       alert(editingDisbursement ? "Disbursement updated successfully!" : "Disbursement added successfully!");
       setFormData({
         disbursement_date: "",
@@ -230,6 +227,7 @@ const DisbursementForm = () => {
         to_whom_paid: "",
         description: "",
         payment_type: "",
+        manual_number: "", // Reset manual_number
         account_debited: "",
         account_credited: "",
         cash: 0,
@@ -244,7 +242,6 @@ const DisbursementForm = () => {
       setErrorMessage(error.message);
     }
   };
-  
 
   const handleUpdateDisbursement = async (id, updatedData) => {
     const token = localStorage.getItem("token");
@@ -325,6 +322,7 @@ const DisbursementForm = () => {
       to_whom_paid: disbursement.to_whom_paid,
       description: disbursement.description,
       payment_type: disbursement.payment_type,
+      manual_number: disbursement.manual_number || "", // Set manual_number
       account_debited: disbursement.account_debited,
       account_credited: disbursement.account_credited,
       cash: disbursement.cash,
@@ -379,6 +377,7 @@ const DisbursementForm = () => {
       to_whom_paid: "",
       description: "",
       payment_type: "",
+      manual_number: "", // Reset manual_number
       account_debited: "",
       account_credited: "",
       cash: 0,
@@ -473,7 +472,7 @@ const DisbursementForm = () => {
                   name="p_voucher_no"
                   value={formData.p_voucher_no}
                   onChange={handleInputChange}
-                 readOnly
+                  readOnly
                   className="form-input"
                 />
               </div>
@@ -544,6 +543,18 @@ const DisbursementForm = () => {
                   <option value="Cash">Cash</option>
                   <option value="Invoiced">Invoiced</option>
                 </select>
+              </div>
+
+              <div className="form-row">
+                <label htmlFor="manual_number">Manual Number</label>
+                <input
+                  type="text"
+                  id="manual_number"
+                  name="manual_number"
+                  value={formData.manual_number}
+                  onChange={handleInputChange}
+                  className="form-input"
+                />
               </div>
 
               <div className="form-row">
@@ -663,6 +674,7 @@ const DisbursementForm = () => {
                   <th>Date</th>
                   <th>Cheque No</th>
                   <th>Voucher No</th>
+                  <th>manual p.number</th>
                   <th>To Whom Paid</th>
                   <th>Description</th>
                   <th>Payment Type</th>
@@ -681,6 +693,7 @@ const DisbursementForm = () => {
                     <td>{disbursement.disbursement_date}</td>
                     <td>{disbursement.cheque_no}</td>
                     <td>{disbursement.p_voucher_no}</td>
+                    <td>{disbursement.manual_number}</td>
                     <td>{disbursement.to_whom_paid}</td>
                     <td>{disbursement.description}</td>
                     <td>{disbursement.payment_type}</td>

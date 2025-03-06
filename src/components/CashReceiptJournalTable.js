@@ -33,8 +33,9 @@ const CashReceiptJournalTable = () => {
     from_whom_received: "",
     description: "",
     receipt_type: "",
+    manual_number: "",
     account_debited: "",
-    account_credited: "", // Single credited account
+    account_credited: "",
     cash: 0,
     bank: 0,
     total: 0,
@@ -46,7 +47,6 @@ const CashReceiptJournalTable = () => {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Custom styles for react-select
   const customStyles = {
     option: (provided, state) => ({
       ...provided,
@@ -161,46 +161,43 @@ const CashReceiptJournalTable = () => {
 
   const handleCustomerChange = (selectedOption) => {
     const selectedSubAccount = selectedOption.value;
-    console.log("Selected Sub-Account:", selectedSubAccount); // Debugging line
     setSingleCustomerName(selectedSubAccount);
     setAllCustomersSelected([]);
-  
-    // Set allCustomersSubAccounts with the single selected sub-account
+
     setAllCustomersSubAccounts([{ value: selectedSubAccount, label: selectedSubAccount }]);
-  
-    // Further logic for invoices, total amount, balance, etc.
+
     const customerInvoices = invoices.filter(
       (invoice) => invoice.name === selectedSubAccount
     );
-  
+
     const totalAmount = customerInvoices.reduce(
       (sum, invoice) => sum + parseFloat(invoice.amount),
       0
     );
     setInvoiceAmount(totalAmount);
-  
+
     const customerReceipts = journals.filter(
       (journal) => journal.from_whom_received === selectedSubAccount
     );
-  
+
     const totalReceipts = customerReceipts.reduce(
       (sum, journal) => sum + parseFloat(journal.total),
       0
     );
-  
+
     const customerBalance = totalAmount - totalReceipts;
     setBalance(customerBalance);
-  
+
     setFormData((prev) => ({
       ...prev,
       from_whom_received: selectedSubAccount,
     }));
   };
-  
+
   const handleAllCustomersChange = (selectedOptions) => {
     const selectedCustomerNames = selectedOptions.map((option) => option.value);
     setAllCustomersSelected(selectedCustomerNames);
-    setSingleCustomerName(""); // Clear single customer selection
+    setSingleCustomerName("");
 
     const selectedSubAccounts = customers
       .filter((customer) => selectedCustomerNames.includes(customer.account_name))
@@ -287,38 +284,34 @@ const CashReceiptJournalTable = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     try {
       setLoading(true);
-  
-      // Fetch the token from localStorage
+
       const token = localStorage.getItem("token");
       if (!token) {
         setError("User is not authenticated.");
         return;
       }
-  
-      // Fetch the last receipt number from the server or initialize with a default value
+
       let lastReceiptNo = await fetchLastReceiptNumber();
       const lastReceiptNumber = parseInt(lastReceiptNo.split("-")[1]) || 0;
-  
-      // Prepare payloads for each sub-account of the selected customers
+
       const payloads = allCustomersSubAccounts.map((subAccount, index) => {
-        // Increment the receipt number for each sub-account
         const newReceiptNo = `R-${lastReceiptNumber + index + 1}`;
-  
+
         return {
           receipt_date: formData.receipt_date,
-          receipt_no: newReceiptNo, // Assign unique receipt number
+          receipt_no: newReceiptNo,
           ref_no: formData.ref_no,
-          from_whom_received: subAccount.value, // Use sub-account name
+          manual_number: formData.manual_number,
+          from_whom_received: subAccount.value,
           description: formData.description,
           receipt_type: formData.receipt_type,
           account_debited: formData.account_debited,
-          account_credited: formData.account_credited, // Single credited account
+          account_credited: formData.account_credited,
           cash: parseFloat(formData.cash) || 0,
           bank: parseFloat(formData.bank) || 0,
           total: parseFloat(formData.total),
@@ -326,57 +319,52 @@ const CashReceiptJournalTable = () => {
           selected_invoice_id: formData.selectedInvoice?.id,
         };
       });
-  
-      console.log("Payloads:", payloads); // Debugging line
-  
-      // Submit a receipt for each sub-account
+
       for (const payload of payloads) {
         const response = await fetch("http://127.0.0.1:5000/cash-receipt-journals", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // Use the fetched token here
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(payload),
         });
-  
+
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText);
         }
       }
-  
+
       refreshData();
       setFormData({});
       setError("");
       setShowForm(false);
-      setAllCustomersSelected([]); // Clear selected customers after submission
+      setAllCustomersSelected([]);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
-  
-  // Helper function to fetch the last receipt number from the server
+
   const fetchLastReceiptNumber = async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-  
+
       const response = await fetch("http://127.0.0.1:5000/last-receipt-number", {
         headers: { Authorization: `Bearer ${token}` },
       });
-  
+
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
-      return data.lastReceiptNo || "R-0"; // Default to "R-0" if no receipts exist
+      return data.lastReceiptNo || "R-0";
     } catch (err) {
       console.error("Error fetching last receipt number:", err.message);
       return "R-0";
     }
   };
-  
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this entry?")) return;
@@ -415,11 +403,12 @@ const CashReceiptJournalTable = () => {
         receipt_date: journal.receipt_date,
         receipt_no: journal.receipt_no,
         ref_no: journal.ref_no,
+        manual_number: journal.manual_number,
         from_whom_received: journal.from_whom_received,
         description: journal.description,
         receipt_type: journal.receipt_type,
         account_debited: journal.account_debited,
-        account_credited: journal.account_credited, // Single credited account
+        account_credited: journal.account_credited,
         cash: journal.cash,
         bank: journal.bank,
         total: journal.total,
@@ -435,9 +424,10 @@ const CashReceiptJournalTable = () => {
         ref_no: "",
         from_whom_received: "",
         description: "",
+        manual_number: "",
         receipt_type: "",
         account_debited: "",
-        account_credited: "", // Single credited account
+        account_credited: "",
         cash: 0,
         bank: 0,
         total: 0,
@@ -454,36 +444,33 @@ const CashReceiptJournalTable = () => {
     setError("");
     setIsEditing(false);
     setEditingData(null);
-    setSingleCustomerName(""); // Clear single customer selection
-
+    setSingleCustomerName("");
   };
 
   const printReceipt = async (journal) => {
     const printWindow = window.open("", "_blank");
     printWindow.document.open();
-  
+
     const customerName = journal.from_whom_received;
-  
+
     let invoiceCreditedAccounts = [];
     if (customerName) {
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("User is not authenticated");
-  
+
         const response = await fetch(
           `http://127.0.0.1:5000/invoices?name=${encodeURIComponent(customerName)}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-  
+
         if (!response.ok) throw new Error(await response.text());
         const invoicesData = await response.json();
-  
-        // Filter invoices to ensure they belong to the specified customer
+
         const filteredInvoices = invoicesData.filter(invoice => invoice.name === customerName);
-  
-        // Only add accounts if filtered invoices are found for the customer
+
         if (filteredInvoices.length > 0) {
           invoiceCreditedAccounts = filteredInvoices.flatMap((invoice) =>
             invoice.account_credited?.map((account) => ({
@@ -497,7 +484,7 @@ const CashReceiptJournalTable = () => {
         invoiceCreditedAccounts = [];
       }
     }
-  
+
     let remainingBalance = parseFloat(journal.total) || 0;
     const clearedAccounts = invoiceCreditedAccounts.map((account) => {
       const clearedAmount = Math.min(remainingBalance, account.amount);
@@ -509,12 +496,12 @@ const CashReceiptJournalTable = () => {
         remainingAmount: account.amount - clearedAmount,
       };
     });
-  
+
     const totalRemainingBalance = clearedAccounts.reduce(
       (total, account) => total + account.remainingAmount,
       0
     );
-  
+
     printWindow.document.write(`
       <html>
       <head>
@@ -539,7 +526,7 @@ const CashReceiptJournalTable = () => {
           <h2>Cash Receipt Journal</h2>
           <p>Official Receipt</p>
         </div>
-  
+
         <div class="section">
           <h3>Receipt Details</h3>
           <table>
@@ -581,7 +568,7 @@ const CashReceiptJournalTable = () => {
             </tr>
           </table>
         </div>
-  
+
         <div class="section">
           <h3>Vote Heads</h3>
           <table>
@@ -590,7 +577,6 @@ const CashReceiptJournalTable = () => {
               <th>Total Amount</th>
               <th>Cleared Amount</th>
               <th>Remaining Amount</th>
-              
             </tr>
             ${
               clearedAccounts.length > 0
@@ -610,12 +596,12 @@ const CashReceiptJournalTable = () => {
             }
           </table>
         </div>
-  
+
         <div class="section">
           <h3>Summary</h3>
           <p class="total">Total Remaining Balance: ${totalRemainingBalance.toFixed(2)}</p>
         </div>
-  
+
         <div class="footer">
           <p>Thank you for your payment. This is an official receipt.</p>
           <p>Youming Tech | www.youmingtech.org</p>
@@ -623,13 +609,11 @@ const CashReceiptJournalTable = () => {
       </body>
       </html>
     `);
-  
+
     printWindow.document.close();
     printWindow.print();
   };
-  
 
-  
   const customerOptions = customers.flatMap((customer) =>
     customer.sub_account_details.map((subAccount) => ({
       value: subAccount.name,
@@ -691,6 +675,16 @@ const CashReceiptJournalTable = () => {
                 value={formData.receipt_no}
                 readOnly
                 className="form-input read-only"
+              />
+            </div>
+            <div className="form-row">
+              <label>Manual Receipt No:</label>
+              <input
+                type="text"
+                name="manual_number"
+                value={formData.manual_number}
+                onChange={handleInputChange}
+                className="form-input"
               />
             </div>
 
@@ -784,7 +778,8 @@ const CashReceiptJournalTable = () => {
                 value={formData.receipt_type}
                 onChange={handleInputChange}
                 className="form-input"
-              ><option value="Cash"></option>
+              >
+                <option></option>
                 <option value="Cash">Cash</option>
                 <option value="Invoiced">Invoiced</option>
               </select>
@@ -889,6 +884,7 @@ const CashReceiptJournalTable = () => {
           <tr>
             <th>Receipt Date</th>
             <th>Receipt No</th>
+            <th>Manual R.number</th>
             <th>Reference No</th>
             <th>From Whom Received</th>
             <th>Description</th>
@@ -903,6 +899,7 @@ const CashReceiptJournalTable = () => {
             <tr key={journal.id}>
               <td>{journal.receipt_date}</td>
               <td>{journal.receipt_no}</td>
+              <td>{journal.manual_number}</td>
               <td>{journal.ref_no}</td>
               <td>{journal.from_whom_received}</td>
               <td>{journal.description}</td>
