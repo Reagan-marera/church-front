@@ -17,7 +17,7 @@ import GeneralReport from './components/GeneralReport'; // Add the import for Ge
 import CustomerList from './components/CustomerList'; // Import CustomerList
 import PayeeList from './components/PayeeList'; // Import PayeeList
 import InvoiceReceived from './components/InvoiceReceived'; // Import the InvoiceReceived component
-import Subaccounts from './components/GeneralJournal';
+import AccountSelection from './components/GeneralJournal';
 import RevenueTransactions from './components/RevenueTransactions'; // Import the RevenueTransactions component
 import ExpenseTransactions from './components/ExpenseTransactions';
 import AssetTransactions from './components/AssetTransactions';
@@ -25,6 +25,8 @@ import LiabilityTransactions from './components/LiabilityTransactions';
 import NetAssets from './components/NetAssets';
 import TrialBalance from './components/TrialBalance';
 import AccountsTransactions from './components/Notes';
+import Incomestatement from './components/Income';
+
 function App() {
   const [token, setToken] = useState(null); // Manage the authentication token
   const [role, setRole] = useState(null); // Manage the user role
@@ -169,10 +171,10 @@ function App() {
 
           {/* Add Subaccounts Route (protected) */}
           <Route
-            path="/subaccounts"
+            path="/general-journal"
             element={
               <ProtectedRoute>
-                <Subaccounts />
+                <AccountSelection />
               </ProtectedRoute>
             }
           />
@@ -234,7 +236,14 @@ function App() {
               
             }
           />
-        
+           <Route
+            path="/income-transactions"
+            element={
+              
+                <Incomestatement />
+              
+            }
+          />
         </Routes>
       </div>
     </Router>

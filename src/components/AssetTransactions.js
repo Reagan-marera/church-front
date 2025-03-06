@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 
 const AssetTransactions = () => {
   const [combinedData, setCombinedData] = useState([]);
@@ -10,7 +10,6 @@ const AssetTransactions = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Retrieve the JWT token from local storage or wherever it's stored
         const token = localStorage.getItem('token');
 
         const response = await fetch('http://127.0.0.1:5000/assettransactions', {
@@ -35,11 +34,11 @@ const AssetTransactions = () => {
             reference: cd.cheque_no,
             from: cd.to_whom_paid,
             description: cd.description,
-            debited_account: cd.account_debited || '', // Default to empty string if undefined
+            debited_account: cd.account_debited || '',
             credited_account: '',
-            parent_account: cd.parent_account || '', // Default to empty string if undefined
+            parent_account: cd.parent_account || '',
             amount: cd.total,
-            dr: cd.total, // Use DR for Cash Disbursement
+            dr: cd.total,
             cr: 0,
           })),
 
@@ -50,28 +49,30 @@ const AssetTransactions = () => {
             reference: inv.invoice_number,
             from: inv.name,
             description: inv.description,
-            debited_account: inv.account_debited || '', // Default to empty string if undefined
+            debited_account: inv.account_debited || '',
             credited_account: '',
-            parent_account: inv.parent_account || '', // Default to empty string if undefined
+            parent_account: inv.parent_account || '',
             amount: inv.amount,
-            dr: inv.amount, // Use DR for Invoice Received
+            dr: inv.amount,
             cr: 0,
           })),
 
           // Invoice Issued
-          ...data.invoices_issued.map((inv) => ({
-            type: 'Invoice Issued',
-            date: inv.date_issued,
-            reference: inv.invoice_number,
-            from: inv.name,
-            description: inv.description,
-            debited_account: '',
-            credited_account: inv.account_credited || '', // Default to empty string if undefined
-            parent_account: inv.parent_account || '', // Default to empty string if undefined
-            amount: inv.amount,
-            cr: 0,
-            dr: inv.amount, // Use CR for Invoice Issued
-          })),
+          ...data.invoices_issued.flatMap((inv) =>
+            inv.account_credited.map((account) => ({
+              type: 'Invoice Issued',
+              date: inv.date_issued,
+              reference: inv.invoice_number,
+              from: inv.name,
+              description: inv.description,
+              debited_account: '',
+              credited_account: account.name,
+              parent_account: inv.parent_account || '',
+              amount: account.amount,
+              dr: 0,
+              cr: account.amount,
+            }))
+          ),
 
           // Cash Receipt
           ...data.cash_receipts.map((cr) => ({
@@ -81,31 +82,36 @@ const AssetTransactions = () => {
             from: cr.from_whom_received,
             description: cr.description,
             debited_account: '',
-            credited_account: cr.account_credited || '', // Default to empty string if undefined
-            parent_account: cr.parent_account || '', // Default to empty string if undefined
+            credited_account: cr.account_credited || '',
+            parent_account: cr.parent_account || '',
             amount: cr.total,
             dr: 0,
-            cr: cr.total, // Use CR for Cash Receipt
+            cr: cr.total,
           })),
 
           // Transactions
-          ...data.transactions.map((txn) => ({
-            type: 'Transaction',
-            date: txn.date_issued,
-            reference: txn.id,
-            from: txn.debited_account_name || txn.credited_account_name || '', // Default to empty string if undefined
-            description: txn.description,
-            debited_account: txn.debited_account_name || '', // Default to empty string if undefined
-            credited_account: txn.credited_account_name || '', // Default to empty string if undefined
-            parent_account: txn.parent_account || '', // Default to empty string if undefined
-            amount: txn.amount_debited || txn.amount_credited || 0, // Default to 0 if undefined
-            dr: txn.amount_debited || 0, // Use DR for Transactions
-            cr:0, // Use CR for Transactions
-          })),
+          ...data.transactions.map((txn) => {
+            const isAssetAccount = txn.debited_account_name && /^1[1-9]\d{2}/.test(txn.debited_account_name.split('-')[0].trim());
+            const isLiabilityAccount = txn.credited_account_name && /^1[1-9]\d{2}/.test(txn.credited_account_name.split('-')[0].trim());
+
+            return {
+              type: 'Transaction',
+              date: txn.date_issued,
+              reference: txn.id,
+              from: txn.debited_account_name || txn.credited_account_name || '',
+              description: txn.description,
+              debited_account: txn.debited_account_name || '',
+              credited_account: txn.credited_account_name || '',
+              parent_account: txn.parent_account || '',
+              amount: txn.amount_debited || txn.amount_credited || 0,
+              dr: isAssetAccount ? txn.amount_debited || 0 : 0, // DR if account is between 1100-1999
+              cr: isLiabilityAccount ? txn.amount_credited || 0 : 0, // CR if account is between 1100-1999
+            };
+          }),
         ];
 
         setCombinedData(combined);
-        setFilteredData(combined); // Initialize filtered data with all data
+        setFilteredData(combined);
       } catch (error) {
         setError(error.message);
       } finally {
@@ -117,26 +123,34 @@ const AssetTransactions = () => {
   }, []);
 
   const handleSearch = (e) => {
-    const account = e.target.value;
+    const account = e.target.value.trim(); // Trim the input to avoid extra spaces
+  
     setSearchAccount(account);
-
+  
     if (account) {
-      const filtered = combinedData.filter((item) =>
-        item.debited_account.toLowerCase().includes(account.toLowerCase()) ||
-        item.credited_account.toLowerCase().includes(account.toLowerCase()) ||
-        item.parent_account.toLowerCase().includes(account.toLowerCase())
-      );
+      const filtered = combinedData.filter((item) => {
+        // Ensure we convert to string and safely handle null/undefined values
+        const debitedAccount = item.debited_account ? String(item.debited_account).toLowerCase() : "";
+        const creditedAccount = item.credited_account ? String(item.credited_account).toLowerCase() : "";
+        const parentAccount = item.parent_account ? String(item.parent_account).toLowerCase() : "";
+  
+        return (
+          debitedAccount.includes(account.toLowerCase()) ||
+          creditedAccount.includes(account.toLowerCase()) ||
+          parentAccount.includes(account.toLowerCase())
+        );
+      });
       setFilteredData(filtered);
     } else {
-      setFilteredData(combinedData); // Reset to all data if search is empty
+      setFilteredData(combinedData);
     }
   };
-
-  // Calculate total amounts for DR and CR
-  const totalAmount = filteredData.reduce((sum, item) => sum + item.amount, 0);
-  const totalDR = filteredData.reduce((sum, item) => sum + (item.dr || 0), 0);
-  const totalCR = filteredData.reduce((sum, item) => sum + (item.cr || 0), 0);
-  const closingBalance = totalDR - totalCR; // Calculate closing balance
+  
+  // Memoize the totals for performance optimization
+  const totalAmount = useMemo(() => filteredData.reduce((sum, item) => sum + item.amount, 0), [filteredData]);
+  const totalDR = useMemo(() => filteredData.reduce((sum, item) => sum + (item.dr || 0), 0), [filteredData]);
+  const totalCR = useMemo(() => filteredData.reduce((sum, item) => sum + (item.cr || 0), 0), [filteredData]);
+  const closingBalance = totalDR - totalCR;
 
   const formatNumber = (num) => {
     if (num === 0 || !num) return "0.00";
@@ -155,7 +169,6 @@ const AssetTransactions = () => {
     <div style={styles.container}>
       <h1 style={styles.header}>Asset Transactions</h1>
 
-      {/* Search by Account */}
       <div style={styles.searchContainer}>
         <input
           type="text"
@@ -166,8 +179,7 @@ const AssetTransactions = () => {
         />
       </div>
 
-      {/* Display Combined Data in One Table */}
-      <table style={styles.table}>
+      <table aria-label="Asset Transactions Table" style={styles.table}>
         <thead>
           <tr style={styles.tableHeader}>
             <th>Type</th>
@@ -190,7 +202,7 @@ const AssetTransactions = () => {
               <td>{item.reference}</td>
               <td>{item.from}</td>
               <td>{item.description}</td>
-              <td>{item.credited_account || item.debited_account}</td>
+              <td>{typeof item.credited_account === 'string' ? item.credited_account : item.debited_account}</td>
               <td>{item.parent_account}</td>
               <td>{formatNumber(item.dr)}</td>
               <td>{formatNumber(item.cr)}</td>
@@ -200,7 +212,6 @@ const AssetTransactions = () => {
         </tbody>
       </table>
 
-      {/* Display Total Amounts and Closing Balance */}
       <div style={styles.totalAmount}>
         <div>Total DR: {formatNumber(totalDR)}</div>
         <div>Total CR: {formatNumber(totalCR)}</div>
@@ -212,14 +223,13 @@ const AssetTransactions = () => {
   );
 };
 
-// Styling
 const styles = {
   container: {
     fontFamily: 'Arial, sans-serif',
     padding: '20px',
     maxWidth: '1200px',
     margin: '0 auto',
-    backgroundColor: '#f4f6f9', // Light gray background
+    backgroundColor: '#f4f6f9',
     borderRadius: '8px',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   },
@@ -228,7 +238,7 @@ const styles = {
     marginBottom: '30px',
     fontSize: '2rem',
     fontFamily: 'Georgia, serif',
-    color: '#003366', // Darker blue for header
+    color: '#003366',
   },
   searchContainer: {
     display: 'flex',
@@ -254,8 +264,8 @@ const styles = {
     overflow: 'hidden',
   },
   tableHeader: {
-    backgroundColor: '#003366', // Dark blue header
-    color: 'black',
+    backgroundColor: '#003366',
+    color: 'white',
     textAlign: 'left',
     fontWeight: 'bold',
     padding: '12px 15px',
@@ -271,7 +281,7 @@ const styles = {
     fontWeight: 'bold',
     fontSize: '1.2rem',
     textAlign: 'right',
-    color: '#003366', // Dark blue for total
+    color: '#003366',
     padding: '10px',
     backgroundColor: '#fff',
     borderRadius: '8px',

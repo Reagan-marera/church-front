@@ -87,7 +87,7 @@ const Navbar = () => {
           {showTransactions && (
             <ul className="dropdown-menu">
                  <li>
-                  <Link to="/subaccounts" className="dropdown-link">
+                  <Link to="/general-journal" className="dropdown-link">
                     <FaBook className="dropdown-icon" /> General Journal
                   </Link>
                 </li>

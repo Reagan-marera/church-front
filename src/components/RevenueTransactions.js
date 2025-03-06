@@ -9,8 +9,11 @@ const RevenueTransactions = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Retrieve the JWT token from local storage or wherever it's stored
         const token = localStorage.getItem('token');
+
+        if (!token) {
+          throw new Error('No token found. Please log in.');
+        }
 
         const response = await fetch('http://127.0.0.1:5000/revenuetransactions', {
           method: 'GET',
@@ -38,27 +41,29 @@ const RevenueTransactions = () => {
             dr_amount: 0,
             cr_amount: cr.total || 0,
           })),
-          ...data.invoices_issued.map((inv) => ({
-            type: 'Invoice Issued',
-            date: inv.date_issued,
-            reference: inv.invoice_number,
-            from: inv.name,
-            description: inv.description,
-            credited_account: inv.account_credited,
-            parent_account: inv.parent_account,
-            dr_amount: 0,
-            cr_amount: inv.amount || 0,
-          })),
+          ...data.invoices_issued.flatMap((inv) =>
+            inv.account_credited.map((account) => ({
+              type: 'Invoice Issued',
+              date: inv.date_issued,
+              reference: inv.invoice_number,
+              from: inv.name,
+              description: inv.description,
+              credited_account: account.name,
+              parent_account: inv.parent_account,
+              dr_amount: 0,
+              cr_amount: account.amount || 0,
+            }))
+          ),
           ...data.transactions.map((txn) => ({
             type: 'Transaction',
             date: txn.date_issued,
             reference: txn.id,
             from: txn.debited_account_name,
             description: txn.description,
-            credited_account: txn.credited_account_name,
+            credited_account: txn.debited_account_name, // Assuming debited_account_name is the credited account for transactions
             parent_account: txn.parent_account,
-            dr_amount: 0,
-            cr_amount: txn.amount_debited || 0,
+            dr_amount: txn.amount_debited || 0,
+            cr_amount: 0,
           })),
         ];
 
@@ -77,10 +82,15 @@ const RevenueTransactions = () => {
     setSearchAccount(e.target.value);
   };
 
-  const filteredData = combinedData.filter((item) =>
-    (item.credited_account && item.credited_account.toLowerCase().includes(searchAccount.toLowerCase())) ||
-    (item.parent_account && item.parent_account.toLowerCase().includes(searchAccount.toLowerCase()))
-  );
+  const filteredData = combinedData.filter((item) => {
+    const creditedAccount = item.credited_account ? item.credited_account.toString() : '';  // Convert to string
+    const parentAccount = item.parent_account ? item.parent_account.toString() : '';  // Convert to string
+
+    return (
+      creditedAccount.toLowerCase().includes(searchAccount.toLowerCase()) ||
+      parentAccount.toLowerCase().includes(searchAccount.toLowerCase())
+    );
+  });
 
   const totalDR = filteredData.reduce((sum, item) => sum + (Number(item.dr_amount) || 0), 0);
   const totalCR = filteredData.reduce((sum, item) => sum + (Number(item.cr_amount) || 0), 0);
@@ -197,7 +207,7 @@ const styles = {
   },
   tableHeader: {
     backgroundColor: '#003366',
-    color: 'black',
+    color: 'white',
     textAlign: 'left',
     fontWeight: 'bold',
     padding: '12px 15px',
