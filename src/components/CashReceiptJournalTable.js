@@ -288,94 +288,95 @@ const CashReceiptJournalTable = () => {
   };
 
   
-const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  try {
-    setLoading(true);
-
-    // Fetch the token from localStorage
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setError("User is not authenticated.");
-      return;
-    }
-
-    // Fetch the last receipt number from the server or initialize with a default value
-    let lastReceiptNo = await fetchLastReceiptNumber();
-    if (!lastReceiptNo) lastReceiptNo = 0;
-
-    // Prepare payloads for each sub-account of the selected customers
-    const payloads = allCustomersSubAccounts.map((subAccount, index) => {
-      // Increment the receipt number for each sub-account
-      const newReceiptNo = `${parseInt(lastReceiptNo) + index + 1}`;
-
-      return {
-        receipt_date: formData.receipt_date,
-        receipt_no: newReceiptNo, // Assign unique receipt number
-        ref_no: formData.ref_no,
-        from_whom_received: subAccount.value, // Use sub-account name
-        description: formData.description,
-        receipt_type: formData.receipt_type,
-        account_debited: formData.account_debited,
-        account_credited: formData.account_credited, // Single credited account
-        cash: parseFloat(formData.cash) || 0,
-        bank: parseFloat(formData.bank) || 0,
-        total: parseFloat(formData.total),
-        cashbook: formData.cashbook,
-        selected_invoice_id: formData.selectedInvoice?.id,
-      };
-    });
-
-    console.log("Payloads:", payloads); // Debugging line
-
-    // Submit a receipt for each sub-account
-    for (const payload of payloads) {
-      const response = await fetch("http://127.0.0.1:5000/cash-receipt-journals", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Use the fetched token here
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+  
+    try {
+      setLoading(true);
+  
+      // Fetch the token from localStorage
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("User is not authenticated.");
+        return;
       }
+  
+      // Fetch the last receipt number from the server or initialize with a default value
+      let lastReceiptNo = await fetchLastReceiptNumber();
+      const lastReceiptNumber = parseInt(lastReceiptNo.split("-")[1]) || 0;
+  
+      // Prepare payloads for each sub-account of the selected customers
+      const payloads = allCustomersSubAccounts.map((subAccount, index) => {
+        // Increment the receipt number for each sub-account
+        const newReceiptNo = `R-${lastReceiptNumber + index + 1}`;
+  
+        return {
+          receipt_date: formData.receipt_date,
+          receipt_no: newReceiptNo, // Assign unique receipt number
+          ref_no: formData.ref_no,
+          from_whom_received: subAccount.value, // Use sub-account name
+          description: formData.description,
+          receipt_type: formData.receipt_type,
+          account_debited: formData.account_debited,
+          account_credited: formData.account_credited, // Single credited account
+          cash: parseFloat(formData.cash) || 0,
+          bank: parseFloat(formData.bank) || 0,
+          total: parseFloat(formData.total),
+          cashbook: formData.cashbook,
+          selected_invoice_id: formData.selectedInvoice?.id,
+        };
+      });
+  
+      console.log("Payloads:", payloads); // Debugging line
+  
+      // Submit a receipt for each sub-account
+      for (const payload of payloads) {
+        const response = await fetch("http://127.0.0.1:5000/cash-receipt-journals", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`, // Use the fetched token here
+          },
+          body: JSON.stringify(payload),
+        });
+  
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText);
+        }
+      }
+  
+      refreshData();
+      setFormData({});
+      setError("");
+      setShowForm(false);
+      setAllCustomersSelected([]); // Clear selected customers after submission
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-
-    refreshData();
-    setFormData({});
-    setError("");
-    setShowForm(false);
-    setAllCustomersSelected([]); // Clear selected customers after submission
-  } catch (err) {
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
+  
   // Helper function to fetch the last receipt number from the server
   const fetchLastReceiptNumber = async () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-
+  
       const response = await fetch("http://127.0.0.1:5000/last-receipt-number", {
         headers: { Authorization: `Bearer ${token}` },
       });
-
+  
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
-      return data.lastReceiptNo || 0; // Default to 0 if no receipts exist
+      return data.lastReceiptNo || "R-0"; // Default to "R-0" if no receipts exist
     } catch (err) {
       console.error("Error fetching last receipt number:", err.message);
-      return 0;
+      return "R-0";
     }
   };
+  
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this entry?")) return;

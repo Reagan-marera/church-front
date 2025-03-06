@@ -173,13 +173,18 @@ const InvoiceIssued = () => {
 
   // Function to generate a unique invoice number
   const generateUniqueInvoiceNumber = (existingInvoices) => {
-    let newInvoiceNumber;
-    do {
-      newInvoiceNumber = `INV-${Math.floor(100000 + Math.random() * 900000)}`;
-    } while (existingInvoices.some((invoice) => invoice.invoice_number === newInvoiceNumber));
+    // Find the highest existing invoice number
+    const highestInvoiceNumber = existingInvoices.reduce((max, invoice) => {
+      const number = parseInt(invoice.invoice_number.split("-")[1]);
+      return number > max ? number : max;
+    }, 0);
+  
+    // Generate the new invoice number by incrementing the highest number
+    const newInvoiceNumber = `INV-${highestInvoiceNumber + 1}`;
+  
     return newInvoiceNumber;
   };
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
   
@@ -273,7 +278,6 @@ const InvoiceIssued = () => {
 
   // Function to handle updating an invoice
   const handleUpdate = (invoice) => {
-    setInvoiceNumber(invoice.invoice_number);
     setDateIssued(invoice.date_issued);
     setDescription(invoice.description);
     setAccountsCredited(invoice.account_credited.map(account => ({
@@ -356,7 +360,7 @@ const InvoiceIssued = () => {
   const getSubAccountNames = () => {
     const revenueSubAccounts = chartOfAccounts
       .filter((account) =>
-        account.account_type === "40-Revenue" || account.account_type === "10-assets"
+        account.account_type === "40-Revenue" || account.account_type === "10-Assets"
       )
       .flatMap((account) => account.sub_account_details || []);
 
@@ -596,6 +600,7 @@ const InvoiceIssued = () => {
                   type="text"
                   value={invoiceNumber}
                   onChange={(e) => setInvoiceNumber(e.target.value)}
+                  readOnly
                   required
                 />
               </div>

@@ -154,28 +154,40 @@ const DisbursementForm = () => {
 
     setTotalDisbursed(totalDisbursedAmount);
   };
-
-  const generateUniqueVoucherNumber = () => {
-    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-    const randomPart = Math.floor(1000 + Math.random() * 9000);
-    return `PV-${datePart}-${randomPart}`;
+  const generateUniqueVoucherNumber = (existingVouchers) => {
+    if (existingVouchers.length === 0) {
+      // If there are no existing vouchers, start from PV-1
+      return "PV-1";
+    }
+  
+    // Find the highest existing voucher number
+    const highestVoucherNumber = existingVouchers.reduce((max, voucher) => {
+      const number = parseInt(voucher.voucher_number.split("-")[1]);
+      return number > max ? number : max;
+    }, 0);
+  
+    // Generate the new voucher number by incrementing the highest number
+    const newVoucherNumber = `PV-${highestVoucherNumber + 1}`;
+  
+    return newVoucherNumber;
   };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     const token = localStorage.getItem("token");
     if (!token) {
       setErrorMessage("Unauthorized: Missing token.");
       return;
     }
-
+  
     const payload = {
       ...formData,
       disbursement_date: new Date(formData.disbursement_date).toISOString().split("T")[0],
-      p_voucher_no: editingDisbursement ? formData.p_voucher_no : generateUniqueVoucherNumber(),
+      p_voucher_no: editingDisbursement ? formData.p_voucher_no : generateUniqueVoucherNumber(disbursements),
     };
-
+  
     try {
       let response;
       if (editingDisbursement) {
@@ -197,21 +209,19 @@ const DisbursementForm = () => {
           body: JSON.stringify(payload),
         });
       }
-
+  
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText);
       }
-
-      const result = await response.json();
-
+  
       const disbursementsResponse = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
       const disbursementsData = await disbursementsResponse.json();
       setDisbursements(disbursementsData);
-
+  
       alert(editingDisbursement ? "Disbursement updated successfully!" : "Disbursement added successfully!");
       setFormData({
         disbursement_date: "",
@@ -234,6 +244,7 @@ const DisbursementForm = () => {
       setErrorMessage(error.message);
     }
   };
+  
 
   const handleUpdateDisbursement = async (id, updatedData) => {
     const token = localStorage.getItem("token");
@@ -462,7 +473,7 @@ const DisbursementForm = () => {
                   name="p_voucher_no"
                   value={formData.p_voucher_no}
                   onChange={handleInputChange}
-                  required
+                 readOnly
                   className="form-input"
                 />
               </div>
