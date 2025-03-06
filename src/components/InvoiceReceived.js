@@ -330,6 +330,15 @@ const InvoiceReceived = () => {
               &times;
             </span>
             <form onSubmit={handleSubmit} className="invoice-form">
+            <div>
+                <label>Date:</label>
+                <input
+                  type="date"
+                  value={dateIssued}
+                  onChange={(e) => setDateIssued(e.target.value)}
+                  required
+                />
+              </div>
               <div>
                 <label>Invoice Number:</label>
                 <input
@@ -339,33 +348,15 @@ const InvoiceReceived = () => {
                   required
                 />
               </div>
+            
               <div>
-                <label>Date Issued:</label>
-                <input
-                  type="date"
-                  value={dateIssued}
-                  onChange={(e) => setDateIssued(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label>Description:</label>
+                <label>GRN Number:</label>
                 <input
                   type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  value={grnNumber}
+                  onChange={(e) => setGrnNumber(e.target.value)}
                 />
               </div>
-              <div>
-                <label>Total Amount:</label>
-                <input
-                  type="number"
-                  value={totalAmount}
-                  readOnly
-                  className="form-input"
-                />
-              </div>
-
               <div>
                 <label>Payee Name:</label>
                 <Select
@@ -377,7 +368,14 @@ const InvoiceReceived = () => {
                   styles={customStyles}
                 />
               </div>
-
+              <div>
+                <label>Description:</label>
+                <input
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </div>
               <div>
                 <label>Account Debited:</label>
                 {accountsDebited.map((account, index) => (
@@ -419,15 +417,21 @@ const InvoiceReceived = () => {
                   disabled
                 />
               </div>
-
               <div>
-                <label>GRN Number:</label>
+                <label>Total Amount:</label>
                 <input
-                  type="text"
-                  value={grnNumber}
-                  onChange={(e) => setGrnNumber(e.target.value)}
+                  type="number"
+                  value={totalAmount}
+                  readOnly
+                  className="form-input"
                 />
               </div>
+
+           
+
+             
+
+           
 
               <button type="submit" disabled={loading}>
                 {loading ? "Submitting..." : editingInvoice ? "Update Invoice" : "Submit Invoice"}
@@ -446,14 +450,16 @@ const InvoiceReceived = () => {
         <table className="compact-table">
           <thead>
             <tr>
+            <th>Date </th>
               <th>Invoice Number</th>
-              <th>Date Issued</th>
+              <th>GRN Number</th>
+              <th>Payee Name</th>
+
               <th>Description</th>
-              <th>Amount</th>
+              
               <th>Account Debited</th>
               <th>Account Credited</th>
-              <th>Payee Name</th>
-            <th>GRN Number</th>
+              <th>Amount</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -461,10 +467,12 @@ const InvoiceReceived = () => {
           {invoices.length > 0 ? (
             invoices.map((invoice) => (
               <tr key={invoice.id}>
-                <td>{invoice.invoice_number}</td>
                 <td>{invoice.date_issued}</td>
+                <td>{invoice.invoice_number}</td>
+                <td>{invoice.grn_number}</td>
+                <td>{invoice.name}</td>
+
                 <td>{invoice.description}</td>
-                <td>{invoice.amount}</td>
                 <td>
                   {invoice.account_debited.map((account, index) => (
                     <div key={index}>
@@ -473,12 +481,13 @@ const InvoiceReceived = () => {
                   ))}
                 </td>
                 <td>{invoice.account_credited}</td>
-                <td>{invoice.name}</td>
-                <td>{invoice.grn_number}</td>
+                <td>{invoice.amount}</td>
+
                 <td>
                   <button onClick={() => handleEdit(invoice)}><FaEdit /></button>
                   <button onClick={() => handleDelete(invoice.id)}><FaTrash /></button>
                 </td>
+                
               </tr>
             ))
           ) : (

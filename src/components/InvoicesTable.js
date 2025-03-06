@@ -19,7 +19,6 @@ const InvoiceIssued = () => {
   const [accountsCredited, setAccountsCredited] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [allCustomersSelected, setAllCustomersSelected] = useState("");
-  const [manualNumber, setManualNumber] = useState(""); // Add manual_number state
 
   // State to manage the invoices, form visibility, loading, and errors
   const [invoices, setInvoices] = useState([]);
@@ -172,60 +171,60 @@ const InvoiceIssued = () => {
     }
   };
 
-  // Function to generate a unique invoice number
-  const generateUniqueInvoiceNumber = (existingInvoices) => {
-    // Find the highest existing invoice number
-    const highestInvoiceNumber = existingInvoices.reduce((max, invoice) => {
-      const number = parseInt(invoice.invoice_number.split("-")[1]);
-      return number > max ? number : max;
-    }, 0);
+  const generateUniqueInvoiceNumber = () => {
+  // Retrieve the current counter value from local storage
+  let currentCounter = parseInt(localStorage.getItem('invoice_counter'), 10) || 0;
 
-    // Generate the new invoice number by incrementing the highest number
-    const newInvoiceNumber = `INV-${highestInvoiceNumber + 1}`;
+  // Increment the counter
+  currentCounter += 1;
 
-    return newInvoiceNumber;
-  };
+  // Save the updated counter back to local storage
+  localStorage.setItem('invoice_counter', currentCounter);
+
+  // Generate the invoice number
+  return `INV-${currentCounter}`;
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     const token = localStorage.getItem("token");
     if (!token) {
       setError("User is not authenticated");
       return;
     }
-
+  
     // Ensure date is in the correct format (YYYY-MM-DD)
     const isValidDate = (date) => {
       return /^\d{4}-\d{2}-\d{2}$/.test(date);
     };
-
+  
     if (!isValidDate(dateIssued)) {
       setError("Invalid date format. Please use YYYY-MM-DD.");
       return;
     }
-
+  
     // Find the selected customer using the sub-account name
     const selectedCustomerData = customers.find((customer) =>
       customer.sub_account_details.some(subAccount => subAccount.name === selectedCustomer)
     );
-
+  
     const allCustomersData = customers.filter((customer) =>
       allCustomersSelected.includes(customer.account_name)
     );
-
+  
     if (!selectedCustomerData && allCustomersSelected.length === 0) {
       setError("Selected customer not found.");
       return;
     }
-
+  
     const accountsToProcess = selectedCustomerData
       ? selectedCustomerData.sub_account_details.filter(subAccount => subAccount.name === selectedCustomer)
       : allCustomersData.flatMap((customer) => customer.sub_account_details || []);
-
+  
     for (const subAccount of accountsToProcess) {
       const uniqueInvoiceNumber = generateUniqueInvoiceNumber(invoices);
-
+  
       const payload = {
         invoice_number: uniqueInvoiceNumber,
         date_issued: dateIssued,
@@ -237,15 +236,14 @@ const InvoiceIssued = () => {
           amount: account.amount
         })),
         name: subAccount.name,
-        manual_number: manualNumber || null, // Include manual_number in the payload
       };
-
+  
       try {
         const url = isEditing
           ? `http://127.0.0.1:5000/invoices/${editingInvoiceId}`
           : "http://127.0.0.1:5000/invoices";
         const method = isEditing ? "PUT" : "POST";
-
+  
         const response = await fetch(url, {
           method: method,
           headers: {
@@ -254,7 +252,7 @@ const InvoiceIssued = () => {
           },
           body: JSON.stringify(payload),
         });
-
+  
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText);
@@ -264,7 +262,7 @@ const InvoiceIssued = () => {
         return;
       }
     }
-
+  
     fetchInvoices();
     resetForm();
     setError("");
@@ -274,9 +272,13 @@ const InvoiceIssued = () => {
       setEditingInvoiceId(null);
     }
   };
+  
+  
+
 
   // Function to handle updating an invoice
   const handleUpdate = (invoice) => {
+    setInvoiceNumber(invoice.invoice_number);
     setDateIssued(invoice.date_issued);
     setDescription(invoice.description);
     setAccountsCredited(invoice.account_credited.map(account => ({
@@ -285,7 +287,6 @@ const InvoiceIssued = () => {
       amount: account.amount
     })));
     setSelectedCustomer(invoice.name);
-    setManualNumber(invoice.manual_number || ""); // Set manual_number for editing
     setIsEditing(true);
     setEditingInvoiceId(invoice.id);
     setShowForm(true);
@@ -354,7 +355,6 @@ const InvoiceIssued = () => {
     setSelectedCustomer("");
     setAllCustomersSelected([]);
     setTotalAmount(0);
-    setManualNumber(""); // Reset manual_number
   };
 
   // Function to get all sub-account names for the "Account Credited" dropdown
@@ -421,7 +421,7 @@ const InvoiceIssued = () => {
           color: #333;
           line-height: 1.6;
         }
-
+  
         h2 {
           text-align: center;
           font-size: 32px;
@@ -429,14 +429,14 @@ const InvoiceIssued = () => {
           color: #004b87; /* Professional blue */
           margin-bottom: 20px;
         }
-
+  
         /* Table Styling */
         .invoice-details {
           border-collapse: collapse;
           width: 100%;
           margin-top: 20px;
         }
-
+  
         /* Table Header */
         .invoice-details th {
           background-color: #004b87; /* Header color */
@@ -447,41 +447,41 @@ const InvoiceIssued = () => {
           text-transform: uppercase;
           border: 2px solid #ddd;
         }
-
+  
         /* Table Data */
         .invoice-details td {
           text-align: left;
           padding: 12px;
           border: 1px solid #ddd;
         }
-
+  
         /* Numeric Data Alignment */
         .invoice-details td.number {
           text-align: right;
         }
-
+  
         /* Vote Heads Section */
         .vote-heads {
           margin-top: 20px;
         }
-
+  
         .vote-heads table {
           width: 100%;
           border-collapse: collapse;
           margin-top: 10px;
         }
-
+  
         .vote-heads th, .vote-heads td {
           padding: 10px;
           border: 1px solid #ddd;
           text-align: left;
         }
-
+  
         .vote-heads th {
           background-color: #f2f2f2;
           font-weight: bold;
         }
-
+  
         /* Footer */
         .footer {
           text-align: center;
@@ -489,36 +489,36 @@ const InvoiceIssued = () => {
           color: #666;
           margin-top: 40px;
         }
-
+  
         /* Print Styles */
         @media print {
           body {
             margin: 0;
             padding: 10mm;
           }
-
+  
           h2 {
             font-size: 28px;
             margin-bottom: 10px;
           }
-
+  
           .invoice-details th, .invoice-details td {
             font-size: 14px;
           }
-
+  
           .footer {
             font-size: 10px;
           }
-
+  
           /* Set landscape orientation for printing */
           @page {
             size: landscape;
           }
         }
       </style>
-
+  
       <h2>Invoice Details</h2>
-
+  
       <table class="invoice-details">
         <tr><th>Invoice Number</th><td>${invoice.invoice_number}</td></tr>
         <tr><th>Date Issued</th><td>${invoice.date_issued}</td></tr>
@@ -526,7 +526,7 @@ const InvoiceIssued = () => {
         <tr><th>Description</th><td>${invoice.description}</td></tr>
         <tr><th>Total Amount</th><td class="number">${invoice.amount}</td></tr>
       </table>
-
+  
       <div class="vote-heads">
         <h3>Vote Heads</h3>
         <table>
@@ -546,13 +546,13 @@ const InvoiceIssued = () => {
           </tbody>
         </table>
       </div>
-
+  
       <div class="footer">
         <p>Generated by Your Company</p>
         <p>For inquiries, contact us at: info@company.com</p>
       </div>
     `;
-
+  
     const printWindow = window.open("", "_blank");
     printWindow.document.open();
     printWindow.document.write(`
@@ -575,7 +575,7 @@ const InvoiceIssued = () => {
     `);
     printWindow.document.close();
   };
-
+  
   return (
     <div className="invoice-issued">
       <h1 className="head">
@@ -628,17 +628,6 @@ const InvoiceIssued = () => {
                   type="number"
                   value={totalAmount}
                   readOnly
-                  className="form-input"
-                />
-              </div>
-
-              {/* Manual Number Field */}
-              <div>
-                <label>Manual Number:</label>
-                <input
-                  type="text"
-                  value={manualNumber}
-                  onChange={(e) => setManualNumber(e.target.value)}
                   className="form-input"
                 />
               </div>
@@ -743,14 +732,15 @@ const InvoiceIssued = () => {
       <table className="invoice-table">
         <thead>
           <tr>
-            <th>Date</th>
+          <th>Date </th>
             <th>Invoice Number</th>
-            <th>manual INV.Number</th>
             <th>Customer Name</th>
             <th>Description</th>
+
             <th>Account Debited</th>
             <th>Account Credited</th>
-            <th>Amount</th>
+            <th> Amount</th>
+
             <th>Actions</th>
           </tr>
         </thead>
@@ -759,7 +749,6 @@ const InvoiceIssued = () => {
             <tr key={invoice.id}>
               <td>{invoice.date_issued}</td>
               <td>{invoice.invoice_number}</td>
-              <td>{invoice.manual_number}</td>
               <td>{invoice.name}</td>
               <td>{invoice.description}</td>
               <td>{invoice.account_debited}</td>
@@ -771,6 +760,7 @@ const InvoiceIssued = () => {
                 ))}
               </td>
               <td>{invoice.amount}</td>
+           
               <td>
                 <button onClick={() => handleUpdate(invoice)}>
                   <FaEdit /> Edit
@@ -778,6 +768,7 @@ const InvoiceIssued = () => {
                 <button onClick={() => handleDelete(invoice.id)}>
                   <FaTrash /> Delete
                 </button>
+               
                 <button onClick={() => handlePrint(invoice)}>
                   <FaPrint /> Print
                 </button>

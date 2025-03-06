@@ -1,7 +1,7 @@
 /* Form Container */
 .form-container {
   width: 100%;
-  max-width: 600px;
+  max-width: 800px;
   margin: 0 auto;
   background-color: #1a1a1a;
   padding: 20px;
@@ -9,7 +9,6 @@
   color: white;
 }
 
-/* Form Row */
 .form-row {
   margin-bottom: 20px;
 }

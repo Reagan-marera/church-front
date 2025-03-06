@@ -337,7 +337,7 @@ const DisbursementForm = () => {
     if (formData.payment_type === "Cash") {
       const cashAccounts = coaAccounts.flatMap((account) => {
         const validSubAccounts = account.sub_account_details?.filter(
-          (subAccount) => subAccount.account_type !== "50-Expenses"
+          (subAccount) => subAccount.account_type !== "40-Revenue"
         );
         return validSubAccounts || [];
       });
@@ -476,6 +476,18 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
+              <div className="form-row">
+                <label htmlFor="manual_number">Manual Number</label>
+                <input
+                  type="text"
+                  id="manual_number"
+                  name="manual_number"
+                  value={formData.manual_number}
+                  onChange={handleInputChange}
+                  className="form-input"
+                />
+              </div>
+
 
               <div className="form-row">
                 <label htmlFor="to_whom_paid">
@@ -506,15 +518,7 @@ const DisbursementForm = () => {
                 />
               </div>
 
-              <div className="form-row">
-                <label>Total Disbursed</label>
-                <input
-                  type="text"
-                  value={totalDisbursed}
-                  readOnly
-                  className="form-input"
-                />
-              </div>
+           
 
               <div className="form-row">
                 <label htmlFor="description">Description</label>
@@ -545,18 +549,7 @@ const DisbursementForm = () => {
                 </select>
               </div>
 
-              <div className="form-row">
-                <label htmlFor="manual_number">Manual Number</label>
-                <input
-                  type="text"
-                  id="manual_number"
-                  name="manual_number"
-                  value={formData.manual_number}
-                  onChange={handleInputChange}
-                  className="form-input"
-                />
-              </div>
-
+            
               <div className="form-row">
                 <label htmlFor="account_debited">Account Debited</label>
                 <Select
@@ -593,7 +586,7 @@ const DisbursementForm = () => {
 
               <div className="form-row">
                 <label htmlFor="cash">
-                  <FontAwesomeIcon icon={faDollarSign} className="icon" /> Cash
+                  <FontAwesomeIcon className="icon" /> Cash
                 </label>
                 <input
                   type="number"
@@ -623,7 +616,7 @@ const DisbursementForm = () => {
 
               <div className="form-row">
                 <label htmlFor="total">
-                  <FontAwesomeIcon icon={faDollarSign} className="icon" /> Total
+                  <FontAwesomeIcon  className="icon" /> Total
                 </label>
                 <input
                   type="number"
@@ -635,18 +628,7 @@ const DisbursementForm = () => {
                 />
               </div>
 
-              <div className="form-row">
-                <label htmlFor="cashbook">Cashbook</label>
-                <input
-                  type="text"
-                  id="cashbook"
-                  name="cashbook"
-                  value={formData.cashbook}
-                  onChange={handleInputChange}
-                  required
-                  className="form-input"
-                />
-              </div>
+          
 
               <div className="form-actions">
                 <button type="submit" className="submit-button">
@@ -683,7 +665,6 @@ const DisbursementForm = () => {
                   <th>Cash</th>
                   <th>Bank</th>
                   <th>Total</th>
-                  <th>Cashbook</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -702,7 +683,6 @@ const DisbursementForm = () => {
                     <td>{disbursement.cash}</td>
                     <td>{disbursement.bank}</td>
                     <td>{disbursement.total}</td>
-                    <td>{disbursement.cashbook}</td>
                     <td>
                       <button onClick={() => handleEditClick(disbursement)} className="edit-button">
                         <FontAwesomeIcon icon={faEdit} className="icon" /> Edit

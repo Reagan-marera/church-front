@@ -46,6 +46,7 @@ const CashReceiptJournalTable = () => {
   const [editingData, setEditingData] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(""); // State for search query
 
   const customStyles = {
     option: (provided, state) => ({
@@ -440,37 +441,53 @@ const CashReceiptJournalTable = () => {
 
   const closeFormPopup = () => {
     setShowForm(false);
-    setFormData({});
+    setFormData({
+      receipt_date: "",
+      receipt_no: "",
+      ref_no: "",
+      from_whom_received: "",
+      description: "",
+      manual_number: "",
+      receipt_type: "",
+      account_debited: "",
+      account_credited: "",
+      cash: 0,
+      bank: 0,
+      total: 0,
+      cashbook: "",
+      selectedInvoice: null,
+    });
     setError("");
     setIsEditing(false);
     setEditingData(null);
     setSingleCustomerName("");
   };
+  
 
   const printReceipt = async (journal) => {
     const printWindow = window.open("", "_blank");
     printWindow.document.open();
-
+  
     const customerName = journal.from_whom_received;
-
+  
     let invoiceCreditedAccounts = [];
     if (customerName) {
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("User is not authenticated");
-
+  
         const response = await fetch(
           `http://127.0.0.1:5000/invoices?name=${encodeURIComponent(customerName)}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-
+  
         if (!response.ok) throw new Error(await response.text());
         const invoicesData = await response.json();
-
+  
         const filteredInvoices = invoicesData.filter(invoice => invoice.name === customerName);
-
+  
         if (filteredInvoices.length > 0) {
           invoiceCreditedAccounts = filteredInvoices.flatMap((invoice) =>
             invoice.account_credited?.map((account) => ({
@@ -484,7 +501,7 @@ const CashReceiptJournalTable = () => {
         invoiceCreditedAccounts = [];
       }
     }
-
+  
     let remainingBalance = parseFloat(journal.total) || 0;
     const clearedAccounts = invoiceCreditedAccounts.map((account) => {
       const clearedAmount = Math.min(remainingBalance, account.amount);
@@ -496,12 +513,12 @@ const CashReceiptJournalTable = () => {
         remainingAmount: account.amount - clearedAmount,
       };
     });
-
+  
     const totalRemainingBalance = clearedAccounts.reduce(
       (total, account) => total + account.remainingAmount,
       0
     );
-
+  
     printWindow.document.write(`
       <html>
       <head>
@@ -526,7 +543,7 @@ const CashReceiptJournalTable = () => {
           <h2>Cash Receipt Journal</h2>
           <p>Official Receipt</p>
         </div>
-
+  
         <div class="section">
           <h3>Receipt Details</h3>
           <table>
@@ -562,21 +579,17 @@ const CashReceiptJournalTable = () => {
               <td>Total Amount</td>
               <td>${journal.total || "N/A"}</td>
             </tr>
-            <tr>
-              <td>Deposited accounts</td>
-              <td>${journal.cashbook || "N/A"}</td>
-            </tr>
+          
           </table>
         </div>
-
+  
         <div class="section">
           <h3>Vote Heads</h3>
           <table>
             <tr>
               <th>Account Name</th>
               <th>Total Amount</th>
-              <th>Cleared Amount</th>
-              <th>Remaining Amount</th>
+            >
             </tr>
             ${
               clearedAccounts.length > 0
@@ -586,22 +599,21 @@ const CashReceiptJournalTable = () => {
                     <tr>
                       <td>${account.name}</td>
                       <td>${account.amount.toFixed(2)}</td>
-                      <td>${account.clearedAmount.toFixed(2)}</td>
-                      <td>${account.remainingAmount.toFixed(2)}</td>
+                    
                     </tr>
                   `
                     )
                     .join("")
-                : `<tr><td colspan="4">No invoice accounts.</td></tr>`
+                : `<tr><td colspan="4">${journal.account_credited || "No invoice accounts."}</td></tr>`
             }
           </table>
         </div>
-
+  
         <div class="section">
           <h3>Summary</h3>
           <p class="total">Total Remaining Balance: ${totalRemainingBalance.toFixed(2)}</p>
         </div>
-
+  
         <div class="footer">
           <p>Thank you for your payment. This is an official receipt.</p>
           <p>Youming Tech | www.youmingtech.org</p>
@@ -609,10 +621,11 @@ const CashReceiptJournalTable = () => {
       </body>
       </html>
     `);
-
+  
     printWindow.document.close();
     printWindow.print();
   };
+  
 
   const customerOptions = customers.flatMap((customer) =>
     customer.sub_account_details.map((subAccount) => ({
@@ -646,17 +659,31 @@ const CashReceiptJournalTable = () => {
     label: subAccount.name,
   }));
 
+  // Filter journals based on search query
+  const filteredJournals = journals.filter((journal) =>
+    journal.from_whom_received.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div>
       {error && <p style={{ color: "red" }}>{error}</p>}
       <button onClick={() => openFormPopup()}>Add New Receipt</button>
+
+      {/* Search input field */}
+      <input
+        type="text"
+        placeholder="Search by Customer"
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        style={{ marginBottom: "10px", padding: "5px" }}
+      />
 
       {showForm && (
         <div className="form-popup">
           <h3>{isEditing ? "Edit Receipt" : "Add New Receipt"}</h3>
           <form onSubmit={handleSubmit} className="form-container">
             <div className="form-row">
-              <label>Receipt Date:</label>
+              <label> Date:</label>
               <input
                 type="date"
                 name="receipt_date"
@@ -727,36 +754,12 @@ const CashReceiptJournalTable = () => {
             </div>
 
             <div className="form-row">
-              <label>Invoice Amount:</label>
-              <input
-                type="number"
-                value={invoiceAmount}
-                readOnly
-                className="form-input read-only"
-              />
-            </div>
-
-            <div className="form-row">
               <label>Balance:</label>
               <input
                 type="number"
                 value={balance}
                 readOnly
                 className="form-input read-only"
-              />
-            </div>
-
-            <div className="form-row">
-              <label>Select Invoice:</label>
-              <Select
-                value={invoiceOptions.find(
-                  (option) => option.value === formData.selectedInvoice?.invoice_number
-                )}
-                onChange={handleInvoiceChange}
-                options={invoiceOptions}
-                placeholder="Select Invoice"
-                isSearchable
-                styles={customStyles}
               />
             </div>
 
@@ -856,16 +859,7 @@ const CashReceiptJournalTable = () => {
               />
             </div>
 
-            <div className="form-row">
-              <label>Cashbook:</label>
-              <input
-                type="text"
-                name="cashbook"
-                value={formData.cashbook}
-                onChange={handleInputChange}
-                className="form-input"
-              />
-            </div>
+          
 
             <div className="form-actions">
               <button type="submit" className="submit-button">
@@ -882,20 +876,21 @@ const CashReceiptJournalTable = () => {
       <table border="1" cellpadding="5">
         <thead>
           <tr>
-            <th>Receipt Date</th>
+            <th> Date</th>
             <th>Receipt No</th>
             <th>Manual R.number</th>
             <th>Reference No</th>
             <th>From Whom Received</th>
             <th>Description</th>
             <th>Receipt Type</th>
+            <th>Credited Account</th>
+            <th>Debited Account</th>
             <th>Total</th>
-            <th>Cashbook</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {journals.map((journal) => (
+          {filteredJournals.map((journal) => (
             <tr key={journal.id}>
               <td>{journal.receipt_date}</td>
               <td>{journal.receipt_no}</td>
@@ -904,8 +899,9 @@ const CashReceiptJournalTable = () => {
               <td>{journal.from_whom_received}</td>
               <td>{journal.description}</td>
               <td>{journal.receipt_type}</td>
+              <td>{journal.account_credited}</td>
+              <td>{journal.account_debited}</td>
               <td>{journal.total}</td>
-              <td>{journal.cashbook}</td>
               <td>
                 <button onClick={() => openFormPopup(journal)}>Edit</button>
                 <button onClick={() => handleDelete(journal.id)}>Delete</button>
