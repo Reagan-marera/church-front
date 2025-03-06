@@ -48,17 +48,27 @@ const ExpenseTransactions = () => {
             credited_amount: 0, // No credited amount for invoices
             parent_account: inv.parent_account,
           })),
-          ...data.transactions.map((txn) => ({
-            type: 'Transaction',
-            date: txn.date_issued,
-            reference: txn.id,
-            from: txn.debited_account_name,
-            description: txn.description,
-            debited_amount: txn.amount_debited,
-            credited_amount: txn.amount_credited, // Include credited amount for transactions
-            parent_account: txn.parent_account,
-          })),
-        ];
+      // Transactions
+      ...data.transactions.map((txn) => {
+        const isAssetAccount = txn.debited_account_name && /^1[1-9]\d{2}/.test(txn.debited_account_name.split('-')[0].trim());
+        const isLiabilityAccount = txn.credited_account_name && /^1[1-9]\d{2}/.test(txn.credited_account_name.split('-')[0].trim());
+
+        return {
+          type: 'Transaction',
+          date: txn.date_issued,
+          reference: txn.id,
+          from: txn.debited_account_name || txn.credited_account_name || '',
+          description: txn.description,
+          debited_account: txn.debited_account_name || '',
+          credited_account: txn.credited_account_name || '',
+          parent_account: txn.parent_account || '',
+          amount: txn.amount_debited || txn.amount_credited || 0,
+          dr: isAssetAccount ? txn.amount_debited || 0 : 0, // DR if account is between 1100-1999
+          cr: isLiabilityAccount ? txn.amount_credited || 0 : 0, // CR if account is between 1100-1999
+        };
+      }),
+    ];
+
 
         setCombinedData(combined);
         setFilteredData(combined); // Initialize filtered data with all data
