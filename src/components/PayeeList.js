@@ -10,6 +10,8 @@ const PayeeList = () => {
     parent_account: '',
     account_name: '',
     account_type: '',
+    note_number: '', 
+    parent_account_id: null,
     sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
   });
 
@@ -23,6 +25,10 @@ const PayeeList = () => {
 
   const handleSubAccountChange = (index, field, value) => {
     const newSubAccounts = [...formData.sub_account_details];
+    if (field === 'debit' || field === 'credit') {
+      value = value === '' ? '' : parseFloat(value) || 0;
+    }
+
     newSubAccounts[index][field] = value;
     setFormData({
       ...formData,
@@ -56,15 +62,15 @@ const PayeeList = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-
-    // Add hidden fields for each subaccount
     const updatedSubAccountDetails = formData.sub_account_details.map((subAccount) => {
+      generateSubAccountId(subAccount);
+
       return {
         ...subAccount,
-        opening_balance: subAccount.opening_balance || '', // Default value
-        description: subAccount.description || '',              // Default value
-        debit: subAccount.debit || '',                          // Default value
-        credit: subAccount.credit || '',                        // Default value
+        opening_balance: subAccount.opening_balance || '',
+        description: subAccount.description || '',
+        debit: subAccount.debit || 0,
+        credit: subAccount.credit || 0,
       };
     });
 
@@ -106,6 +112,8 @@ const PayeeList = () => {
         parent_account: '',
         account_name: '',
         account_type: '',
+        note_number: '', 
+        parent_account_id: null,
         sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
       });
       alert(result.message);
@@ -155,6 +163,8 @@ const PayeeList = () => {
       parent_account: account.parent_account,
       account_name: account.account_name,
       account_type: account.account_type,
+      note_number: account.note_number || '',
+      parent_account_id: account.parent_account_id || null,
       sub_account_details: account.sub_account_details || [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
     });
   };
@@ -184,6 +194,16 @@ const PayeeList = () => {
     } catch (error) {
       setError(error.message);
     }
+  };
+
+  const printTable = () => {
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    printWindow.document.write('<html><head><title>Print Table</title></head><body>');
+    printWindow.document.write('<h2>Chart of Accounts</h2>');
+    printWindow.document.write(document.querySelector('table').outerHTML);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
   };
 
   useEffect(() => {
@@ -232,9 +252,10 @@ const PayeeList = () => {
             style={styles.input}
           />
         </div>
+     
 
         <div>
-          <h3>Payee Details</h3>
+          <h3>Subaccounts</h3>
           {formData.sub_account_details.map((subAccount, index) => (
             <div key={index} style={styles.formGroup}>
               <div style={styles.formGroup}>
@@ -266,11 +287,15 @@ const PayeeList = () => {
         </button>
       </form>
 
+      <button onClick={printTable} style={styles.button}>
+        Print PayeeList
+      </button>
+
       <table style={styles.table}>
         <thead>
           <tr>
-            <th style={styles.tableHeader}>Payee Type</th>
-            <th style={styles.tableHeader}>Payee Class</th>
+            <th style={styles.tableHeader}>PayeeType</th>
+            <th style={styles.tableHeader}>PayeeClass</th>
             <th style={styles.tableHeader}>General Ledger</th>
             <th style={styles.tableHeader}>Payee Details</th>
             <th style={styles.tableHeader}>Actions</th>
@@ -279,7 +304,7 @@ const PayeeList = () => {
         <tbody>
           {accounts.length === 0 ? (
             <tr>
-              <td colSpan="5" style={styles.tableCell}>No accounts available.</td>
+              <td colSpan="7" style={styles.tableCell}>No accounts available.</td>
             </tr>
           ) : (
             accounts.map((account) => (
@@ -310,17 +335,10 @@ const PayeeList = () => {
     </div>
   );
 };
-
 const styles = {
   container: {
     padding: '20px',
-    fontFamily: 'Arial, sans-serif',
-  },
-  heading: {
-    fontSize: '24px',
-    marginBottom: '20px',
-    fontWeight: 'bold',
-    color: '#003366',
+    fontFamily: 'Arial Black, Impact, sans-serif',
   },
   form: {
     marginBottom: '20px',
@@ -330,92 +348,84 @@ const styles = {
   },
   label: {
     fontWeight: 'bold',
-    color: '#003366',
+    color: 'blue',
   },
   input: {
     width: '100%',
     padding: '12px',
     marginTop: '5px',
     borderRadius: '6px',
-    border: '1px solid #003366',
-    backgroundColor: '#f4f6f9',
-    color: '#333',
+    border: '1px solid #333',
+    backgroundColor: '#f0f0f0',
+    fontFamily: 'Arial Black, Impact, sans-serif',
     fontWeight: 'bold',
+    color: 'black',
   },
   addButton: {
-    backgroundColor: '#003366', 
+    backgroundColor: 'blue',
     color: 'white',
-    padding: '12px 18px',
+    padding: '10px 15px',
     border: 'none',
     cursor: 'pointer',
-    fontWeight: 'bold',
-    borderRadius: '5px',
     marginTop: '10px',
-    transition: 'all 0.3s ease',
+    fontWeight: 'bold',
   },
   removeButton: {
     backgroundColor: '#e53935',
     color: 'white',
-    padding: '8px 15px',
+    padding: '5px 10px',
     border: 'none',
     cursor: 'pointer',
+    marginTop: '10px',
     fontWeight: 'bold',
-    borderRadius: '5px',
-    transition: 'all 0.3s ease',
   },
   button: {
-    backgroundColor: '#007bff',
+    backgroundColor: 'green',
     color: 'white',
-    padding: '12px 18px',
+    padding: '10px 15px',
     border: 'none',
     cursor: 'pointer',
     fontWeight: 'bold',
-    borderRadius: '5px',
-    transition: 'background-color 0.3s, transform 0.2s',
+    marginBottom: '5px',
   },
   editButton: {
-    backgroundColor: '#ffbb33',
+    backgroundColor: 'orange',
     color: 'white',
-    padding: '12px 18px',
+    padding: '10px 15px',
     border: 'none',
     cursor: 'pointer',
     fontWeight: 'bold',
-    borderRadius: '5px',
-    transition: 'background-color 0.3s, transform 0.2s',
-  },
-  deleteButton: {
-    backgroundColor: '#e53935',
-    color: 'white',
-    padding: '12px 18px',
-    border: 'none',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    borderRadius: '5px',
-    transition: 'background-color 0.3s, transform 0.2s',
+    marginBottom: '5px',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
     marginTop: '20px',
-    fontFamily: 'Arial, sans-serif',
+    fontFamily: 'Arial Black, Impact, sans-serif',
   },
   tableHeader: {
     backgroundColor: '#003366',
-    color: 'white',
     padding: '12px',
     textAlign: 'left',
+    color: 'white',
     fontWeight: 'bold',
   },
   tableCell: {
     padding: '12px',
-    border: '1px solid #ddd',
-    textAlign: 'left',
-    color: 'black',
-    fontWeight: 'normal',
-    backgroundColor: 'white',
+    border: '1px solid #333',
+    color: 'WHITE',
+    borderRadius: '5px',
   },
   tableRow: {
-    backgroundColor: '#fff',
+    backgroundColor: 'white',
+  },
+  deleteButton: {
+    backgroundColor: '#e53935',
+    color: 'white',
+    padding: '5px 10px',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 'bold',
   },
   loader: {
     textAlign: 'center',
@@ -425,23 +435,34 @@ const styles = {
   },
 };
 
-// Smooth Hover Animation
+// Changing colors animation
 const style = document.createElement('style');
 style.innerHTML = `
-  .button:hover,
-  .removeButton:hover,
-  .editButton:hover,
-  .deleteButton:hover {
-    transform: scale(1.05);
+  .color-changing-words {
+    font-size: 2rem;
+    font-weight: bold;
+    animation: colorChange 5s infinite;
+    color: #003A5C; /* Initial color */
   }
 
-  .button:focus,
-  .removeButton:focus,
-  .editButton:focus,
-  .deleteButton:focus {
-    outline: none;
-    box-shadow: 0 0 5px 2px rgba(0, 123, 255, 0.6);
+  @keyframes colorChange {
+    0% {
+      color: #003A5C; /* Dark Blue */
+    }
+    25% {
+      color: #0071BC; /* Blue */
+    }
+    50% {
+      color: blue; /* Light Blue */
+    }
+    75% {
+      color: red; /* Red */
+    }
+    100% {
+      color: black; /* black */
+    }
   }
 `;
 document.head.appendChild(style);
+
 export default PayeeList;

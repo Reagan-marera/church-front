@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 
 const CustomerList = () => {
-  const [customers, setCustomers] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [editingCustomerId, setEditingCustomerId] = useState(null);
+  const [editingAccountId, setEditingAccountId] = useState(null);
 
   const [formData, setFormData] = useState({
     parent_account: '',
     account_name: '',
     account_type: '',
-    sub_account_details: [{ id: '', name: '', description: '', debit: '', credit: '' }],
+    note_number: '', 
+    parent_account_id: null,
+    sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
   });
 
   const handleInputChange = (e) => {
@@ -23,6 +25,10 @@ const CustomerList = () => {
 
   const handleSubAccountChange = (index, field, value) => {
     const newSubAccounts = [...formData.sub_account_details];
+    if (field === 'debit' || field === 'credit') {
+      value = value === '' ? '' : parseFloat(value) || 0;
+    }
+
     newSubAccounts[index][field] = value;
     setFormData({
       ...formData,
@@ -35,7 +41,7 @@ const CustomerList = () => {
       ...formData,
       sub_account_details: [
         ...formData.sub_account_details,
-        { id: '', name: '', description: '', debit: '', credit: '' },
+        { id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' },
       ],
     });
   };
@@ -48,24 +54,30 @@ const CustomerList = () => {
     });
   };
 
+  const generateSubAccountId = (subAccount) => {
+    if (!subAccount.id) {
+      subAccount.id = `subaccount-${Date.now()}`;
+    }
+  };
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    
-    // Ensure all subaccounts have the required fields even if not visible to the user
-    formData.sub_account_details.forEach((subaccount) => {
-      if (!subaccount.id) {
-        subaccount.id = `subaccount-${Date.now()}`;
-      }
-      if (!subaccount.description) {
-        subaccount.description = '';  // Default value if missing
-      }
-      if (!subaccount.debit) {
-        subaccount.debit = '';  // Default value if missing
-      }
-      if (!subaccount.credit) {
-        subaccount.credit = '';  // Default value if missing
-      }
+    const updatedSubAccountDetails = formData.sub_account_details.map((subAccount) => {
+      generateSubAccountId(subAccount);
+
+      return {
+        ...subAccount,
+        opening_balance: subAccount.opening_balance || '',
+        description: subAccount.description || '',
+        debit: subAccount.debit || 0,
+        credit: subAccount.credit || 0,
+      };
     });
+
+    const updatedFormData = {
+      ...formData,
+      sub_account_details: updatedSubAccountDetails,
+    };
 
     const token = localStorage.getItem('token');
     if (!token) {
@@ -73,11 +85,11 @@ const CustomerList = () => {
       return;
     }
 
-    const url = editingCustomerId
-      ? `http://127.0.0.1:5000/customer/${editingCustomerId}`
+    const url = editingAccountId
+      ? `http://127.0.0.1:5000/customer/${editingAccountId}`
       : 'http://127.0.0.1:5000/customer';
 
-    const method = editingCustomerId ? 'PUT' : 'POST';
+    const method = editingAccountId ? 'PUT' : 'POST';
 
     try {
       const response = await fetch(url, {
@@ -86,7 +98,7 @@ const CustomerList = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(updatedFormData),
       });
 
       if (!response.ok) {
@@ -94,13 +106,15 @@ const CustomerList = () => {
       }
 
       const result = await response.json();
-      fetchCustomers();
-      setEditingCustomerId(null);
+      fetchAccounts();
+      setEditingAccountId(null);
       setFormData({
         parent_account: '',
         account_name: '',
         account_type: '',
-        sub_account_details: [{ id: '', name: '', description: '', debit: '', credit: '' }],
+        note_number: '', 
+        parent_account_id: null,
+        sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
       });
       alert(result.message);
     } catch (error) {
@@ -108,7 +122,7 @@ const CustomerList = () => {
     }
   };
 
-  const fetchCustomers = async () => {
+  const fetchAccounts = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
       setError('Authentication token is missing.');
@@ -130,7 +144,12 @@ const CustomerList = () => {
       }
 
       const data = await response.json();
-      setCustomers(data);
+      const sortedAccounts = data.sort((a, b) => {
+        if (a.parent_account < b.parent_account) return -1;
+        if (a.parent_account > b.parent_account) return 1;
+        return 0;
+      });
+      setAccounts(sortedAccounts);
     } catch (error) {
       setError(error.message);
     } finally {
@@ -138,22 +157,19 @@ const CustomerList = () => {
     }
   };
 
-  const handleEdit = (customer) => {
-    setEditingCustomerId(customer.id);
+  const handleEdit = (account) => {
+    setEditingAccountId(account.id);
     setFormData({
-      parent_account: customer.parent_account,
-      account_name: customer.account_name,
-      account_type: customer.account_type,
-      sub_account_details: customer.sub_account_details.map(sub => ({
-        ...sub,
-        description: sub.description || '',
-        debit: sub.debit || '',
-        credit: sub.credit || '',
-      })),
+      parent_account: account.parent_account,
+      account_name: account.account_name,
+      account_type: account.account_type,
+      note_number: account.note_number || '',
+      parent_account_id: account.parent_account_id || null,
+      sub_account_details: account.sub_account_details || [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
     });
   };
 
-  const handleDelete = async (customerId) => {
+  const handleDelete = async (accountId) => {
     const token = localStorage.getItem('token');
     if (!token) {
       setError('Authentication token is missing.');
@@ -161,7 +177,7 @@ const CustomerList = () => {
     }
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/customer/${customerId}`, {
+      const response = await fetch(`http://127.0.0.1:5000/customer/${accountId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -170,18 +186,28 @@ const CustomerList = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete customer');
+        throw new Error('Failed to delete account');
       }
 
-      setCustomers(customers.filter((customer) => customer.id !== customerId));
-      alert('Customer deleted successfully');
+      setAccounts(accounts.filter((account) => account.id !== accountId));
+      alert('Account deleted successfully');
     } catch (error) {
       setError(error.message);
     }
   };
 
+  const printTable = () => {
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    printWindow.document.write('<html><head><title>Print Table</title></head><body>');
+    printWindow.document.write('<h2>Chart of Accounts</h2>');
+    printWindow.document.write(document.querySelector('table').outerHTML);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
+  };
+
   useEffect(() => {
-    fetchCustomers();
+    fetchAccounts();
   }, []);
 
   if (loading) return <div className="loader">Loading...</div>;
@@ -190,11 +216,11 @@ const CustomerList = () => {
 
   return (
     <div style={styles.container}>
-      <i><h2 className="color-changing-words">{editingCustomerId ? 'Edit Customer' : 'Add New Customer'}</h2></i>
+      <h2 className="color-changing-words">{editingAccountId ? 'Edit Account' : 'Add New Account'}</h2>
 
       <form onSubmit={handleFormSubmit} style={styles.form}>
         <div style={styles.formGroup}>
-          <label style={styles.label}>Customer Type:</label>
+          <label style={styles.label}>customer Type:</label>
           <input
             type="text"
             name="account_type"
@@ -216,7 +242,7 @@ const CustomerList = () => {
           />
         </div>
         <div style={styles.formGroup}>
-          <label style={styles.label}>General ledger</label>
+          <label style={styles.label}>General Ledger:</label>
           <input
             type="text"
             name="parent_account"
@@ -227,35 +253,21 @@ const CustomerList = () => {
           />
         </div>
 
+
         <div>
-          <h3>Customer Details</h3>
+          <h3>Subaccounts</h3>
           {formData.sub_account_details.map((subAccount, index) => (
             <div key={index} style={styles.formGroup}>
-              <label style={styles.label}>Subaccount Name:</label>
-              <input
-                type="text"
-                value={subAccount.name}
-                onChange={(e) => handleSubAccountChange(index, 'name', e.target.value)}
-                placeholder={`Subaccount ${index + 1} Name`}
-                style={styles.input}
-              />
-              {/* Hidden fields */}
-              <input
-                type="hidden"
-                value={subAccount.description}
-                onChange={(e) => handleSubAccountChange(index, 'description', e.target.value)}
-              />
-              <input
-                type="hidden"
-                value={subAccount.debit}
-                onChange={(e) => handleSubAccountChange(index, 'debit', e.target.value)}
-              />
-              <input
-                type="hidden"
-                value={subAccount.credit}
-                onChange={(e) => handleSubAccountChange(index, 'credit', e.target.value)}
-              />
-
+              <div style={styles.formGroup}>
+                <label style={styles.label}>Subaccount Name:</label>
+                <input
+                  type="text"
+                  value={subAccount.name}
+                  onChange={(e) => handleSubAccountChange(index, 'name', e.target.value)}
+                  placeholder={`Subaccount ${index + 1} Name`}
+                  style={styles.input}
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => handleRemoveSubAccount(index)}
@@ -271,43 +283,47 @@ const CustomerList = () => {
         </div>
 
         <button type="submit" style={styles.button}>
-          {editingCustomerId ? 'Update Customer' : 'Add Customer'}
+          {editingAccountId ? 'Update Account' : 'Add Account'}
         </button>
       </form>
+
+      <button onClick={printTable} style={styles.button}>
+        Print CustomerList
+      </button>
 
       <table style={styles.table}>
         <thead>
           <tr>
             <th style={styles.tableHeader}>customer Type</th>
-            <th style={styles.tableHeader}>customer Name</th>
+            <th style={styles.tableHeader}>customer Class</th>
             <th style={styles.tableHeader}>General Ledger</th>
-            <th style={styles.tableHeader}>Customer Details</th>
+            <th style={styles.tableHeader}>customer Details</th>
             <th style={styles.tableHeader}>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {customers.length === 0 ? (
+          {accounts.length === 0 ? (
             <tr>
-              <td colSpan="5" style={styles.tableCell}>No customers available.</td>
+              <td colSpan="7" style={styles.tableCell}>No accounts available.</td>
             </tr>
           ) : (
-            customers.map((customer) => (
-              <tr key={customer.id} style={styles.tableRow}>
-                <td style={styles.tableCell}>{customer.account_type}</td>
-                <td style={styles.tableCell}>{customer.account_name}</td>
-                <td style={styles.tableCell}>{customer.parent_account}</td>
+            accounts.map((account) => (
+              <tr key={account.id} style={styles.tableRow}>
+                <td style={styles.tableCell}>{account.account_type}</td>
+                <td style={styles.tableCell}>{account.account_name}</td>
+                <td style={styles.tableCell}>{account.parent_account}</td>
                 <td style={styles.tableCell}>
-                  {customer.sub_account_details && customer.sub_account_details.length > 0
-                    ? customer.sub_account_details.map((sub, idx) => (
+                  {account.sub_account_details && account.sub_account_details.length > 0
+                    ? account.sub_account_details.map((sub, idx) => (
                         <div key={idx}>
-                          {sub.name}
+                          <strong>{sub.name}</strong>
                         </div>
                       ))
                     : 'No subaccounts'}
                 </td>
                 <td style={styles.tableCell}>
-                  <button onClick={() => handleEdit(customer)} style={styles.editButton}>Edit</button>
-                  <button onClick={() => handleDelete(customer.id)} style={styles.deleteButton}>
+                  <button onClick={() => handleEdit(account)} style={styles.editButton}>Edit</button>
+                  <button onClick={() => handleDelete(account.id)} style={styles.deleteButton}>
                     Delete
                   </button>
                 </td>
@@ -319,17 +335,10 @@ const CustomerList = () => {
     </div>
   );
 };
-
 const styles = {
   container: {
     padding: '20px',
-    fontFamily: 'Arial, sans-serif',
-  },
-  heading: {
-    fontSize: '24px',
-    marginBottom: '20px',
-    fontWeight: 'bold',
-    color: '#003366',
+    fontFamily: 'Arial Black, Impact, sans-serif',
   },
   form: {
     marginBottom: '20px',
@@ -339,92 +348,84 @@ const styles = {
   },
   label: {
     fontWeight: 'bold',
-    color: '#003366',
+    color: 'blue',
   },
   input: {
     width: '100%',
     padding: '12px',
     marginTop: '5px',
     borderRadius: '6px',
-    border: '1px solid #003366',
-    backgroundColor: '#f4f6f9',
-    color: '#333',
+    border: '1px solid #333',
+    backgroundColor: '#f0f0f0',
+    fontFamily: 'Arial Black, Impact, sans-serif',
     fontWeight: 'bold',
+    color: 'black',
   },
   addButton: {
-    backgroundColor: '#003366', 
+    backgroundColor: 'blue',
     color: 'white',
-    padding: '12px 18px',
+    padding: '10px 15px',
     border: 'none',
     cursor: 'pointer',
-    fontWeight: 'bold',
-    borderRadius: '5px',
     marginTop: '10px',
-    transition: 'all 0.3s ease',
+    fontWeight: 'bold',
   },
   removeButton: {
     backgroundColor: '#e53935',
     color: 'white',
-    padding: '8px 15px',
+    padding: '5px 10px',
     border: 'none',
     cursor: 'pointer',
+    marginTop: '10px',
     fontWeight: 'bold',
-    borderRadius: '5px',
-    transition: 'all 0.3s ease',
   },
   button: {
-    backgroundColor: '#007bff',
+    backgroundColor: 'green',
     color: 'white',
-    padding: '12px 18px',
+    padding: '10px 15px',
     border: 'none',
     cursor: 'pointer',
     fontWeight: 'bold',
-    borderRadius: '5px',
-    transition: 'background-color 0.3s, transform 0.2s',
+    marginBottom: '5px',
   },
   editButton: {
-    backgroundColor: '#ffbb33',
+    backgroundColor: 'orange',
     color: 'white',
-    padding: '12px 18px',
+    padding: '10px 15px',
     border: 'none',
     cursor: 'pointer',
     fontWeight: 'bold',
-    borderRadius: '5px',
-    transition: 'background-color 0.3s, transform 0.2s',
-  },
-  deleteButton: {
-    backgroundColor: '#e53935',
-    color: 'white',
-    padding: '12px 18px',
-    border: 'none',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    borderRadius: '5px',
-    transition: 'background-color 0.3s, transform 0.2s',
+    marginBottom: '5px',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
     marginTop: '20px',
-    fontFamily: 'Arial, sans-serif',
+    fontFamily: 'Arial Black, Impact, sans-serif',
   },
   tableHeader: {
     backgroundColor: '#003366',
-    color: 'white',
     padding: '12px',
     textAlign: 'left',
+    color: 'white',
     fontWeight: 'bold',
   },
   tableCell: {
     padding: '12px',
-    border: '1px solid #ddd',
-    textAlign: 'left',
-    color: 'black',
-    fontWeight: 'normal',
-    backgroundColor: 'white',
+    border: '1px solid #333',
+    color: 'WHITE',
+    borderRadius: '5px',
   },
   tableRow: {
-    backgroundColor: '#fff',
+    backgroundColor: 'white',
+  },
+  deleteButton: {
+    backgroundColor: '#e53935',
+    color: 'white',
+    padding: '5px 10px',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 'bold',
   },
   loader: {
     textAlign: 'center',
@@ -434,22 +435,32 @@ const styles = {
   },
 };
 
-// Smooth Hover Animation
+// Changing colors animation
 const style = document.createElement('style');
 style.innerHTML = `
-  .button:hover,
-  .removeButton:hover,
-  .editButton:hover,
-  .deleteButton:hover {
-    transform: scale(1.05);
+  .color-changing-words {
+    font-size: 2rem;
+    font-weight: bold;
+    animation: colorChange 5s infinite;
+    color: #003A5C; /* Initial color */
   }
 
-  .button:focus,
-  .removeButton:focus,
-  .editButton:focus,
-  .deleteButton:focus {
-    outline: none;
-    box-shadow: 0 0 5px 2px rgba(0, 123, 255, 0.6);
+  @keyframes colorChange {
+    0% {
+      color: #003A5C; /* Dark Blue */
+    }
+    25% {
+      color: #0071BC; /* Blue */
+    }
+    50% {
+      color: blue; /* Light Blue */
+    }
+    75% {
+      color: red; /* Red */
+    }
+    100% {
+      color: black; /* black */
+    }
   }
 `;
 document.head.appendChild(style);

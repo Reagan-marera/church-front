@@ -10,7 +10,7 @@ const LiabilityTransactions = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Retrieve the JWT token from local storage or wherever it's stored
+        // Retrieve the JWT token from local storage
         const token = localStorage.getItem('token');
 
         const response = await fetch('http://127.0.0.1:5000/liabilitytransactions', {
@@ -27,6 +27,7 @@ const LiabilityTransactions = () => {
 
         const data = await response.json();
 
+        // Combine all data into a single array
         const combined = [
           ...data.cash_disbursements.map((cd) => ({
             type: 'Cash Disbursement',
@@ -70,27 +71,25 @@ const LiabilityTransactions = () => {
             cr: cr.total,  
           })),
 
-           // Transactions
-           ...data.transactions.map((txn) => {
-            const isAssetAccount = txn.debited_account_name && /^1[1-9]\d{2}/.test(txn.debited_account_name.split('-')[0].trim());
-            const isLiabilityAccount = txn.credited_account_name && /^1[1-9]\d{2}/.test(txn.credited_account_name.split('-')[0].trim());
+          // Transactions
+          ...data.transactions.map((txn) => {
+            const isLiabilityAccount = txn.account_name && /^2[0-9]\d{2}/.test(txn.account_name.split('-')[0].trim());
 
             return {
               type: 'Transaction',
               date: txn.date_issued,
               reference: txn.id,
-              from: txn.debited_account_name || txn.credited_account_name || '',
+              from: txn.account_name || '',
               description: txn.description,
-              debited_account: txn.debited_account_name || '',
-              credited_account: txn.credited_account_name || '',
+              debited_account: '', // No debited account for liability transactions
+              credited_account: txn.account_name || '',
               parent_account: txn.parent_account || '',
-              amount: txn.amount_debited || txn.amount_credited || 0,
-              dr: isAssetAccount ? txn.amount_debited || 0 : 0, // DR if account is between 1100-1999
-              cr: isLiabilityAccount ? txn.amount_credited || 0 : 0, // CR if account is between 1100-1999
+              amount: txn.amount || 0,
+              dr: 0, // DR is always 0 for liability transactions
+              cr: isLiabilityAccount ? txn.amount || 0 : 0, // CR if account is a liability (starts with 2)
             };
           }),
         ];
-
 
         setCombinedData(combined);
         setFilteredData(combined);
@@ -110,9 +109,9 @@ const LiabilityTransactions = () => {
 
     if (account) {
       const filtered = combinedData.filter((item) =>
-        item.debited_account.toLowerCase().includes(account.toLowerCase()) ||
-        item.credited_account.toLowerCase().includes(account.toLowerCase()) ||
-        item.parent_account.toLowerCase().includes(account.toLowerCase())
+        (item.debited_account && item.debited_account.toLowerCase().includes(account.toLowerCase())) ||
+        (item.credited_account && item.credited_account.toLowerCase().includes(account.toLowerCase())) ||
+        (item.parent_account && item.parent_account.toLowerCase().includes(account.toLowerCase()))
       );
       setFilteredData(filtered);
     } else {
@@ -188,25 +187,25 @@ const LiabilityTransactions = () => {
       </table>
 
       {/* Display Total Amounts and Closing Balance */}
-    <i> <div style={styles.totalAmount}>
+      <div style={styles.totalAmount}>
         <div>Total DR: {formatNumber(totalDR)}</div>
         <div>Total CR: {formatNumber(totalCR)}</div>
         <div style={{ fontWeight: 'bold', marginTop: '10px' }}>
           Closing Balance: {formatNumber(closingBalance)}
         </div>
-      </div></i> 
+      </div>
     </div>
   );
 };
 
-// Styling
+// Styling (same as before)
 const styles = {
   container: {
     fontFamily: 'Arial, sans-serif',
     padding: '20px',
     maxWidth: '1200px',
     margin: '0 auto',
-    backgroundColor: '#f4f6f9', // Light gray background
+    backgroundColor: '#f4f6f9',
     borderRadius: '8px',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   },
@@ -215,21 +214,12 @@ const styles = {
     marginBottom: '30px',
     fontSize: '2rem',
     fontFamily: 'Georgia, serif',
-    color: '#003366', // Darker blue for header
+    color: '#003366',
   },
   searchContainer: {
     display: 'flex',
     justifyContent: 'center',
     marginBottom: '20px',
-  },
-  searchInput: {
-    padding: '10px',
-    width: '300px',
-    borderRadius: '5px',
-    border: '1px solid #ccc',
-    fontSize: '1rem',
-    outline: 'none',
-    transition: 'border-color 0.3s ease',
   },
   searchInput: {
     padding: '10px',
@@ -250,8 +240,8 @@ const styles = {
     overflow: 'hidden',
   },
   tableHeader: {
-    backgroundColor: '#003366', // Dark blue header
-    color: 'black',
+    backgroundColor: '#003366',
+    color: 'white',
     textAlign: 'left',
     fontWeight: 'bold',
     padding: '12px 15px',
@@ -267,7 +257,7 @@ const styles = {
     fontWeight: 'bold',
     fontSize: '1.2rem',
     textAlign: 'right',
-    color: '#003366', // Dark blue for total
+    color: '#003366',
     padding: '10px',
     backgroundColor: '#fff',
     borderRadius: '8px',

@@ -1,91 +1,55 @@
-/* General styling for the form container */
-.account-selection-container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
+/* Add this CSS to your AccountSelection.css file */
 
-/* Form title */
-.form-title {
-  text-align: center;
-  font-size: 24px;
-  color: #333;
-  margin-bottom: 20px;
-}
-
-/* Form field container */
-.form-field {
-  margin-bottom: 15px;
-}
-
-/* Label styling */
-.form-label {
-  font-size: 16px;
-  font-weight: bold;
-  color: #555;
-  display: block;
-  margin-bottom: 5px;
-}
-
-/* Input field styling */
-.form-input,
-.form-select,
-.form-textarea {
+.popup {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  padding: 10px;
-  margin: 5px 0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 16px;
-  color: #333;
-  background-color: #fff;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
-/* Specific styling for text area */
-.form-textarea {
-  height: 120px;
-  resize: vertical;
-  font-family: Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  padding: 10px;
-  transition: all 0.3s ease;
+.popup-content {
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+  width: 80%; /* Increased width */
+  max-width: 600px; /* Maximum width to ensure it doesn't get too large */
+  height: auto; /* Adjust height automatically based on content */
 }
 
-/* Placeholder style for textarea */
-.form-textarea::placeholder {
-  color: #888;
+.close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  cursor: pointer;
+  font-size: 20px;
 }
 
-/* Focus state for text area */
-.form-textarea:focus {
-  border-color: #4CAF50;
-  outline: none;
-  box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
-}
-
-/* Button styling */
-.form-button {
+.input-field {
   width: 100%;
   padding: 12px;
-  background-color: #4CAF50;
-  color: white;
-  font-size: 18px;
+  margin: 8px 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px; /* Increased font size */
+}
+
+button {
+  padding: 12px 24px;
   border: none;
   border-radius: 4px;
+  background-color: #007bff;
+  color: white;
   cursor: pointer;
+  font-size: 16px; /* Increased font size */
 }
 
-.form-button:hover {
-  background-color: #45a049;
-}
-
-.form-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
+button:hover {
+  background-color: #0056b3;
 }

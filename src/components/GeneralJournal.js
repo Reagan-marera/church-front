@@ -15,6 +15,8 @@ const AccountSelection = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [currentTransactionId, setCurrentTransactionId] = useState(null);
   const [accountOptions, setAccountOptions] = useState([]); // Options for react-select
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Custom styles for react-select
   const customStyles = {
@@ -36,68 +38,68 @@ const AccountSelection = () => {
     }),
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("User is not authenticated");
-        }
-
-        const headers = { Authorization: `Bearer ${token}` };
-
-        const chartOfAccountsResponse = await fetch('http://127.0.0.1:5000/chart-of-accounts', { headers });
-        const customersResponse = await fetch('http://127.0.0.1:5000/customer', { headers });
-        const payeesResponse = await fetch('http://127.0.0.1:5000/payee', { headers });
-
-        if (!chartOfAccountsResponse.ok || !customersResponse.ok || !payeesResponse.ok) {
-          throw new Error('Failed to fetch data');
-        }
-
-        const chartOfAccounts = await chartOfAccountsResponse.json();
-        const customers = await customersResponse.json();
-        const payees = await payeesResponse.json();
-
-        const allAccounts = [
-          ...chartOfAccounts.map(account => ({
-            ...account,
-            type: 'chart_of_accounts',
-            subaccounts: account.sub_account_details || []
-          })),
-          ...payees.map(account => ({
-            ...account,
-            type: 'payee',
-            subaccounts: account.sub_account_details || []
-          })),
-          ...customers.map(account => ({
-            ...account,
-            type: 'customer',
-            subaccounts: account.sub_account_details || []
-          }))
-        ];
-
-        setAccounts(allAccounts);
-
-        // Prepare options for react-select
-        const options = allAccounts.flatMap(account =>
-          account.subaccounts.map(subaccount => ({
-            value: subaccount.name,
-            label: subaccount.name,
-            type: account.type, // Add account type for color coding
-          }))
-        );
-        setAccountOptions(options);
-
-        const transactionsResponse = await fetch('http://127.0.0.1:5000/get-transactions', { headers });
-        const data = await transactionsResponse.json();
-
-        const validTransactions = Array.isArray(data.transactions) ? data.transactions.filter(t => t) : [];
-        setTransactions(validTransactions);
-      } catch (error) {
-        console.error('Error fetching data:', error.message);
+  const fetchData = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("User is not authenticated");
       }
-    };
 
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const chartOfAccountsResponse = await fetch('http://127.0.0.1:5000/chart-of-accounts', { headers });
+      const customersResponse = await fetch('http://127.0.0.1:5000/customer', { headers });
+      const payeesResponse = await fetch('http://127.0.0.1:5000/payee', { headers });
+
+      if (!chartOfAccountsResponse.ok || !customersResponse.ok || !payeesResponse.ok) {
+        throw new Error('Failed to fetch data');
+      }
+
+      const chartOfAccounts = await chartOfAccountsResponse.json();
+      const customers = await customersResponse.json();
+      const payees = await payeesResponse.json();
+
+      const allAccounts = [
+        ...chartOfAccounts.map(account => ({
+          ...account,
+          type: 'chart_of_accounts',
+          subaccounts: account.sub_account_details || []
+        })),
+        ...payees.map(account => ({
+          ...account,
+          type: 'payee',
+          subaccounts: account.sub_account_details || []
+        })),
+        ...customers.map(account => ({
+          ...account,
+          type: 'customer',
+          subaccounts: account.sub_account_details || []
+        }))
+      ];
+
+      setAccounts(allAccounts);
+
+      // Prepare options for react-select
+      const options = allAccounts.flatMap(account =>
+        account.subaccounts.map(subaccount => ({
+          value: subaccount.name,
+          label: subaccount.name,
+          type: account.type, // Add account type for color coding
+        }))
+      );
+      setAccountOptions(options);
+
+      const transactionsResponse = await fetch('http://127.0.0.1:5000/get-transactions', { headers });
+      const data = await transactionsResponse.json();
+
+      const validTransactions = Array.isArray(data.transactions) ? data.transactions.filter(t => t) : [];
+      setTransactions(validTransactions);
+    } catch (error) {
+      console.error('Error fetching data:', error.message);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -105,12 +107,13 @@ const AccountSelection = () => {
     if (transaction) {
       setSelectedCreditedAccount({ value: transaction.credited_account_name, label: transaction.credited_account_name });
       setSelectedDebitedAccount({ value: transaction.debited_account_name, label: transaction.debited_account_name });
-      setAmountCredited(transaction.amount_credited || '');
-      setAmountDebited(transaction.amount_debited || '');
+      setAmountCredited(transaction.amount_credited.toString());
+      setAmountDebited(transaction.amount_debited.toString());
       setDescription(transaction.description || '');
       setDateIssued(transaction.date_issued || '');
       setCurrentTransactionId(transaction.id);
       setIsEditing(true);
+      setIsPopupOpen(true);
     }
   };
 
@@ -133,6 +136,7 @@ const AccountSelection = () => {
     setDateIssued('');
     setIsEditing(false);
     setCurrentTransactionId(null);
+    setIsPopupOpen(false);
   };
 
   const handleSubmit = async (e) => {
@@ -159,8 +163,8 @@ const AccountSelection = () => {
     const transactionData = {
       creditedAccount: selectedCreditedAccount?.value,
       debitedAccount: selectedDebitedAccount?.value,
-      amountCredited: parseFloat(amountCredited),
-      amountDebited: parseFloat(amountDebited),
+      amountCredited: parseFloat(amountCredited.replace(/,/g, '')),
+      amountDebited: parseFloat(amountDebited.replace(/,/g, '')),
       description,
       dateIssued,
     };
@@ -185,15 +189,8 @@ const AccountSelection = () => {
         const data = await response.json();
         setSuccessMessage(data.message);
 
-        if (isEditing) {
-          // Update the existing transaction in the state
-          setTransactions(transactions.map(transaction =>
-            transaction.id === currentTransactionId ? { ...transaction, ...transactionData } : transaction
-          ));
-        } else {
-          // Add the new transaction to the state
-          setTransactions([...transactions, { id: data.transactionId, ...transactionData }]);
-        }
+        // Refetch transactions to update the table
+        fetchData();
 
         clearForm();
       } else {
@@ -215,8 +212,8 @@ const AccountSelection = () => {
       if (response.ok) {
         const data = await response.json();
         setSuccessMessage(data.message);
-        // Remove the deleted transaction from the state
-        setTransactions(transactions.filter(t => t.id !== id));
+        // Refetch transactions to update the table
+        fetchData();
       } else {
         throw new Error('Failed to delete transaction');
       }
@@ -225,121 +222,131 @@ const AccountSelection = () => {
     }
   };
 
+  const formatAmount = (amount) => {
+    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
+  const handleAmountChange = (e, setAmount) => {
+    const value = e.target.value.replace(/,/g, '');
+    setAmount(value);
+    if (setAmount === setAmountCredited) {
+      setAmountDebited(value);
+    } else {
+      setAmountCredited(value);
+    }
+  };
+
+  const filteredTransactions = transactions.filter(transaction =>
+    transaction.credited_account_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    transaction.debited_account_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="account-selection-container">
-      <h2 className="form-title">Account Transaction</h2>
-      {successMessage && <div className="success-message">{successMessage}</div>}
-      <form onSubmit={handleSubmit}>
-        <div className="form-field">
-          <label className="form-label">Credited Account</label>
-          <Select
-            value={selectedCreditedAccount}
-            onChange={(selectedOption) => setSelectedCreditedAccount(selectedOption)}
-            options={accountOptions}
-            placeholder="Select a credited account"
-            isSearchable
-            styles={customStyles} // Apply custom styles
-          />
-        </div>
-
-        <div className="form-field">
-          <label className="form-label">Debited Account</label>
-          <Select
-            value={selectedDebitedAccount}
-            onChange={(selectedOption) => setSelectedDebitedAccount(selectedOption)}
-            options={accountOptions}
-            placeholder="Select a debited account"
-            isSearchable
-            styles={customStyles} // Apply custom styles
-          />
-        </div>
-
-        <div className="form-field">
-          <label className="form-label">Amount Credited</label>
-          <input
-            type="number"
-            value={amountCredited}
-            onChange={(e) => setAmountCredited(e.target.value)}
-            required
-            className="form-input"
-          />
-        </div>
-
-        <div className="form-field">
-          <label className="form-label">Amount Debited</label>
-          <input
-            type="number"
-            value={amountDebited}
-            onChange={(e) => setAmountDebited(e.target.value)}
-            required
-            className="form-input"
-          />
-        </div>
-
-        <div className="form-field">
-          <label className="form-label">Date </label>
-          <input
-            type="date"
-            value={dateIssued}
-            onChange={(e) => setDateIssued(e.target.value)}
-            required
-            className="form-input"
-          />
-        </div>
-
-        <div className="form-field">
-          <label className="form-label">Description</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="form-textarea"
-            placeholder="Add a description (optional)"
-          />
-        </div>
-
-        <div>
-          <button type="submit" className="form-button">
-            {isEditing ? 'Update Transaction' : 'Submit Transaction'}
-          </button>
-        </div>
-      </form>
-
-      <h3 className="form-title">Transaction History</h3>
-      <table className="transaction-table">
+    <div>
+      <button onClick={() => setIsPopupOpen(true)}>Add Transaction</button>
+      <input
+        type="text"
+        placeholder="Search by account..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="input-field"
+      />
+      {successMessage && <p>{successMessage}</p>}
+      <table>
         <thead>
           <tr>
-            <th>Credited Account</th>
             <th>Debited Account</th>
+            <th>Credited Account</th>
             <th>Amount Credited</th>
             <th>Amount Debited</th>
-            <th>Date </th>
             <th>Description</th>
+            <th>Date Issued</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {transactions.length > 0 ? transactions.map((transaction) => (
-            transaction?.id ? (
-              <tr key={transaction?.id}>
-                <td>{transaction?.credited_account_name || "N/A"}</td>
-                <td>{transaction?.debited_account_name || "N/A"}</td>
-                <td>{transaction?.amount_credited || "0"}</td>
-                <td>{transaction?.amount_debited || "0"}</td>
-                <td>{transaction?.date_issued || "N/A"}</td>
-                <td>{transaction?.description || "N/A"}</td>
-                <td>
-                  <button onClick={() => handleEdit(transaction)}>Edit</button>
-                  <button onClick={() => handleDelete(transaction?.id)}>Delete</button>
-                </td>
-              </tr>
-            ) : null
-          )) : (
-            <tr>
-              <td colSpan="7">No transactions found</td>
+          {filteredTransactions.map((transaction) => (
+            <tr key={transaction.id}>
+              <td>{transaction.debited_account_name}</td>
+              <td>{transaction.credited_account_name}</td>
+              <td>{formatAmount(transaction.amount_credited)}</td>
+              <td>{formatAmount(transaction.amount_debited)}</td>
+              <td>{transaction.description}</td>
+              <td>{transaction.date_issued}</td>
+              <td>
+                <button onClick={() => handleEdit(transaction)}>Edit</button>
+                <button onClick={() => handleDelete(transaction.id)}>Delete</button>
+              </td>
             </tr>
-          )}
+          ))}
         </tbody>
       </table>
+
+      {isPopupOpen && (
+        <div className="popup">
+          <div className="popup-content">
+            <span className="close" onClick={clearForm}>&times;</span>
+            <form onSubmit={handleSubmit}>
+              <div>
+                <label>Debited Account:</label>
+                <Select
+                  value={selectedDebitedAccount}
+                  onChange={(option) => setSelectedDebitedAccount(option)}
+                  options={accountOptions}
+                  styles={customStyles}
+                />
+              </div>
+              <div>
+                <label>Credited Account:</label>
+                <Select
+                  value={selectedCreditedAccount}
+                  onChange={(option) => setSelectedCreditedAccount(option)}
+                  options={accountOptions}
+                  styles={customStyles}
+                />
+              </div>
+              <div>
+                <label>Amount Credited:</label>
+                <input
+                  type="text"
+                  value={formatAmount(amountCredited)}
+                  onChange={(e) => handleAmountChange(e, setAmountCredited)}
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label>Amount Debited:</label>
+                <input
+                  type="text"
+                  value={formatAmount(amountDebited)}
+                  onChange={(e) => handleAmountChange(e, setAmountDebited)}
+                  className="input-field"
+                  readOnly
+                />
+              </div>
+              <div>
+                <label>Description:</label>
+                <input
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+              <div>
+                <label>Date Issued:</label>
+                <input
+                  type="date"
+                  value={dateIssued}
+                  onChange={(e) => setDateIssued(e.target.value)}
+                  className="input-field"
+                />
+              </div>
+              <button type="submit">{isEditing ? 'Update' : 'Submit'}</button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

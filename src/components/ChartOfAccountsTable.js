@@ -10,8 +10,8 @@ const ChartOfAccountsTable = () => {
     parent_account: '',
     account_name: '',
     account_type: '',
-    note_number: '', // Add note_number
-    parent_account_id: null, // Add parent_account_id
+    note_number: '', 
+    parent_account_id: null,
     sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
   });
 
@@ -25,9 +25,7 @@ const ChartOfAccountsTable = () => {
 
   const handleSubAccountChange = (index, field, value) => {
     const newSubAccounts = [...formData.sub_account_details];
-    
     if (field === 'debit' || field === 'credit') {
-      // Ensure debit and credit are valid numbers, or set them to 0
       value = value === '' ? '' : parseFloat(value) || 0;
     }
 
@@ -64,17 +62,15 @@ const ChartOfAccountsTable = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-
-    // Ensure all subaccounts have IDs
     const updatedSubAccountDetails = formData.sub_account_details.map((subAccount) => {
-      generateSubAccountId(subAccount); // Make sure every subaccount has an ID
+      generateSubAccountId(subAccount);
 
       return {
         ...subAccount,
-        opening_balance: subAccount.opening_balance || '', // Default value
-        description: subAccount.description || '',              // Default value
-        debit: subAccount.debit || 0,                          // Default value for debit
-        credit: subAccount.credit || 0,                        // Default value for credit
+        opening_balance: subAccount.opening_balance || '',
+        description: subAccount.description || '',
+        debit: subAccount.debit || 0,
+        credit: subAccount.credit || 0,
       };
     });
 
@@ -116,8 +112,8 @@ const ChartOfAccountsTable = () => {
         parent_account: '',
         account_name: '',
         account_type: '',
-        note_number: '', // Reset note_number
-        parent_account_id: null, // Reset parent_account_id
+        note_number: '', 
+        parent_account_id: null,
         sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
       });
       alert(result.message);
@@ -167,8 +163,8 @@ const ChartOfAccountsTable = () => {
       parent_account: account.parent_account,
       account_name: account.account_name,
       account_type: account.account_type,
-      note_number: account.note_number || '', // Include note_number
-      parent_account_id: account.parent_account_id || null, // Include parent_account_id
+      note_number: account.note_number || '',
+      parent_account_id: account.parent_account_id || null,
       sub_account_details: account.sub_account_details || [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
     });
   };
@@ -198,6 +194,16 @@ const ChartOfAccountsTable = () => {
     } catch (error) {
       setError(error.message);
     }
+  };
+
+  const printTable = () => {
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    printWindow.document.write('<html><head><title>Print Table</title></head><body>');
+    printWindow.document.write('<h2>Chart of Accounts</h2>');
+    printWindow.document.write(document.querySelector('table').outerHTML);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
   };
 
   useEffect(() => {
@@ -256,8 +262,7 @@ const ChartOfAccountsTable = () => {
             style={styles.input}
           />
         </div>
-      
-      
+
         <div>
           <h3>Subaccounts</h3>
           {formData.sub_account_details.map((subAccount, index) => (
@@ -290,6 +295,10 @@ const ChartOfAccountsTable = () => {
           {editingAccountId ? 'Update Account' : 'Add Account'}
         </button>
       </form>
+
+      <button onClick={printTable} style={styles.button}>
+        Print ChartOfAccounts
+      </button>
 
       <table style={styles.table}>
         <thead>
@@ -337,7 +346,6 @@ const ChartOfAccountsTable = () => {
     </div>
   );
 };
-
 const styles = {
   container: {
     padding: '20px',

@@ -59,6 +59,11 @@ const CashTransactions = () => {
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  // Calculate totals
+  const totalDebited = filteredTransactions.reduce((acc, item) => acc + (item.amount_debited || 0), 0);
+  const totalCredited = filteredTransactions.reduce((acc, item) => acc + (item.amount_credited || 0), 0);
+  const closingBalance = totalDebited - totalCredited;
+
   if (loading) {
     return <div style={styles.loading}>Loading...</div>;
   }
@@ -111,9 +116,21 @@ const CashTransactions = () => {
             </tr>
           ))}
         </tbody>
+        <tfoot>
+          <tr style={styles.tableFooter}>
+            <td colSpan="7" style={styles.totalText}>Total DR</td>
+            <td colSpan="2" style={styles.totalAmount}>{formatNumber(totalDebited)}</td>
+          </tr>
+          <tr style={styles.tableFooter}>
+            <td colSpan="7" style={styles.totalText}>Total CR</td>
+            <td colSpan="2" style={styles.totalAmount}>{formatNumber(totalCredited)}</td>
+          </tr>
+          <tr style={styles.tableFooter}>
+            <td colSpan="7" style={styles.totalText}>Closing Balance</td>
+            <td colSpan="2" style={styles.totalAmount}>{formatNumber(closingBalance)}</td>
+          </tr>
+        </tfoot>
       </table>
-
-      
     </div>
   );
 };
@@ -176,6 +193,18 @@ const styles = {
   },
   oddRow: {
     backgroundColor: '#ffffff',
+  },
+  tableFooter: {
+    backgroundColor: '#f7f7f7',
+    fontWeight: 'bold',
+  },
+  totalText: {
+    textAlign: 'right',
+    paddingRight: '15px',
+  },
+  totalAmount: {
+    padding: '12px 15px',
+    textAlign: 'right',
   },
   loading: {
     textAlign: 'center',
