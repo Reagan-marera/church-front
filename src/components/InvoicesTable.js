@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from "react";
-import Select from "react-select"; // Import react-select
-import "./InvoicesTable.css"; // Ensure this file exists for styling
-import { FaEdit, FaTrash, FaPrint, FaCheck } from "react-icons/fa"; // Import icons
+import Select from "react-select";
+import "./InvoicesTable.css";
+import { FaEdit, FaTrash, FaPrint, FaSearch } from "react-icons/fa";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faFileInvoiceDollar,
-  faMoneyBill,
-  faCreditCard,
-} from "@fortawesome/free-solid-svg-icons";
+import { faFileInvoiceDollar } from "@fortawesome/free-solid-svg-icons";
 
 const InvoiceIssued = () => {
-  // State for storing form fields
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [dateIssued, setDateIssued] = useState("");
   const [description, setDescription] = useState("");
@@ -18,29 +13,27 @@ const InvoiceIssued = () => {
   const [accountDebited, setAccountDebited] = useState("");
   const [accountsCredited, setAccountsCredited] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState("");
-  const [allCustomersSelected, setAllCustomersSelected] = useState("");
+  const [allCustomersSelected, setAllCustomersSelected] = useState([]);
+  const [manualNumber, setManualNumber] = useState("");
 
-  // State to manage the invoices, form visibility, loading, and errors
   const [invoices, setInvoices] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
-
-  // State for customer and chart of accounts data
   const [customers, setCustomers] = useState([]);
   const [allCustomers, setAllCustomers] = useState([]);
   const [chartOfAccounts, setChartOfAccounts] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Custom styles for react-select
   const customStyles = {
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isFocused ? "#e2e8f0" : "white", // Background color on hover
-      color: state.isSelected ? "#4a5568" : "black", // Text color for selected option
+      backgroundColor: state.isFocused ? "#e2e8f0" : "white",
+      color: state.isSelected ? "#4a5568" : "black",
       padding: "10px",
-      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? "bold" : "normal", // Bold matching options
+      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? "bold" : "normal",
     }),
     control: (provided) => ({
       ...provided,
@@ -53,14 +46,12 @@ const InvoiceIssued = () => {
     }),
   };
 
-  // Fetch invoices and other data on component mount
   useEffect(() => {
     fetchInvoices();
     fetchCustomers();
     fetchChartOfAccounts();
   }, []);
 
-  // Function to fetch invoices from the API
   const fetchInvoices = async () => {
     setLoading(true);
     const token = localStorage.getItem("token");
@@ -72,7 +63,7 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/invoices", {
+      const response = await fetch("http://127.0.01:5000/invoices", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -93,7 +84,6 @@ const InvoiceIssued = () => {
     }
   };
 
-  // Function to fetch customer data for the "Customer Name" select
   const fetchCustomers = async () => {
     const token = localStorage.getItem("token");
 
@@ -112,9 +102,8 @@ const InvoiceIssued = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setCustomers(data); // Set detailed customer data (one customer)
+        setCustomers(data);
 
-        // Extract all customer account names (all customers)
         const allCustomersList = data.map((customer) => customer.account_name);
         setAllCustomers(allCustomersList);
       } else {
@@ -125,7 +114,6 @@ const InvoiceIssued = () => {
     }
   };
 
-  // Function to fetch chart of accounts for the "Account Debited" and "Account Credited" select
   const fetchChartOfAccounts = async () => {
     const token = localStorage.getItem("token");
 
@@ -146,7 +134,6 @@ const InvoiceIssued = () => {
         const data = await response.json();
         setChartOfAccounts(data);
 
-        // Find the "1150-Trade Debtors Control Account" from the fetched chart of accounts
         const tradeDebtorsAccount = data.find(
           (account) =>
             account.sub_account_details &&
@@ -172,59 +159,50 @@ const InvoiceIssued = () => {
   };
 
   const generateUniqueInvoiceNumber = () => {
-  // Retrieve the current counter value from local storage
-  let currentCounter = parseInt(localStorage.getItem('invoice_counter'), 10) || 0;
-
-  // Increment the counter
-  currentCounter += 1;
-
-  // Save the updated counter back to local storage
-  localStorage.setItem('invoice_counter', currentCounter);
-
-  // Generate the invoice number
-  return `INV-${currentCounter}`;
-};
+    let currentCounter = parseInt(localStorage.getItem('invoice_counter'), 10) || 0;
+    currentCounter += 1;
+    localStorage.setItem('invoice_counter', currentCounter);
+    return `INV-${currentCounter}`;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     const token = localStorage.getItem("token");
     if (!token) {
       setError("User is not authenticated");
       return;
     }
-  
-    // Ensure date is in the correct format (YYYY-MM-DD)
+
     const isValidDate = (date) => {
       return /^\d{4}-\d{2}-\d{2}$/.test(date);
     };
-  
+
     if (!isValidDate(dateIssued)) {
       setError("Invalid date format. Please use YYYY-MM-DD.");
       return;
     }
-  
-    // Find the selected customer using the sub-account name
+
     const selectedCustomerData = customers.find((customer) =>
       customer.sub_account_details.some(subAccount => subAccount.name === selectedCustomer)
     );
-  
+
     const allCustomersData = customers.filter((customer) =>
       allCustomersSelected.includes(customer.account_name)
     );
-  
+
     if (!selectedCustomerData && allCustomersSelected.length === 0) {
       setError("Selected customer not found.");
       return;
     }
-  
+
     const accountsToProcess = selectedCustomerData
       ? selectedCustomerData.sub_account_details.filter(subAccount => subAccount.name === selectedCustomer)
       : allCustomersData.flatMap((customer) => customer.sub_account_details || []);
-  
+
     for (const subAccount of accountsToProcess) {
-      const uniqueInvoiceNumber = generateUniqueInvoiceNumber(invoices);
-  
+      const uniqueInvoiceNumber = generateUniqueInvoiceNumber();
+
       const payload = {
         invoice_number: uniqueInvoiceNumber,
         date_issued: dateIssued,
@@ -236,14 +214,15 @@ const InvoiceIssued = () => {
           amount: account.amount
         })),
         name: subAccount.name,
+        manual_number: manualNumber || null,
       };
-  
+
       try {
         const url = isEditing
           ? `http://127.0.0.1:5000/invoices/${editingInvoiceId}`
           : "http://127.0.0.1:5000/invoices";
         const method = isEditing ? "PUT" : "POST";
-  
+
         const response = await fetch(url, {
           method: method,
           headers: {
@@ -252,7 +231,7 @@ const InvoiceIssued = () => {
           },
           body: JSON.stringify(payload),
         });
-  
+
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText);
@@ -262,7 +241,7 @@ const InvoiceIssued = () => {
         return;
       }
     }
-  
+
     fetchInvoices();
     resetForm();
     setError("");
@@ -272,13 +251,8 @@ const InvoiceIssued = () => {
       setEditingInvoiceId(null);
     }
   };
-  
-  
 
-
-  // Function to handle updating an invoice
   const handleUpdate = (invoice) => {
-    setInvoiceNumber(invoice.invoice_number);
     setDateIssued(invoice.date_issued);
     setDescription(invoice.description);
     setAccountsCredited(invoice.account_credited.map(account => ({
@@ -287,12 +261,12 @@ const InvoiceIssued = () => {
       amount: account.amount
     })));
     setSelectedCustomer(invoice.name);
+    setManualNumber(invoice.manual_number || ""); // Set manual_number for editing
     setIsEditing(true);
     setEditingInvoiceId(invoice.id);
     setShowForm(true);
-  };
+  }
 
-  // Function to handle deleting an invoice
   const handleDelete = async (id) => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -319,7 +293,6 @@ const InvoiceIssued = () => {
     }
   };
 
-  // Function to handle posting an invoice
   const handlePost = async (id) => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -346,7 +319,6 @@ const InvoiceIssued = () => {
     }
   };
 
-  // Function to reset the form fields
   const resetForm = () => {
     setInvoiceNumber("");
     setDateIssued("");
@@ -355,9 +327,9 @@ const InvoiceIssued = () => {
     setSelectedCustomer("");
     setAllCustomersSelected([]);
     setTotalAmount(0);
+    setManualNumber("");
   };
 
-  // Function to get all sub-account names for the "Account Credited" dropdown
   const getSubAccountNames = () => {
     const revenueSubAccounts = chartOfAccounts
       .filter((account) =>
@@ -368,7 +340,6 @@ const InvoiceIssued = () => {
     return revenueSubAccounts.map((subAccount) => subAccount.name);
   };
 
-  // Prepare customer options for react-select
   const customerOptions = customers.flatMap((customer) =>
     customer.sub_account_details.map((subAccount) => ({
       value: subAccount.name,
@@ -376,44 +347,36 @@ const InvoiceIssued = () => {
     }))
   );
 
-  // Prepare all customers options for react-select
   const allCustomersOptions = allCustomers.map((accountName) => ({
     value: accountName,
     label: accountName,
   }));
 
-  // Prepare credited account options for react-select
   const creditedAccountOptions = getSubAccountNames().map((subAccountName) => ({
     value: subAccountName,
     label: subAccountName,
   }));
 
-  // Handle adding a new credited account
   const handleAddCreditedAccount = () => {
     setAccountsCredited([...accountsCredited, { value: "", label: "", amount: 0 }]);
   };
 
-  // Handle removing a credited account
   const handleRemoveCreditedAccount = (index) => {
     setAccountsCredited(accountsCredited.filter((_, i) => i !== index));
   };
 
-  // Handle changes to credited accounts
   const handleCreditedAccountChange = (index, value, amount) => {
     const updatedAccounts = [...accountsCredited];
     updatedAccounts[index] = { value, label: value, amount: parseFloat(amount) };
     setAccountsCredited(updatedAccounts);
 
-    // Update total amount
     const newTotalAmount = updatedAccounts.reduce((sum, account) => sum + account.amount, 0);
     setTotalAmount(newTotalAmount);
   };
 
-  // Function to handle printing an invoice
   const handlePrint = (invoice) => {
     const printContents = `
       <style>
-        /* Global Styles */
         body {
           font-family: 'Roboto', sans-serif;
           margin: 0;
@@ -421,25 +384,23 @@ const InvoiceIssued = () => {
           color: #333;
           line-height: 1.6;
         }
-  
+
         h2 {
           text-align: center;
           font-size: 32px;
           font-weight: 700;
-          color: #004b87; /* Professional blue */
+          color: #004b87;
           margin-bottom: 20px;
         }
-  
-        /* Table Styling */
+
         .invoice-details {
           border-collapse: collapse;
           width: 100%;
           margin-top: 20px;
         }
-  
-        /* Table Header */
+
         .invoice-details th {
-          background-color: #004b87; /* Header color */
+          background-color: #004b87;
           color: #fff;
           font-weight: 600;
           text-align: left;
@@ -447,86 +408,80 @@ const InvoiceIssued = () => {
           text-transform: uppercase;
           border: 2px solid #ddd;
         }
-  
-        /* Table Data */
+
         .invoice-details td {
           text-align: left;
           padding: 12px;
           border: 1px solid #ddd;
         }
-  
-        /* Numeric Data Alignment */
+
         .invoice-details td.number {
           text-align: right;
         }
-  
-        /* Vote Heads Section */
+
         .vote-heads {
           margin-top: 20px;
         }
-  
+
         .vote-heads table {
           width: 100%;
           border-collapse: collapse;
           margin-top: 10px;
         }
-  
+
         .vote-heads th, .vote-heads td {
           padding: 10px;
           border: 1px solid #ddd;
           text-align: left;
         }
-  
+
         .vote-heads th {
           background-color: #f2f2f2;
           font-weight: bold;
         }
-  
-        /* Footer */
+
         .footer {
           text-align: center;
           font-size: 12px;
           color: #666;
           margin-top: 40px;
         }
-  
-        /* Print Styles */
+
         @media print {
           body {
             margin: 0;
             padding: 10mm;
           }
-  
+
           h2 {
             font-size: 28px;
             margin-bottom: 10px;
           }
-  
+
           .invoice-details th, .invoice-details td {
             font-size: 14px;
           }
-  
+
           .footer {
             font-size: 10px;
           }
-  
-          /* Set landscape orientation for printing */
+
           @page {
             size: landscape;
           }
         }
       </style>
-  
+
       <h2>Invoice Details</h2>
-  
+
       <table class="invoice-details">
         <tr><th>Invoice Number</th><td>${invoice.invoice_number}</td></tr>
         <tr><th>Date Issued</th><td>${invoice.date_issued}</td></tr>
         <tr><th>Customer Name</th><td>${invoice.name}</td></tr>
         <tr><th>Description</th><td>${invoice.description}</td></tr>
-        <tr><th>Total Amount</th><td class="number">${invoice.amount}</td></tr>
+        <tr><th>Total Amount</th><td class="number">${formatFinancialValue(invoice.amount)}</td></tr>
       </table>
-  
+
       <div class="vote-heads">
         <h3>Vote Heads</h3>
         <table>
@@ -540,19 +495,19 @@ const InvoiceIssued = () => {
             ${invoice.account_credited.map(account => `
               <tr>
                 <td>${account.name}</td>
-                <td class="number">${account.amount}</td>
+                <td class="number">${formatFinancialValue(account.amount)}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       </div>
-  
+
       <div class="footer">
         <p>Generated by Your Company</p>
         <p>For inquiries, contact us at: info@company.com</p>
       </div>
     `;
-  
+
     const printWindow = window.open("", "_blank");
     printWindow.document.open();
     printWindow.document.write(`
@@ -575,19 +530,42 @@ const InvoiceIssued = () => {
     `);
     printWindow.document.close();
   };
-  
+
+  const formatFinancialValue = (value) => {
+    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(value);
+  };
+
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const filteredInvoices = invoices.filter((invoice) =>
+    invoice.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    invoice.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    invoice.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="invoice-issued">
       <h1 className="head">
         <FontAwesomeIcon icon={faFileInvoiceDollar} className="icon" /> Invoice Issued
       </h1>
 
-      {/* Toggle to show/hide the form */}
       <button className="invoice-issued button" onClick={() => setShowForm(true)}>
         Add New Invoice
       </button>
 
-      {/* Modal for the form */}
+      <div className="search-bar">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={handleSearch}
+          placeholder="Search Invoices..."
+          style={{ marginBottom: "20px", padding: "10px", width: "300px" }}
+        />
+        <FaSearch style={{ position: "relative", left: "-30px", top: "10px" }} />
+      </div>
+
       {showForm && (
         <div className="modal">
           <div className="modal-content">
@@ -596,6 +574,15 @@ const InvoiceIssued = () => {
             </button>
             <form onSubmit={handleSubmit} className="invoice-form">
               <div>
+                <div>
+                  <label>Date :</label>
+                  <input
+                    type="date"
+                    value={dateIssued}
+                    onChange={(e) => setDateIssued(e.target.value)}
+                    required
+                  />
+                </div>
                 <label>Invoice Number:</label>
                 <input
                   type="text"
@@ -606,33 +593,14 @@ const InvoiceIssued = () => {
                 />
               </div>
               <div>
-                <label>Date Issued:</label>
-                <input
-                  type="date"
-                  value={dateIssued}
-                  onChange={(e) => setDateIssued(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label>Description:</label>
+                <label>Manual Number:</label>
                 <input
                   type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  value={manualNumber}
+                  onChange={(e) => setManualNumber(e.target.value)}
+                  className="color"
                 />
               </div>
-              <div>
-                <label>Total Amount:</label>
-                <input
-                  type="number"
-                  value={totalAmount}
-                  readOnly
-                  className="form-input"
-                />
-              </div>
-
-              {/* Customer Name Selection */}
               <div>
                 <label>Customer Name:</label>
                 <Select
@@ -649,7 +617,6 @@ const InvoiceIssued = () => {
                 />
               </div>
 
-              {/* All Customers Selection */}
               <div>
                 <label>All Customers:</label>
                 <Select
@@ -666,8 +633,14 @@ const InvoiceIssued = () => {
                   styles={customStyles}
                 />
               </div>
-
-              {/* Account Debited Selection */}
+              <div>
+                <label>Description:</label>
+                <input
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </div>
               <div>
                 <label>Account Debited:</label>
                 <input
@@ -676,8 +649,6 @@ const InvoiceIssued = () => {
                   disabled
                 />
               </div>
-
-              {/* Account Credited Selection */}
               <div>
                 <label>Account Credited:</label>
                 {accountsCredited.map((account, index) => (
@@ -716,6 +687,22 @@ const InvoiceIssued = () => {
                   Add Another Account
                 </button>
               </div>
+              <div>
+                <label>Total Amount:</label>
+                <input
+                  type="number"
+                  value={totalAmount}
+                  readOnly
+                  className="form-input"
+                />
+              </div>
+
+            
+
+
+            
+
+            
 
               <button type="submit" disabled={loading}>
                 {loading ? "Submitting..." : isEditing ? "Update Invoice" : "Submit Invoice"}
@@ -725,30 +712,28 @@ const InvoiceIssued = () => {
         </div>
       )}
 
-      {/* Display error messages */}
       {error && <p className="error">{error}</p>}
 
-      {/* Display invoices in a table */}
       <table className="invoice-table">
         <thead>
           <tr>
-          <th>Date </th>
+            <th>Date</th>
             <th>Invoice Number</th>
+            <th>Manual INV.Number</th>
             <th>Customer Name</th>
             <th>Description</th>
-
             <th>Account Debited</th>
             <th>Account Credited</th>
-            <th> Amount</th>
-
+            <th>Amount</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {invoices.map((invoice) => (
+          {filteredInvoices.map((invoice) => (
             <tr key={invoice.id}>
               <td>{invoice.date_issued}</td>
               <td>{invoice.invoice_number}</td>
+              <td>{invoice.manual_number}</td>
               <td>{invoice.name}</td>
               <td>{invoice.description}</td>
               <td>{invoice.account_debited}</td>
@@ -760,7 +745,6 @@ const InvoiceIssued = () => {
                 ))}
               </td>
               <td>{invoice.amount}</td>
-           
               <td>
                 <button onClick={() => handleUpdate(invoice)}>
                   <FaEdit /> Edit
@@ -768,7 +752,6 @@ const InvoiceIssued = () => {
                 <button onClick={() => handleDelete(invoice.id)}>
                   <FaTrash /> Delete
                 </button>
-               
                 <button onClick={() => handlePrint(invoice)}>
                   <FaPrint /> Print
                 </button>
