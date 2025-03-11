@@ -1,95 +1,95 @@
 import React, { useEffect, useState } from 'react';
+import './TransactionList.css'; // Import the CSS file
 
 const AccountsTransactions = () => {
-  const [noteGroups, setNoteGroups] = useState(null);
+  const [transactions, setTransactions] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Retrieve the JWT token from local storage or wherever it's stored
-        const token = localStorage.getItem('token');
+    const fetchTransactions = async () => {
+      const token = localStorage.getItem('token');
+      console.log('Token:', token);
 
+      if (!token) {
+        setError(new Error('No token found. Please log in again.'));
+        setLoading(false);
+        return;
+      }
+
+      try {
         const response = await fetch('http://127.0.0.1:5000/transactions/accounts', {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
           },
         });
 
         if (!response.ok) {
-          throw new Error('Error fetching data');
+          throw new Error('Failed to fetch transactions. Please try again later.');
         }
 
         const data = await response.json();
-        console.log("Data fetched:", data); // Log the data to see what is received
-        setNoteGroups(data);
-      } catch (err) {
-        console.error("Error fetching data:", err); // Log any fetch errors
-        setError('Error fetching data');
-      } finally {
+        console.log('Data:', data);
+        setTransactions(data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Fetch error:', error);
+        setError(error);
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchTransactions();
   }, []);
 
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'ksh',
+      minimumFractionDigits: 2,
+    }).format(amount);
+  };
+
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="loading">Loading financial data...</div>;
   }
 
   if (error) {
-    return <div>{error}</div>;
+    return <div className="error">Error: {error.message}</div>;
   }
 
-  // Helper function to render note groups in table rows
-  const renderNoteGroups = () => {
-    if (!noteGroups || typeof noteGroups !== 'object') return <div>No data available</div>;
-
-    return Object.entries(noteGroups).map(([noteNumber, data]) => {
-      console.log("Rendering note group:", noteNumber, data); // Log each note group
-
-      // Ensure the required fields exist before rendering the table
-      if (!data.amounts || !data.parent_account || !data.total_amount) return null;
-
-      return (
-        <div key={noteNumber}>
-          <h2>Note Number: {noteNumber}</h2>
-          <table border="1">
+  return (
+    <div>
+      <h1>Notes To The Financial Statements</h1>
+      {Object.keys(transactions).map((note) => (
+        <div key={note} className="note-group">
+          <h2>Note {note}</h2>
+          <table>
             <thead>
               <tr>
                 <th>Parent Account</th>
-                <th>Account</th>
-                <th>Total for Account</th>
+                <th>Relevant Account</th>
+                <th>Amount</th>
               </tr>
             </thead>
             <tbody>
-              {/* Render amounts and relevant accounts */}
-              {data.relevant_accounts && data.relevant_accounts.map((account, index) => (
-                <tr key={account}>
-                  <td>{data.parent_account || 'N/A'}</td>
+              {transactions[note].relevant_accounts.map((account, index) => (
+                <tr key={index}>
+                  <td>{transactions[note].parent_account || 'N/A'}</td>
                   <td>{account}</td>
-                  <td>{data.amounts[index]}</td> {/* Sum up the amounts if needed */}
+                  <td>{formatCurrency(transactions[note].amounts[index])}</td>
                 </tr>
               ))}
               <tr>
-                <td colSpan="2"><strong>Total for {data.parent_account}</strong></td>
-                <td><strong>{data.total_amount}</strong></td>
+                <td colSpan="2"><strong>Total Amount</strong></td>
+                <td><strong>{formatCurrency(transactions[note].total_amount)}</strong></td>
               </tr>
             </tbody>
           </table>
         </div>
-      );
-    });
-  };
-
-  return (
-    <div>
-      <h1>Transactions Grouped by Note Numbers</h1>
-      {renderNoteGroups()}
+      ))}
     </div>
   );
 };

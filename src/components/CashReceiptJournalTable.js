@@ -75,6 +75,8 @@ const CashReceiptJournalTable = () => {
     fetchCOA();
     fetchCustomers();
     fetchInvoices();
+    // Initialize the receipt counter after fetching journals
+    initializeReceiptCounter();
   }, []);
 
   const refreshData = () => {
@@ -88,11 +90,9 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-
       const response = await fetch("http://127.0.0.1:5000/invoices", {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
       setInvoices(data);
@@ -105,21 +105,17 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-
       const response = await fetch("http://127.0.0.1:5000/cash-receipt-journals", {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
-
       const enrichedJournals = data.map((journal) => ({
         ...journal,
         selectedInvoice: invoices.find(
           (invoice) => invoice.invoice_number === journal.ref_no
         ),
       }));
-
       setJournals(enrichedJournals);
     } catch (err) {
       setError(err.message);
@@ -130,11 +126,9 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-
       const response = await fetch("http://127.0.0.1:5000/chart-of-accounts", {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
       setCoa(data);
@@ -147,11 +141,9 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-
       const response = await fetch("http://127.0.0.1:5000/customer", {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (!response.ok) throw new Error(await response.text());
       const data = await response.json();
       setCustomers(data);
@@ -160,35 +152,51 @@ const CashReceiptJournalTable = () => {
     }
   };
 
+  const initializeReceiptCounter = () => {
+    // Find the highest existing receipt number
+    const highestReceiptNumber = journals.reduce((max, journal) => {
+      const receiptNumberMatch = journal.receipt_no.match(/R-(\d+)/); // Match "R-" followed by digits
+      const receiptNumber = receiptNumberMatch ? parseInt(receiptNumberMatch[1], 10) : 0; // Extract numeric part
+      return Math.max(max, isNaN(receiptNumber) ? 0 : receiptNumber); // Handle malformed receipt numbers
+    }, 0);
+
+    // Set the initial counter in localStorage to the highest existing number
+    localStorage.setItem("receipt_counter", highestReceiptNumber);
+  };
+
+  const generateUniqueReceiptNumber = () => {
+    // Retrieve the current counter from localStorage
+    let currentCounter = parseInt(localStorage.getItem("receipt_counter"), 10) || 0;
+    // Increment the counter
+    currentCounter += 1;
+    // Save the updated counter back to localStorage
+    localStorage.setItem("receipt_counter", currentCounter);
+    // Return the formatted receipt number (e.g., "R-1", "R-2", etc.)
+    return `R-${currentCounter}`;
+  };
+
   const handleCustomerChange = (selectedOption) => {
     const selectedSubAccount = selectedOption.value;
     setSingleCustomerName(selectedSubAccount);
     setAllCustomersSelected([]);
-
     setAllCustomersSubAccounts([{ value: selectedSubAccount, label: selectedSubAccount }]);
-
     const customerInvoices = invoices.filter(
       (invoice) => invoice.name === selectedSubAccount
     );
-
     const totalAmount = customerInvoices.reduce(
       (sum, invoice) => sum + parseFloat(invoice.amount),
       0
     );
     setInvoiceAmount(totalAmount);
-
     const customerReceipts = journals.filter(
       (journal) => journal.from_whom_received === selectedSubAccount
     );
-
     const totalReceipts = customerReceipts.reduce(
       (sum, journal) => sum + parseFloat(journal.total),
       0
     );
-
     const customerBalance = totalAmount - totalReceipts;
     setBalance(customerBalance);
-
     setFormData((prev) => ({
       ...prev,
       from_whom_received: selectedSubAccount,
@@ -199,7 +207,6 @@ const CashReceiptJournalTable = () => {
     const selectedCustomerNames = selectedOptions.map((option) => option.value);
     setAllCustomersSelected(selectedCustomerNames);
     setSingleCustomerName("");
-
     const selectedSubAccounts = customers
       .filter((customer) => selectedCustomerNames.includes(customer.account_name))
       .flatMap((customer) =>
@@ -208,31 +215,24 @@ const CashReceiptJournalTable = () => {
           label: subAccount.name,
         }))
       );
-
     setAllCustomersSubAccounts(selectedSubAccounts);
-
     const customerInvoices = invoices.filter((invoice) =>
       selectedCustomerNames.includes(invoice.name)
     );
-
     const totalAmount = customerInvoices.reduce(
       (sum, invoice) => sum + parseFloat(invoice.amount),
       0
     );
     setInvoiceAmount(totalAmount);
-
     const customerReceipts = journals.filter((journal) =>
       selectedCustomerNames.includes(journal.from_whom_received)
     );
-
     const totalReceipts = customerReceipts.reduce(
       (sum, journal) => sum + parseFloat(journal.total),
       0
     );
-
     const customerBalance = totalAmount - totalReceipts;
     setBalance(customerBalance);
-
     setFormData((prev) => ({
       ...prev,
       from_whom_received: selectedCustomerNames.join(", "),
@@ -243,7 +243,6 @@ const CashReceiptJournalTable = () => {
     const selectedInvoice = invoices.find(
       (invoice) => invoice.invoice_number === selectedOption.value
     );
-
     setFormData((prev) => ({
       ...prev,
       selectedInvoice: selectedInvoice,
@@ -287,22 +286,15 @@ const CashReceiptJournalTable = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       setLoading(true);
-
       const token = localStorage.getItem("token");
       if (!token) {
         setError("User is not authenticated.");
         return;
       }
-
-      let lastReceiptNo = await fetchLastReceiptNumber();
-      const lastReceiptNumber = parseInt(lastReceiptNo.split("-")[1]) || 0;
-
       const payloads = allCustomersSubAccounts.map((subAccount, index) => {
-        const newReceiptNo = `R-${lastReceiptNumber + index + 1}`;
-
+        const newReceiptNo = generateUniqueReceiptNumber();
         return {
           receipt_date: formData.receipt_date,
           receipt_no: newReceiptNo,
@@ -320,7 +312,6 @@ const CashReceiptJournalTable = () => {
           selected_invoice_id: formData.selectedInvoice?.id,
         };
       });
-
       for (const payload of payloads) {
         const response = await fetch("http://127.0.0.1:5000/cash-receipt-journals", {
           method: "POST",
@@ -330,13 +321,11 @@ const CashReceiptJournalTable = () => {
           },
           body: JSON.stringify(payload),
         });
-
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText);
         }
       }
-
       refreshData();
       setFormData({});
       setError("");
@@ -349,33 +338,13 @@ const CashReceiptJournalTable = () => {
     }
   };
 
-  const fetchLastReceiptNumber = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("User is not authenticated");
-
-      const response = await fetch("http://127.0.0.1:5000/last-receipt-number", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) throw new Error(await response.text());
-      const data = await response.json();
-      return data.lastReceiptNo || "R-0";
-    } catch (err) {
-      console.error("Error fetching last receipt number:", err.message);
-      return "R-0";
-    }
-  };
-
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this entry?")) return;
-
     const token = localStorage.getItem("token");
     if (!token) {
       setError("User is not authenticated.");
       return;
     }
-
     try {
       const response = await fetch(`http://127.0.0.1:5000/cash-receipt-journals/${id}`, {
         method: "DELETE",
@@ -383,12 +352,10 @@ const CashReceiptJournalTable = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText);
       }
-
       refreshData();
     } catch (err) {
       setError(err.message);
@@ -399,7 +366,6 @@ const CashReceiptJournalTable = () => {
     if (journal) {
       setIsEditing(true);
       setEditingData(journal);
-
       setFormData({
         receipt_date: journal.receipt_date,
         receipt_no: journal.receipt_no,
@@ -462,32 +428,25 @@ const CashReceiptJournalTable = () => {
     setEditingData(null);
     setSingleCustomerName("");
   };
-  
 
   const printReceipt = async (journal) => {
     const printWindow = window.open("", "_blank");
     printWindow.document.open();
-  
     const customerName = journal.from_whom_received;
-  
     let invoiceCreditedAccounts = [];
     if (customerName) {
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("User is not authenticated");
-  
         const response = await fetch(
           `http://127.0.0.1:5000/invoices?name=${encodeURIComponent(customerName)}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-  
         if (!response.ok) throw new Error(await response.text());
         const invoicesData = await response.json();
-  
         const filteredInvoices = invoicesData.filter(invoice => invoice.name === customerName);
-  
         if (filteredInvoices.length > 0) {
           invoiceCreditedAccounts = filteredInvoices.flatMap((invoice) =>
             invoice.account_credited?.map((account) => ({
@@ -501,7 +460,6 @@ const CashReceiptJournalTable = () => {
         invoiceCreditedAccounts = [];
       }
     }
-  
     let remainingBalance = parseFloat(journal.total) || 0;
     const clearedAccounts = invoiceCreditedAccounts.map((account) => {
       const clearedAmount = Math.min(remainingBalance, account.amount);
@@ -513,12 +471,10 @@ const CashReceiptJournalTable = () => {
         remainingAmount: account.amount - clearedAmount,
       };
     });
-  
     const totalRemainingBalance = clearedAccounts.reduce(
       (total, account) => total + account.remainingAmount,
       0
     );
-  
     printWindow.document.write(`
       <html>
       <head>
@@ -543,7 +499,6 @@ const CashReceiptJournalTable = () => {
           <h2>Cash Receipt Journal</h2>
           <p>Official Receipt</p>
         </div>
-  
         <div class="section">
           <h3>Receipt Details</h3>
           <table>
@@ -579,10 +534,8 @@ const CashReceiptJournalTable = () => {
               <td>Total Amount</td>
               <td>${journal.total || "N/A"}</td>
             </tr>
-          
           </table>
         </div>
-  
         <div class="section">
           <h3>Vote Heads</h3>
           <table>
@@ -599,7 +552,6 @@ const CashReceiptJournalTable = () => {
                     <tr>
                       <td>${account.name}</td>
                       <td>${account.amount.toFixed(2)}</td>
-                    
                     </tr>
                   `
                     )
@@ -608,12 +560,10 @@ const CashReceiptJournalTable = () => {
             }
           </table>
         </div>
-  
         <div class="section">
           <h3>Summary</h3>
           <p class="total">Total Remaining Balance: ${totalRemainingBalance.toFixed(2)}</p>
         </div>
-  
         <div class="footer">
           <p>Thank you for your payment. This is an official receipt.</p>
           <p>Youming Tech | www.youmingtech.org</p>
@@ -621,11 +571,9 @@ const CashReceiptJournalTable = () => {
       </body>
       </html>
     `);
-  
     printWindow.document.close();
     printWindow.print();
   };
-  
 
   const customerOptions = customers.flatMap((customer) =>
     customer.sub_account_details.map((subAccount) => ({
@@ -668,7 +616,6 @@ const CashReceiptJournalTable = () => {
     <div>
       {error && <p style={{ color: "red" }}>{error}</p>}
       <button onClick={() => openFormPopup()}>Add New Receipt</button>
-
       {/* Search input field */}
       <input
         type="text"
@@ -677,7 +624,6 @@ const CashReceiptJournalTable = () => {
         onChange={(e) => setSearchQuery(e.target.value)}
         style={{ marginBottom: "10px", padding: "5px" }}
       />
-
       {showForm && (
         <div className="form-popup">
           <h3>{isEditing ? "Edit Receipt" : "Add New Receipt"}</h3>
@@ -690,10 +636,9 @@ const CashReceiptJournalTable = () => {
                 value={formData.receipt_date}
                 onChange={handleInputChange}
                 required
-                className="form-input"
+                className="form-inputs"
               />
             </div>
-
             <div className="form-row">
               <label>Receipt No:</label>
               <input
@@ -714,7 +659,6 @@ const CashReceiptJournalTable = () => {
                 className="form-input"
               />
             </div>
-
             <div className="form-row">
               <label>Reference No:</label>
               <input
@@ -725,7 +669,6 @@ const CashReceiptJournalTable = () => {
                 className="form-input"
               />
             </div>
-
             <div className="form-row">
               <label>Single Customer:</label>
               <Select
@@ -737,7 +680,6 @@ const CashReceiptJournalTable = () => {
                 styles={customStyles}
               />
             </div>
-
             <div className="form-row">
               <label>All Customers in Account:</label>
               <Select
@@ -752,7 +694,6 @@ const CashReceiptJournalTable = () => {
                 styles={customStyles}
               />
             </div>
-
             <div className="form-row">
               <label>Balance:</label>
               <input
@@ -762,7 +703,6 @@ const CashReceiptJournalTable = () => {
                 className="form-input read-only"
               />
             </div>
-
             <div className="form-row">
               <label>Description:</label>
               <input
@@ -773,7 +713,6 @@ const CashReceiptJournalTable = () => {
                 className="form-input"
               />
             </div>
-
             <div className="form-row">
               <label>Receipt Type:</label>
               <select
@@ -787,7 +726,6 @@ const CashReceiptJournalTable = () => {
                 <option value="Invoiced">Invoiced</option>
               </select>
             </div>
-
             <div className="form-row">
               <label>Account Debited:</label>
               <Select
@@ -806,7 +744,6 @@ const CashReceiptJournalTable = () => {
                 styles={customStyles}
               />
             </div>
-
             <div className="form-row">
               <label>Account Credited:</label>
               <Select
@@ -825,7 +762,6 @@ const CashReceiptJournalTable = () => {
                 styles={customStyles}
               />
             </div>
-
             <div className="form-row">
               <label>Cash:</label>
               <input
@@ -836,7 +772,6 @@ const CashReceiptJournalTable = () => {
                 className="form-input"
               />
             </div>
-
             <div className="form-row">
               <label>Bank:</label>
               <input
@@ -847,7 +782,6 @@ const CashReceiptJournalTable = () => {
                 className="form-input"
               />
             </div>
-
             <div className="form-row">
               <label>Total:</label>
               <input
@@ -858,9 +792,6 @@ const CashReceiptJournalTable = () => {
                 className="form-input"
               />
             </div>
-
-          
-
             <div className="form-actions">
               <button type="submit" className="submit-button">
                 {loading ? "Submitting..." : isEditing ? "Update Receipt" : "Submit Receipt"}
@@ -872,7 +803,6 @@ const CashReceiptJournalTable = () => {
           </form>
         </div>
       )}
-
       <table border="1" cellpadding="5">
         <thead>
           <tr>

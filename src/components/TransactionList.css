@@ -1,0 +1,102 @@
+/* General Styles */
+.cash-flow-statement-container {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background-color: white; /* Set background color to white */
+    color: black; /* Set text color to black */
+  }
+  
+  h1, h2, h3, h4 {
+    color: black; /* Ensure headings are black */
+  }
+  
+  .error-message {
+    color: red;
+    font-weight: bold;
+  }
+  
+  .loading-message {
+    font-weight: bold;
+    color: blue;
+  }
+  
+  /* Table Styling */
+  .cash-flow-table, .account-group-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .cash-flow-table th, .account-group-table th {
+    text-align: left;
+    background-color: #f2f2f2;
+    padding: 8px;
+    font-weight: bold;
+    color: black;
+  }
+  
+  .cash-flow-table td, .account-group-table td {
+    padding: 8px;
+    border-top: 1px solid #ddd;
+  }
+  
+  strong {
+    font-weight: bold;
+    color: #ff8c42;
+  }
+  
+  /* Form Styling */
+  .date-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  input[type="date"] {
+    padding: 8px;
+    font-size: 1rem;
+    margin-bottom: 10px;
+  }
+  
+  button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+  }
+  
+  button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  /* Account Group Styling */
+  .account-groups {
+    margin-top: 20px;
+  }
+  
+  .account-group h4 {
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    color: black;
+  }
+  
+  .account-group-table th {
+    color: black; /* Ensures headers in account tables are black */
+  }
+  
+  /* Error and Loading Styling */
+  .error-message {
+    margin-top: 10px;
+    font-size: 1.2rem;
+    color: red;
+  }
+  
+  .loading-message {
+    font-size: 1.2rem;
+    color: blue;
+    font-weight: bold;
+  }
+  

@@ -4,20 +4,25 @@ import IncomeStatement from './Balance';
 import Trial from './Income';
 import './trialbalance.css'; // Import the CSS file for styling
 import TrialBalance from './TrialBalance'; // Ensure this is used or adjust accordingly
-
+import CashFlowStatement from './CashFlowStatement'; // Import the Cash Flow Statement component
+import EstimateTable from './EstimateTable'; // Import your Estimate component
 const FinancialOverview = () => {
-  const [activeTab, setActiveTab] = useState('AccountsTransactions'); // Default tab
+  const [activeTab, setActiveTab] = useState('TrialBalance'); // Default tab
 
   const renderComponent = () => {
     switch (activeTab) {
+      case 'TrialBalance': // Fixed this to match the correct component name
+        return <TrialBalance />;
       case 'AccountsTransactions':
         return <AccountsTransactions />;
       case 'IncomeStatement':
         return <IncomeStatement />;
-      case 'TrialBalance': // Fixed this to match the correct component name
-        return <TrialBalance />;
       case 'Trial': // This is correctly linked to the Trial component
         return <Trial />;
+      case 'CashFlowStatement': // Add the case for CashFlowStatement
+        return <CashFlowStatement />;
+      case 'Estimate': // Add case for the new "Estimate" tab
+        return <EstimateTable />;
       default:
         return <AccountsTransactions />;
     }
@@ -34,10 +39,12 @@ const FinancialOverview = () => {
 
       {/* Tabs for Navigation */}
       <div className="tabs">
+        <button onClick={() => setActiveTab('TrialBalance')}>Trial Balance</button>
+        <button onClick={() => setActiveTab('Trial')}>Income Statement</button>
+        <button onClick={() => setActiveTab('IncomeStatement')}>Balance Sheet</button>
         <button onClick={() => setActiveTab('AccountsTransactions')}>Notes</button>
-        <button onClick={() => setActiveTab('TrialBalance')}>Trial Balance</button> {/* Corrected the label */}
-        <button onClick={() => setActiveTab('IncomeStatement')}>Balance sheet</button> {/* Corrected the label */}
-        <button onClick={() => setActiveTab('Trial')}>Income Statement</button> {/* If you want to show Trial component */}
+        <button onClick={() => setActiveTab('CashFlowStatement')}>Cash Flow</button>
+        <button onClick={() => setActiveTab('Estimate')}>Estimates</button> {/* Added Estimate tab */}
       </div>
 
       {/* Component content based on active tab */}

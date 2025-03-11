@@ -6,7 +6,7 @@ import LiabilityTransactions from './LiabilityTransactions'; // Import the Liabi
 import NetAssets from './NetAssets'; // Import the Net Assets component
 import RevenueTransactions from './RevenueTransactions'; // Import the Revenue Transactions component
 import CashTransactions from './CashandCash'; // Import the Cash and Cash Transactions component
-
+import CashFlowStatement from './CashFlowStatement';
 const FinancialStatements = () => {
   // Function to trigger the print functionality
   const handlePrint = () => {

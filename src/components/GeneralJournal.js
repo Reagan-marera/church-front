@@ -255,24 +255,28 @@ const AccountSelection = () => {
       <table>
         <thead>
           <tr>
+          <th>Date </th>
+
             <th>Debited Account</th>
             <th>Credited Account</th>
+            <th>Description</th>
+
             <th>Amount Credited</th>
             <th>Amount Debited</th>
-            <th>Description</th>
-            <th>Date Issued</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {filteredTransactions.map((transaction) => (
             <tr key={transaction.id}>
+                            <td>{transaction.date_issued}</td>
+
               <td>{transaction.debited_account_name}</td>
               <td>{transaction.credited_account_name}</td>
+              <td>{transaction.description}</td>
+
               <td>{formatAmount(transaction.amount_credited)}</td>
               <td>{formatAmount(transaction.amount_debited)}</td>
-              <td>{transaction.description}</td>
-              <td>{transaction.date_issued}</td>
               <td>
                 <button onClick={() => handleEdit(transaction)}>Edit</button>
                 <button onClick={() => handleDelete(transaction.id)}>Delete</button>
@@ -287,6 +291,15 @@ const AccountSelection = () => {
           <div className="popup-content">
             <span className="close" onClick={clearForm}>&times;</span>
             <form onSubmit={handleSubmit}>
+            <div>
+                <label>Date:</label>
+                <input
+                  type="date"
+                  value={dateIssued}
+                  onChange={(e) => setDateIssued(e.target.value)}
+                  className="input-field"
+                />
+              </div>
               <div>
                 <label>Debited Account:</label>
                 <Select
@@ -303,6 +316,15 @@ const AccountSelection = () => {
                   onChange={(option) => setSelectedCreditedAccount(option)}
                   options={accountOptions}
                   styles={customStyles}
+                />
+              </div>
+              <div>
+                <label>Description:</label>
+                <input
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="input-field"
                 />
               </div>
               <div>
@@ -324,24 +346,8 @@ const AccountSelection = () => {
                   readOnly
                 />
               </div>
-              <div>
-                <label>Description:</label>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="input-field"
-                />
-              </div>
-              <div>
-                <label>Date Issued:</label>
-                <input
-                  type="date"
-                  value={dateIssued}
-                  onChange={(e) => setDateIssued(e.target.value)}
-                  className="input-field"
-                />
-              </div>
+            
+           
               <button type="submit">{isEditing ? 'Update' : 'Submit'}</button>
             </form>
           </div>
