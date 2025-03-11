@@ -23,7 +23,7 @@ const DisbursementForm = () => {
     to_whom_paid: "",
     description: "",
     payment_type: "",
-    manual_number: "", // Add manual_number to formData
+    manual_number: "",
     account_debited: "",
     account_credited: "",
     cash: 0,
@@ -31,7 +31,6 @@ const DisbursementForm = () => {
     total: 0,
     cashbook: "",
   });
-
   const [errorMessage, setErrorMessage] = useState("");
   const [coaAccounts, setCoaAccounts] = useState([]);
   const [payees, setPayees] = useState([]);
@@ -71,7 +70,6 @@ const DisbursementForm = () => {
         setErrorMessage("Unauthorized: Missing token.");
         return;
       }
-
       try {
         const coaResponse = await fetch("http://127.0.0.1:5000/chart-of-accounts", {
           headers: { Authorization: `Bearer ${token}` },
@@ -106,7 +104,6 @@ const DisbursementForm = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -114,17 +111,11 @@ const DisbursementForm = () => {
     const { name, value } = e.target;
     setFormData((prevData) => {
       const updatedData = { ...prevData, [name]: value };
-
       if (name === "cash" || name === "bank") {
         updatedData.total = calculateTotal(updatedData.cash, updatedData.bank);
       }
-
       return updatedData;
     });
-
-    if (name === "to_whom_paid") {
-      calculateBalanceAndTotalDisbursed(value);
-    }
   };
 
   const calculateTotal = (cash, bank) => {
@@ -132,27 +123,22 @@ const DisbursementForm = () => {
   };
 
   const calculateBalanceAndTotalDisbursed = (payeeName) => {
-    const payeeInvoices = invoices.filter(
-      (invoice) => invoice.name === payeeName
-    );
-
+    console.log("Calculating balance for:", payeeName);
+    const payeeInvoices = invoices.filter((invoice) => invoice.name === payeeName);
     const totalInvoiceAmount = payeeInvoices.reduce(
       (sum, invoice) => sum + parseFloat(invoice.amount || 0),
       0
     );
-
     const payeeDisbursements = disbursements.filter(
       (disbursement) => disbursement.to_whom_paid === payeeName
     );
-
     const totalDisbursedAmount = payeeDisbursements.reduce(
       (sum, disbursement) => sum + parseFloat(disbursement.total || 0),
       0
     );
-
     const payeeBalance = totalInvoiceAmount - totalDisbursedAmount;
+    console.log("Calculated balance:", payeeBalance);
     setBalance(payeeBalance);
-
     setTotalDisbursed(totalDisbursedAmount);
   };
 
@@ -160,31 +146,26 @@ const DisbursementForm = () => {
     if (existingVouchers.length === 0) {
       return "PV-1";
     }
-
     const highestVoucherNumber = existingVouchers.reduce((max, voucher) => {
-      const number = parseInt(voucher.voucher_number.split("-")[1]);
+      const number = parseInt(voucher.p_voucher_no.split("-")[1]);
       return number > max ? number : max;
     }, 0);
-
     return `PV-${highestVoucherNumber + 1}`;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const token = localStorage.getItem("token");
     if (!token) {
       setErrorMessage("Unauthorized: Missing token.");
       return;
     }
-
     const payload = {
       ...formData,
       disbursement_date: new Date(formData.disbursement_date).toISOString().split("T")[0],
       p_voucher_no: editingDisbursement ? formData.p_voucher_no : generateUniqueVoucherNumber(disbursements),
-      manual_number: formData.manual_number || null, // Ensure manual_number is included
+      manual_number: formData.manual_number || null,
     };
-
     try {
       let response;
       if (editingDisbursement) {
@@ -206,19 +187,16 @@ const DisbursementForm = () => {
           body: JSON.stringify(payload),
         });
       }
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText);
       }
-
       const disbursementsResponse = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
       const disbursementsData = await disbursementsResponse.json();
       setDisbursements(disbursementsData);
-
       alert(editingDisbursement ? "Disbursement updated successfully!" : "Disbursement added successfully!");
       setFormData({
         disbursement_date: "",
@@ -227,7 +205,7 @@ const DisbursementForm = () => {
         to_whom_paid: "",
         description: "",
         payment_type: "",
-        manual_number: "", // Reset manual_number
+        manual_number: "",
         account_debited: "",
         account_credited: "",
         cash: 0,
@@ -249,7 +227,6 @@ const DisbursementForm = () => {
       setErrorMessage("Unauthorized: Missing token.");
       return;
     }
-
     try {
       const response = await fetch(`http://127.0.0.1:5000/cash-disbursement-journals/${id}`, {
         method: "PUT",
@@ -259,21 +236,17 @@ const DisbursementForm = () => {
         },
         body: JSON.stringify(updatedData),
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText);
       }
-
       const result = await response.json();
-
       const disbursementsResponse = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
       const disbursementsData = await disbursementsResponse.json();
       setDisbursements(disbursementsData);
-
       alert("Disbursement updated successfully!");
     } catch (error) {
       setErrorMessage(error.message);
@@ -286,7 +259,6 @@ const DisbursementForm = () => {
       setErrorMessage("Unauthorized: Missing token.");
       return;
     }
-
     try {
       const response = await fetch(`http://127.0.0.1:5000/cash-disbursement-journals/${id}`, {
         method: "DELETE",
@@ -294,19 +266,16 @@ const DisbursementForm = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText);
       }
-
       const disbursementsResponse = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
       const disbursementsData = await disbursementsResponse.json();
       setDisbursements(disbursementsData);
-
       alert("Disbursement deleted successfully!");
     } catch (error) {
       setErrorMessage(error.message);
@@ -322,7 +291,7 @@ const DisbursementForm = () => {
       to_whom_paid: disbursement.to_whom_paid,
       description: disbursement.description,
       payment_type: disbursement.payment_type,
-      manual_number: disbursement.manual_number || "", // Set manual_number
+      manual_number: disbursement.manual_number || "",
       account_debited: disbursement.account_debited,
       account_credited: disbursement.account_credited,
       cash: disbursement.cash,
@@ -377,7 +346,7 @@ const DisbursementForm = () => {
       to_whom_paid: "",
       description: "",
       payment_type: "",
-      manual_number: "", // Reset manual_number
+      manual_number: "",
       account_debited: "",
       account_credited: "",
       cash: 0,
@@ -393,7 +362,7 @@ const DisbursementForm = () => {
     setPrintableDisbursement(disbursement);
     setTimeout(() => {
       window.print();
-      closePrintableView(); // Close the printable view after printing
+      closePrintableView();
     }, 100);
   };
 
@@ -426,7 +395,6 @@ const DisbursementForm = () => {
       <button onClick={openFormPopup} className="add-button">
         <FontAwesomeIcon icon={faPlus} className="icon" /> Add New Disbursement
       </button>
-
       {showForm && (
         <div className="form-popup">
           <div className="form-container">
@@ -446,7 +414,6 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
-
               <div className="form-row">
                 <label htmlFor="cheque_no">
                   <FontAwesomeIcon icon={faFileAlt} className="icon" /> Cheque No
@@ -461,7 +428,6 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
-
               <div className="form-row">
                 <label htmlFor="p_voucher_no">
                   <FontAwesomeIcon icon={faFileAlt} className="icon" /> Payment Voucher No
@@ -477,7 +443,7 @@ const DisbursementForm = () => {
                 />
               </div>
               <div className="form-row">
-                <label htmlFor="manual_number">Manual Number</label>
+                <label htmlFor="manual_number">Manual PV Number</label>
                 <input
                   type="text"
                   id="manual_number"
@@ -487,27 +453,25 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
-
-
               <div className="form-row">
                 <label htmlFor="to_whom_paid">
                   <FontAwesomeIcon icon={faUser} className="icon" /> To Whom Paid
                 </label>
                 <Select
                   value={payeeOptions.find((option) => option.value === formData.to_whom_paid)}
-                  onChange={(selectedOption) =>
+                  onChange={(selectedOption) => {
                     setFormData((prev) => ({
                       ...prev,
                       to_whom_paid: selectedOption.value,
-                    }))
-                  }
+                    }));
+                    calculateBalanceAndTotalDisbursed(selectedOption.value); // Trigger balance calculation
+                  }}
                   options={payeeOptions}
                   placeholder="Select Payee"
                   isSearchable
                   styles={customStyles}
                 />
               </div>
-
               <div className="form-row">
                 <label>Balance</label>
                 <input
@@ -517,9 +481,6 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
-
-           
-
               <div className="form-row">
                 <label htmlFor="description">Description</label>
                 <input
@@ -532,7 +493,6 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
-
               <div className="form-row">
                 <label htmlFor="payment_type">Payment Type</label>
                 <select
@@ -548,8 +508,6 @@ const DisbursementForm = () => {
                   <option value="Invoiced">Invoiced</option>
                 </select>
               </div>
-
-            
               <div className="form-row">
                 <label htmlFor="account_debited">Account Debited</label>
                 <Select
@@ -566,7 +524,6 @@ const DisbursementForm = () => {
                   styles={customStyles}
                 />
               </div>
-
               <div className="form-row">
                 <label htmlFor="account_credited">Account Credited</label>
                 <Select
@@ -583,10 +540,9 @@ const DisbursementForm = () => {
                   styles={customStyles}
                 />
               </div>
-
               <div className="form-row">
                 <label htmlFor="cash">
-                  <FontAwesomeIcon className="icon" /> Cash
+                  <FontAwesomeIcon icon={faDollarSign} className="icon" /> Cash
                 </label>
                 <input
                   type="number"
@@ -598,7 +554,6 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
-
               <div className="form-row">
                 <label htmlFor="bank">
                   <FontAwesomeIcon icon={faBook} className="icon" /> Bank
@@ -613,10 +568,9 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
-
               <div className="form-row">
                 <label htmlFor="total">
-                  <FontAwesomeIcon  className="icon" /> Total
+                  <FontAwesomeIcon icon={faWallet} className="icon" /> Total
                 </label>
                 <input
                   type="number"
@@ -627,9 +581,6 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
-
-          
-
               <div className="form-actions">
                 <button type="submit" className="submit-button">
                   <FontAwesomeIcon icon={faWallet} className="icon" /> {editingDisbursement ? "Update" : "Submit"}
@@ -642,7 +593,6 @@ const DisbursementForm = () => {
           </div>
         </div>
       )}
-
       {loading ? (
         <p>Loading...</p>
       ) : (
@@ -656,7 +606,7 @@ const DisbursementForm = () => {
                   <th>Date</th>
                   <th>Cheque No</th>
                   <th>Voucher No</th>
-                  <th>manual p.number</th>
+                  <th>Manual PV Number</th>
                   <th>To Whom Paid</th>
                   <th>Description</th>
                   <th>Payment Type</th>
@@ -703,7 +653,6 @@ const DisbursementForm = () => {
           )}
         </div>
       )}
-
       {printableDisbursement && (
         <div className="printable-voucher" ref={printRef}>
           <Voucher disbursement={printableDisbursement} />
@@ -717,8 +666,6 @@ const Voucher = ({ disbursement }) => {
   return (
     <div className="voucher">
       <h2 className="voucher-title">UNHCR Payment Voucher</h2>
-
-      {/* Voucher Details Table */}
       <table className="voucher-table">
         <tbody>
           <tr>
@@ -761,8 +708,6 @@ const Voucher = ({ disbursement }) => {
           </tr>
         </tbody>
       </table>
-
-      {/* Signature and Approval Section */}
       <div className="signature-section">
         <table className="signature-table">
           <tbody>
@@ -781,60 +726,50 @@ const Voucher = ({ disbursement }) => {
           </tbody>
         </table>
       </div>
-
       <style jsx>{`
         .voucher {
           font-family: Arial, sans-serif;
           max-width: 800px;
           margin: 20px auto;
           padding: 20px;
-          border: 2px solid #0072BC; /* UNHCR blue */
+          border: 2px solid #0072BC;
           background-color: #fff;
           box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-
         .voucher-title {
           text-align: center;
           font-size: 24px;
           margin-bottom: 20px;
-          color: #0072BC; /* UNHCR blue */
+          color: #0072BC;
         }
-
         .voucher-table {
           width: 100%;
           border-collapse: collapse;
           margin-bottom: 20px;
         }
-
         .voucher-table td {
           padding: 8px;
           border: 1px solid #ddd;
           font-size: 14px;
         }
-
         .voucher-table strong {
-          color: #0072BC; /* UNHCR blue */
+          color: #0072BC;
         }
-
         .signature-section {
           margin-top: 20px;
         }
-
         .signature-table {
           width: 100%;
           border-collapse: collapse;
         }
-
         .signature-table td {
           padding: 8px;
           border: 1px solid #ddd;
           font-size: 14px;
         }
-
         .signature-table strong {
-          color: #0072BC; /* UNHCR blue */
+          color: #0072BC;
         }
-
         @media print {
           body * {
             visibility: hidden;
