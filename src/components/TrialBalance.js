@@ -2,17 +2,18 @@ import React, { useState, useEffect } from 'react';
 import './trialbalance.css';
 
 const TrialBalance = () => {
-  const [trialBalance, setTrialBalance] = useState({});
+  const [trialBalance, setTrialBalance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Fetch trial balance data from the backend
   const fetchTrialBalance = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token'); // Retrieve auth token (if required)
       const response = await fetch('http://127.0.0.1:5000/trial-balance', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${token}`, // Include token if authentication is required
           'Content-Type': 'application/json',
         },
       });
@@ -21,8 +22,8 @@ const TrialBalance = () => {
         throw new Error('Failed to fetch trial balance data');
       }
 
-      const data = await response.json();
-      setTrialBalance(data);
+      const data = await response.json(); // Expecting an array of trial balance data
+      setTrialBalance(data); // Set the trial balance data directly
     } catch (err) {
       setError(err.message);
     } finally {
@@ -34,69 +35,62 @@ const TrialBalance = () => {
     fetchTrialBalance();
   }, []);
 
-  let totalDebits = 0;
-  let totalCredits = 0;
-
-  const filteredTrialBalance = Object.keys(trialBalance).reduce((result, noteNumber) => {
-    const { total_debits, total_credits, relevant_accounts, parent_account } = trialBalance[noteNumber];
-    totalDebits += total_debits;
-    totalCredits += total_credits;
-    result[noteNumber] = {
-      parent_account: parent_account || 'Unknown',
-      relevant_accounts,
-      total_debits,
-      total_credits,
-    };
-    return result;
+  // Group accounts by parent account (assuming no parent-child hierarchy in the current data)
+  const groupedByParentAccount = trialBalance.reduce((acc, account) => {
+    const parentAccount = 'Uncategorized'; // Default grouping since no parent-child hierarchy exists
+    if (!acc[parentAccount]) {
+      acc[parentAccount] = [];
+    }
+    acc[parentAccount].push(account);
+    return acc;
   }, {});
 
+  // Helper function to format numbers with commas and two decimal places
+  const formatNumber = (value) => {
+    return value > 0 ? value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+  };
+
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="loading">Loading...</div>;
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <div className="error">Error: {error}</div>;
   }
 
   return (
-    <div>
+    <div className="trial-balance-container">
       <h1>Trial Balance</h1>
-      <table>
+      <table className="trial-balance-table">
         <thead>
           <tr>
-            <th className="mose">Parent Account</th>
-            <th className="mose">Subaccounts</th>
-            <th className="mose">Total Debits</th>
-            <th className="mose">Total Credits</th>
+            <th className="account-header">Account</th>
+            <th className="numeric-header">Debit</th>
+            <th className="numeric-header">Credit</th>
           </tr>
         </thead>
         <tbody>
-          {Object.keys(filteredTrialBalance).map((noteNumber) => {
-            const { parent_account, relevant_accounts, total_debits, total_credits } = filteredTrialBalance[noteNumber];
-            const subaccounts = Object.keys(relevant_accounts);
+          {Object.keys(groupedByParentAccount).map((parentAccount) => {
+            const subAccounts = groupedByParentAccount[parentAccount];
 
-            return (
-              <React.Fragment key={noteNumber}>
-                {subaccounts.map((account, index) => {
-                  const total = relevant_accounts[account].total;
-                  return (
-                    <tr key={account}>
-                      {index === 0 && <td rowSpan={subaccounts.length}>{parent_account}</td>}
-                      <td>{account}</td>
-                      <td>{total_debits > 0 ? total_debits.toFixed(2) : '0.00'}</td>
-                      <td>{total_credits > 0 ? total_credits.toFixed(2) : '0.00'}</td>
-                    </tr>
-                  );
-                })}
-              </React.Fragment>
-            );
+            return subAccounts.map((account, index) => (
+              <tr key={account.Account}>
+                <td className="account-cell">{account.Account}</td>
+                <td className="numeric-cell">{formatNumber(account.Debit)}</td>
+                <td className="numeric-cell">{formatNumber(account.Credit)}</td>
+              </tr>
+            ));
           })}
         </tbody>
         <tfoot>
           <tr>
-            <td colSpan="2" className="mose"><strong>Total</strong></td>
-            <td>{totalDebits.toFixed(2)}</td>
-            <td>{totalCredits.toFixed(2)}</td>
+            <td className="total-label"><strong>Total</strong></td>
+            <td className="total-value">
+              {formatNumber(trialBalance.reduce((total, account) => total + account.Debit, 0))}
+            </td>
+            <td className="total-value">
+              {formatNumber(trialBalance.reduce((total, account) => total + account.Credit, 0))}
+            </td>
           </tr>
         </tfoot>
       </table>

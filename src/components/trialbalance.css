@@ -1,62 +1,61 @@
-/* Container for the entire component */
 .trial-balance-container {
-  padding: 20px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-.trial-balance-table-cell{background-color: rgb(255, 255, 255);
-}
-.mose{background-color: black;}
-/* Title styling */
-.trial-balance-title {
-  font-size: 2rem;
-  font-weight: bold;
-  color: #fcf4f4;
-  margin-bottom: 20px;
+  font-family: Arial, sans-serif;
+  margin: 20px;
 }
 
-/* Table container styling */
-.trial-balance-table-container {
+.trial-balance-table {
+  width: 100%;
+  border-collapse: collapse;
   margin-top: 20px;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Table header styling */
-.trial-balance-table-header {
-  background-color: #1976d2; /* Material-UI primary color */
-  color: white;
+.trial-balance-table th,
+.trial-balance-table td {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
 }
 
-.trial-balance-table-header-cell {
-  font-weight: bold !important;
-  font-size: 1rem;
+.account-header {
+  text-align: left;
+  width: 50%;
 }
 
-/* Table row styling */
-.trial-balance-table-row:nth-child(even) {
-  background-color: #f5f5f5;
+.numeric-header {
+  text-align: right;
+  width: 25%;
 }
 
-.trial-balance-table-row:hover {
-  background-color: #e3f2fd; /* Light blue hover effect */
+.account-cell {
+  text-align: left;
 }
 
-/* Table cell styling */
-.trial-balance-table-cell {
-  font-size: 0.9rem;
-  color: #ffffff;
+.numeric-cell {
+  text-align: right;
 }
 
-/* Loading and error message styling */
-.trial-balance-loading,
-.trial-balance-error {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-  font-size: 1.2rem;
-  color: #d32f2f; /* Material-UI error color */
+.total-label {
+  text-align: right;
+  font-weight: bold;
+}
+
+.total-value {
+  text-align: right;
+  font-weight: bold;
+  background-color: #000000;
+}
+
+.loading,
+.error {
+  text-align: center;
+  font-size: 18px;
+  margin-top: 20px;
+}
+
+.loading {
+  color: #007bff;
+}
+
+.error {
+  color: #dc3545;
 }

@@ -165,7 +165,13 @@ const DisbursementForm = () => {
       disbursement_date: new Date(formData.disbursement_date).toISOString().split("T")[0],
       p_voucher_no: editingDisbursement ? formData.p_voucher_no : generateUniqueVoucherNumber(disbursements),
       manual_number: formData.manual_number || null,
+      cash: parseFloat(formData.cash), // Convert to number
+      bank: parseFloat(formData.bank), // Convert to number
     };
+    
+  
+    console.log("Payload being sent:", payload); // Add this line to inspect the payload
+  
     try {
       let response;
       if (editingDisbursement) {
@@ -220,7 +226,7 @@ const DisbursementForm = () => {
       setErrorMessage(error.message);
     }
   };
-
+  
   const handleUpdateDisbursement = async (id, updatedData) => {
     const token = localStorage.getItem("token");
     if (!token) {

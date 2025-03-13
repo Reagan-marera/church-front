@@ -153,27 +153,36 @@ const CashReceiptJournalTable = () => {
   };
 
   const initializeReceiptCounter = () => {
-    // Find the highest existing receipt number
-    const highestReceiptNumber = journals.reduce((max, journal) => {
-      const receiptNumberMatch = journal.receipt_no.match(/R-(\d+)/); // Match "R-" followed by digits
-      const receiptNumber = receiptNumberMatch ? parseInt(receiptNumberMatch[1], 10) : 0; // Extract numeric part
-      return Math.max(max, isNaN(receiptNumber) ? 0 : receiptNumber); // Handle malformed receipt numbers
-    }, 0);
-
-    // Set the initial counter in localStorage to the highest existing number
-    localStorage.setItem("receipt_counter", highestReceiptNumber);
+    // Check if receipt_counter already exists in localStorage
+    let currentReceiptCounter = localStorage.getItem("receipt_counter");
+  
+    // If no counter exists, initialize it with the highest receipt number from the journals (only once)
+    if (currentReceiptCounter === null) {
+      const highestReceiptNumber = journals.reduce((max, journal) => {
+        const receiptNumberMatch = journal.receipt_no.match(/R-(\d+)/);
+        const receiptNumber = receiptNumberMatch ? parseInt(receiptNumberMatch[1], 10) : 0;
+        return Math.max(max, isNaN(receiptNumber) ? 0 : receiptNumber);
+      }, 0);
+  
+      // Set the initial counter to the highest receipt number found
+      localStorage.setItem("receipt_counter", highestReceiptNumber);
+    }
   };
-
+  
   const generateUniqueReceiptNumber = () => {
     // Retrieve the current counter from localStorage
     let currentCounter = parseInt(localStorage.getItem("receipt_counter"), 10) || 0;
-    // Increment the counter
+  
+    // Increment the counter to generate a new unique receipt number
     currentCounter += 1;
+  
     // Save the updated counter back to localStorage
     localStorage.setItem("receipt_counter", currentCounter);
+  
     // Return the formatted receipt number (e.g., "R-1", "R-2", etc.)
     return `R-${currentCounter}`;
   };
+  
 
   const handleCustomerChange = (selectedOption) => {
     const selectedSubAccount = selectedOption.value;
@@ -357,10 +366,22 @@ const CashReceiptJournalTable = () => {
         throw new Error(errorText);
       }
       refreshData();
+  
+      // Recalculate the highest receipt number after deletion
+      const remainingJournals = journals.filter(journal => journal.id !== id);
+      const highestReceiptNumber = remainingJournals.reduce((max, journal) => {
+        const receiptNumberMatch = journal.receipt_no.match(/R-(\d+)/);
+        const receiptNumber = receiptNumberMatch ? parseInt(receiptNumberMatch[1], 10) : 0;
+        return Math.max(max, isNaN(receiptNumber) ? 0 : receiptNumber);
+      }, 0);
+  
+      // Update the counter in localStorage
+      localStorage.setItem("receipt_counter", highestReceiptNumber);
     } catch (err) {
       setError(err.message);
     }
   };
+  
 
   const openFormPopup = (journal = null) => {
     if (journal) {
@@ -427,6 +448,7 @@ const CashReceiptJournalTable = () => {
     setIsEditing(false);
     setEditingData(null);
     setSingleCustomerName("");
+    
   };
 
   const printReceipt = async (journal) => {

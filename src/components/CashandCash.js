@@ -11,11 +11,9 @@ const CashTransactions = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-
         if (!token) {
           throw new Error('No token found. Please log in.');
         }
-
         const response = await fetch('http://127.0.0.1:5000/api/transactions', {
           method: 'GET',
           headers: {
@@ -23,12 +21,11 @@ const CashTransactions = () => {
             'Content-Type': 'application/json',
           },
         });
-
         if (!response.ok) {
           throw new Error('Failed to fetch data');
         }
-
         const data = await response.json();
+        console.log('Data received:', data); // Debugging
         setTransactions(data.transactions);
         setGroupedAccounts(data.filtered_grouped_accounts);
       } catch (error) {
@@ -37,7 +34,6 @@ const CashTransactions = () => {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -45,9 +41,18 @@ const CashTransactions = () => {
     setSearchAccount(e.target.value);
   };
 
+  const isAccountCodeLessThan1099 = (accountCode) => {
+    try {
+      const numericPart = parseInt(accountCode.split("-")[0].trim(), 10);
+      return numericPart < 1099;
+    } catch (error) {
+      return false;
+    }
+  };
+
   const filteredTransactions = transactions.filter((item) => {
     const accountDebited = item.account_debited ? item.account_debited.toString() : '';
-    const accountCredited = item.account_credited ? item.account_credited.toString() : '';
+    const accountCredited = item.account_credited ? JSON.stringify(item.account_credited) : '';
     return (
       accountDebited.toLowerCase().includes(searchAccount.toLowerCase()) ||
       accountCredited.toLowerCase().includes(searchAccount.toLowerCase())
@@ -55,13 +60,20 @@ const CashTransactions = () => {
   });
 
   const formatNumber = (num) => {
-    if (num === 0 || !num) return "0.00";
+    if (!num || num === 0) return "0.00";
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  // Calculate totals
-  const totalDebited = filteredTransactions.reduce((acc, item) => acc + (item.amount_debited || 0), 0);
-  const totalCredited = filteredTransactions.reduce((acc, item) => acc + (item.amount_credited || 0), 0);
+  const totalDebited = filteredTransactions.reduce(
+    (acc, item) => acc + (isAccountCodeLessThan1099(item.account_debited) ? item.amount_debited || 0 : 0),
+    0
+  );
+  const totalCredited = filteredTransactions.reduce(
+    (acc, item) => acc + (Array.isArray(item.account_credited)
+      ? item.account_credited.reduce((sum, acct) => sum + acct.amount, 0)
+      : item.amount_credited || 0),
+    0
+  );
   const closingBalance = totalDebited - totalCredited;
 
   if (loading) {
@@ -74,8 +86,7 @@ const CashTransactions = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.header}>Cash&Cash Equivalents</h1>
-
+      <h1 style={styles.header}>Cash & Cash Equivalents</h1>
       <div style={styles.searchContainer}>
         <input
           type="text"
@@ -85,8 +96,7 @@ const CashTransactions = () => {
           style={styles.searchInput}
         />
       </div>
-
-      <h2 style={styles.subHeader}>Cash&Cash Transactions</h2>
+      <h2 style={styles.subHeader}>Cash & Cash Transactions</h2>
       <table style={styles.table}>
         <thead>
           <tr style={styles.tableHeader}>
@@ -110,9 +120,17 @@ const CashTransactions = () => {
               <td>{item.from_whom_received || item.to_whom_paid || item.name}</td>
               <td>{item.description}</td>
               <td>{item.account_debited}</td>
-              <td>{item.account_credited}</td>
-              <td>{formatNumber(item.amount_debited || item.total)}</td>
-              <td>{formatNumber(item.amount_credited || item.total)}</td>
+              <td>
+                {Array.isArray(item.account_credited)
+                  ? item.account_credited.map((acct, idx) => (
+                      <span key={idx}>{acct.name}{idx < item.account_credited.length - 1 ? ', ' : ''}</span>
+                    ))
+                  : item.account_credited}
+              </td>
+              <td>{formatNumber(isAccountCodeLessThan1099(item.account_debited) ? item.amount_debited || 0 : 0)}</td>
+              <td>{formatNumber(Array.isArray(item.account_credited)
+                ? item.account_credited.reduce((sum, acct) => sum + acct.amount, 0)
+                : item.amount_credited || 0)}</td>
             </tr>
           ))}
         </tbody>
