@@ -41,15 +41,6 @@ const CashTransactions = () => {
     setSearchAccount(e.target.value);
   };
 
-  const isAccountCodeLessThan1099 = (accountCode) => {
-    try {
-      const numericPart = parseInt(accountCode.split("-")[0].trim(), 10);
-      return numericPart < 1099;
-    } catch (error) {
-      return false;
-    }
-  };
-
   const filteredTransactions = transactions.filter((item) => {
     const accountDebited = item.account_debited ? item.account_debited.toString() : '';
     const accountCredited = item.account_credited ? JSON.stringify(item.account_credited) : '';
@@ -65,15 +56,31 @@ const CashTransactions = () => {
   };
 
   const totalDebited = filteredTransactions.reduce(
-    (acc, item) => acc + (isAccountCodeLessThan1099(item.account_debited) ? item.amount_debited || 0 : 0),
+    (acc, item) => {
+      if (item.transaction_type === "Cash Receipt") {
+        return acc + (item.total || 0); // Cash Receipts are Debits
+      } else if (item.transaction_type === "Transaction") {
+        return acc + (item.amount_debited || 0); // Transactions use amount_debited
+      } else {
+        return acc; // Cash Disbursements and Invoices are Credits, so they don't contribute to totalDebited
+      }
+    },
     0
   );
+
   const totalCredited = filteredTransactions.reduce(
-    (acc, item) => acc + (Array.isArray(item.account_credited)
-      ? item.account_credited.reduce((sum, acct) => sum + acct.amount, 0)
-      : item.amount_credited || 0),
+    (acc, item) => {
+      if (item.transaction_type === "Cash Disbursement") {
+        return acc + (item.total || 0); // Cash Disbursements are Credits
+      } else if (item.transaction_type === "Transaction" || item.transaction_type === "Invoice Issued") {
+        return acc + (item.amount_credited || 0); // Transactions and Invoices use amount_credited
+      } else {
+        return acc; // Cash Receipts are Debits, so they don't contribute to totalCredited
+      }
+    },
     0
   );
+
   const closingBalance = totalDebited - totalCredited;
 
   if (loading) {
@@ -127,10 +134,24 @@ const CashTransactions = () => {
                     ))
                   : item.account_credited}
               </td>
-              <td>{formatNumber(isAccountCodeLessThan1099(item.account_debited) ? item.amount_debited || 0 : 0)}</td>
-              <td>{formatNumber(Array.isArray(item.account_credited)
-                ? item.account_credited.reduce((sum, acct) => sum + acct.amount, 0)
-                : item.amount_credited || 0)}</td>
+              <td>
+                {formatNumber(
+                  item.transaction_type === "Cash Receipt"
+                    ? item.total || 0 // Cash Receipts are Debits
+                    : item.transaction_type === "Transaction"
+                    ? item.amount_debited || 0 // Transactions use amount_debited
+                    : 0 // Cash Disbursements and Invoices are Credits, so no Debit amount
+                )}
+              </td>
+              <td>
+                {formatNumber(
+                  item.transaction_type === "Cash Disbursement"
+                    ? item.total || 0 // Cash Disbursements are Credits
+                    : item.transaction_type === "Transaction" || item.transaction_type === "Invoice Issued"
+                    ? item.amount_credited || 0 // Transactions and Invoices use amount_credited
+                    : 0 // Cash Receipts are Debits, so no Credit amount
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
