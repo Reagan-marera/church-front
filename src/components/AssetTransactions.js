@@ -23,7 +23,71 @@ const AssetTransactions = () => {
         }
         const data = await response.json();
         const combined = [
-          // Map all transaction types here (as shown above)
+          ...data.cash_disbursements.map(item => ({
+            type: 'Cash Disbursement',
+            date: item.disbursement_date,
+            reference: item.cheque_no || item.p_voucher_no,
+            from: item.to_whom_paid,
+            description: item.description,
+            debited_account: item.account_debited,
+            credited_account: item.account_credited,
+            parent_account: item.parent_account,
+            dr: item.total,
+            cr: 0,
+            amount: item.total,
+          })),
+          ...data.invoices_received.map(item => ({
+            type: 'Invoice Received',
+            date: item.date_issued,
+            reference: item.invoice_number,
+            from: item.name,
+            description: item.description,
+            debited_account: item.account_debited,
+            credited_account: item.account_credited,
+            parent_account: item.parent_account,
+            dr: item.amount,
+            cr: 0,
+            amount: item.amount,
+          })),
+          ...data.invoices_issued.map(item => ({
+            type: 'Invoice Issued',
+            date: item.date_issued,
+            reference: item.invoice_number,
+            from: item.name,
+            description: item.description,
+            debited_account: item.account_debited,
+            credited_account: item.account_credited,
+            parent_account: item.parent_account,
+            dr: 0,
+            cr: item.amount,
+            amount: item.amount,
+          })),
+          ...data.cash_receipts.map(item => ({
+            type: 'Cash Receipt',
+            date: item.receipt_date,
+            reference: item.receipt_no || item.ref_no,
+            from: item.from_whom_received,
+            description: item.description,
+            debited_account: item.account_debited,
+            credited_account: item.account_credited,
+            parent_account: item.parent_account,
+            dr: 0,
+            cr: item.total,
+            amount: item.total,
+          })),
+          ...data.transactions.map(item => ({
+            type: 'Transaction',
+            date: item.date_issued,
+            reference: '',
+            from: '',
+            description: item.description,
+            debited_account: item.debited_account_name,
+            credited_account: item.credited_account_name,
+            parent_account: item.parent_account,
+            dr: item.amount_debited,
+            cr: item.amount_credited,
+            amount: item.amount_debited || item.amount_credited,
+          })),
         ];
         setCombinedData(combined);
         setFilteredData(combined);
@@ -127,8 +191,6 @@ const AssetTransactions = () => {
     </div>
   );
 };
-
-
 
 const styles = {
   container: {
