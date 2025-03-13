@@ -58,8 +58,8 @@ const AssetTransactions = () => {
             debited_account: item.account_debited,
             credited_account: item.account_credited,
             parent_account: item.parent_account,
-            dr: 0,
-            cr: item.amount,
+            cr: 0,
+            dr: item.amount,
             amount: item.amount,
           })),
           ...data.cash_receipts.map(item => ({
@@ -75,20 +75,27 @@ const AssetTransactions = () => {
             cr: item.total,
             amount: item.total,
           })),
-          ...data.transactions.map(item => ({
-            type: 'Transaction',
-            date: item.date_issued,
-            reference: '',
-            from: '',
-            description: item.description,
-            debited_account: item.debited_account_name,
-            credited_account: item.credited_account_name,
-            parent_account: item.parent_account,
-            dr: item.amount_debited,
-            cr: item.amount_credited,
-            amount: item.amount_debited || item.amount_credited,
-          })),
+          ...data.transactions.map((txn) => {
+            const isAssetAccount = txn.debited_account_name && /^1[1-9]\d{2}/.test(txn.debited_account_name.split('-')[0].trim());
+            const isLiabilityAccount = txn.credited_account_name && /^1[1-9]\d{2}/.test(txn.credited_account_name.split('-')[0].trim());
+
+            return {
+              type: 'Transaction',
+              date: txn.date_issued,
+              reference: txn.id,
+              from: txn.debited_account_name || txn.credited_account_name || '',
+              description: txn.description,
+              debited_account: txn.debited_account_name || '',
+              credited_account: txn.credited_account_name || '',
+              parent_account: txn.parent_account || '',
+              amount: txn.amount_debited || txn.amount_credited || 0,
+              dr: isAssetAccount ? txn.amount_debited || 0 : 0, // DR if account is between 1100-1999
+              cr: isLiabilityAccount ? txn.amount_credited || 0 : 0, // CR if account is between 1100-1999
+            };
+          }),
         ];
+
+        console.log('Combined Data:', combined);
         setCombinedData(combined);
         setFilteredData(combined);
       } catch (error) {
@@ -101,19 +108,19 @@ const AssetTransactions = () => {
   }, []);
 
   const handleSearch = (e) => {
-    const account = e.target.value.trim();
+    const account = e.target.value.trim().toLowerCase();
     setSearchAccount(account);
     if (account) {
       const filtered = combinedData.filter((item) => {
-        const debitedAccount = item.debited_account ? String(item.debited_account).toLowerCase() : '';
-        const creditedAccount = item.credited_account ? String(item.credited_account).toLowerCase() : '';
-        const parentAccount = item.parent_account ? String(item.parent_account).toLowerCase() : '';
-        return (
-          debitedAccount.includes(account.toLowerCase()) ||
-          creditedAccount.includes(account.toLowerCase()) ||
-          parentAccount.includes(account.toLowerCase())
-        );
+        const debitedAccount = Array.isArray(item.debited_account)
+          ? item.debited_account.some(acc => acc.name.toLowerCase().includes(account))
+          : String(item.debited_account).toLowerCase().includes(account);
+        const creditedAccount = String(item.credited_account).toLowerCase().includes(account);
+        const parentAccount = String(item.parent_account).toLowerCase().includes(account);
+        console.log(`Filtering item: ${item.type}, Debited: ${debitedAccount}, Credited: ${creditedAccount}, Parent: ${parentAccount}`);
+        return debitedAccount || creditedAccount || parentAccount;
       });
+      console.log(`Filtered data:`, filtered);
       setFilteredData(filtered);
     } else {
       setFilteredData(combinedData);
@@ -172,7 +179,11 @@ const AssetTransactions = () => {
               <td>{item.reference}</td>
               <td>{item.from}</td>
               <td>{item.description}</td>
-              <td>{typeof item.credited_account === 'string' ? item.credited_account : item.debited_account}</td>
+              <td>
+                {Array.isArray(item.debited_account)
+                  ? item.debited_account.map(acc => acc.name).join(', ')
+                  : item.debited_account || item.credited_account}
+              </td>
               <td>{item.parent_account}</td>
               <td>{formatNumber(item.dr)}</td>
               <td>{formatNumber(item.cr)}</td>

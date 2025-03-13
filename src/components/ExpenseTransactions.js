@@ -5,75 +5,86 @@ const ExpenseTransactions = () => {
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchAccount, setSearchAccount] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
+  // Fetch data from the API
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Authentication token not found.');
+        }
 
         const response = await fetch('http://127.0.0.1:5000/expensetransactions', {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch data');
+          throw new Error(`Failed to fetch data: ${response.statusText}`);
         }
 
         const data = await response.json();
 
-        // Combine and normalize data
-        const combined = [
-          ...data.cash_disbursements.map((cd) => ({
-            type: 'Cash Disbursement',
-            date: cd.disbursement_date,
-            reference: cd.cheque_no,
-            from: cd.to_whom_paid,
-            description: cd.description,
-            debited_amount: cd.total, // DR column for cash disbursement
-            credited_amount: 0, // No credited amount for cash disbursement
-            parent_account: cd.parent_account,
-          })),
-          ...data.invoices_received.map((inv) => ({
-            type: 'Invoice Received',
-            date: inv.date_issued,
-            reference: inv.invoice_number,
-            from: inv.name,
-            description: inv.description,
-            debited_amount: inv.amount, // DR column for invoices received
-            credited_amount: 0, // No credited amount for invoices
-            parent_account: inv.parent_account,
-          })),
-      // Transactions
-      ...data.transactions.map((txn) => {
-        const isAssetAccount = txn.debited_account_name && /^1[1-9]\d{2}/.test(txn.debited_account_name.split('-')[0].trim());
-        const isLiabilityAccount = txn.credited_account_name && /^1[1-9]\d{2}/.test(txn.credited_account_name.split('-')[0].trim());
+        // Normalize and combine data
+        const normalizedData = [
+          ...data.cash_disbursements.map((cd) => {
+            // Include both account code and account name (e.g., "5190- Bank Charges")
+            const accountNameWithCode = cd.account_debited?.trim() || 'N/A';
 
-        return {
-          type: 'Transaction',
-          date: txn.date_issued,
-          reference: txn.id,
-          from: txn.debited_account_name || txn.credited_account_name || '',
-          description: txn.description,
-          debited_account: txn.debited_account_name || '',
-          credited_account: txn.credited_account_name || '',
-          parent_account: txn.parent_account || '',
-          amount: txn.amount_debited || txn.amount_credited || 0,
-          dr: isAssetAccount ? txn.amount_debited || 0 : 0, // DR if account is between 1100-1999
-          cr: isLiabilityAccount ? txn.amount_credited || 0 : 0, // CR if account is between 1100-1999
-        };
-      }),
-    ];
+            return {
+              type: 'Cash Disbursement',
+              date: cd.disbursement_date,
+              reference: cd.cheque_no || 'N/A',
+              from: cd.to_whom_paid || 'N/A',
+              description: cd.description || 'No description',
+              debited_amount: Number(cd.total) || 0,
+              credited_amount: 0,
+              parent_account: cd.parent_account?.trim() || 'N/A',
+              account_name: accountNameWithCode, // Include full account name with code
+            };
+          }),
+          ...data.invoices_received.flatMap((inv) =>
+            inv.account_debited?.map((account) => ({
+              type: 'Invoice Received',
+              date: inv.date_issued,
+              reference: inv.invoice_number || 'N/A',
+              from: inv.name || 'N/A',
+              description: inv.description || 'No description',
+              debited_amount: Number(account.amount) || 0,
+              credited_amount: 0,
+              parent_account: inv.parent_account?.trim() || 'N/A',
+              account_name: account.name || 'N/A', // Use the provided account name
+            })) || []
+          ),
+          ...data.transactions.map((txn) => {
+            const isAssetAccount =
+              txn.debited_account_name && /^1[1-9]\d{2}/.test(txn.debited_account_name.split('-')[0].trim());
+            const isLiabilityAccount =
+              txn.credited_account_name && /^1[1-9]\d{2}/.test(txn.credited_account_name.split('-')[0].trim());
 
+            return {
+              type: 'Transaction',
+              date: txn.date_issued,
+              reference: txn.id || 'N/A',
+              from: txn.debited_account_name || txn.credited_account_name || 'N/A',
+              description: txn.description || 'No description',
+              debited_amount: isAssetAccount ? Number(txn.amount_debited) || 0 : 0,
+              credited_amount: isLiabilityAccount ? Number(txn.amount_credited) || 0 : 0,
+              parent_account: txn.parent_account?.trim() || 'N/A',
+              account_name: '', // No account name for transactions
+            };
+          }),
+        ];
 
-        setCombinedData(combined);
-        setFilteredData(combined); // Initialize filtered data with all data
-      } catch (error) {
-        setError(error.message);
+        setCombinedData(normalizedData);
+        setFilteredData(normalizedData); // Initialize filtered data with all data
+      } catch (err) {
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -82,16 +93,19 @@ const ExpenseTransactions = () => {
     fetchData();
   }, []);
 
-  // Handle search by account
+  // Handle search by account, reference, or description
   const handleSearch = (e) => {
-    const account = e.target.value;
-    setSearchAccount(account);
+    const term = e.target.value.toLowerCase();
+    setSearchTerm(term);
 
-    if (account) {
+    if (term) {
       const filtered = combinedData.filter((item) =>
-        (item.debited_amount.toString().toLowerCase().includes(account.toLowerCase())) ||
-        (item.credited_amount.toString().toLowerCase().includes(account.toLowerCase())) ||
-        (item.parent_account.toLowerCase().includes(account.toLowerCase())) // Include parent account in search
+        item.type.toLowerCase().includes(term) ||
+        item.reference.toLowerCase().includes(term) ||
+        item.from.toLowerCase().includes(term) ||
+        item.description.toLowerCase().includes(term) ||
+        item.parent_account.toLowerCase().includes(term) ||
+        item.account_name.toLowerCase().includes(term)
       );
       setFilteredData(filtered);
     } else {
@@ -102,10 +116,10 @@ const ExpenseTransactions = () => {
   // Calculate total DR and CR amounts
   const totalDR = filteredData.reduce((sum, item) => sum + (Number(item.debited_amount) || 0), 0);
   const totalCR = filteredData.reduce((sum, item) => sum + (Number(item.credited_amount) || 0), 0);
-  const closingBalance = totalDR - totalCR; // Calculate closing balance
+  const closingBalance = totalDR - totalCR;
 
+  // Format numbers with two decimal places
   const formatNumber = (num) => {
-    if (num === 0 || !num) return "0.00";
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
@@ -121,18 +135,18 @@ const ExpenseTransactions = () => {
     <div style={styles.container}>
       <h1 style={styles.header}>Expense Transactions</h1>
 
-      {/* Search by Account */}
+      {/* Search Bar */}
       <div style={styles.searchContainer}>
         <input
           type="text"
-          placeholder="Search by account or parent account..."
-          value={searchAccount}
+          placeholder="Search by type, reference, description, or account..."
+          value={searchTerm}
           onChange={handleSearch}
           style={styles.searchInput}
         />
       </div>
 
-      {/* Display Combined Data in One Table */}
+      {/* Table */}
       <table style={styles.table}>
         <thead>
           <tr style={styles.tableHeader}>
@@ -144,6 +158,7 @@ const ExpenseTransactions = () => {
             <th>DR Amount</th>
             <th>CR Amount</th>
             <th>Parent Account</th>
+            <th>Account Name</th>
           </tr>
         </thead>
         <tbody>
@@ -154,15 +169,16 @@ const ExpenseTransactions = () => {
               <td>{item.reference}</td>
               <td>{item.from}</td>
               <td>{item.description}</td>
-              <td>{formatNumber(item.debited_amount)}</td>  {/* DR Amount */}
-              <td>{formatNumber(item.credited_amount)}</td>  {/* CR Amount */}
+              <td>{formatNumber(item.debited_amount)}</td>
+              <td>{formatNumber(item.credited_amount)}</td>
               <td>{item.parent_account}</td>
+              <td>{item.account_name}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Display Total Amounts and Closing Balance */}
+      {/* Totals */}
       <div style={styles.totalAmount}>
         <div>Total DR: {formatNumber(totalDR)}</div>
         <div>Total CR: {formatNumber(totalCR)}</div>
@@ -179,7 +195,7 @@ const styles = {
     padding: '20px',
     maxWidth: '1200px',
     margin: '0 auto',
-    backgroundColor: '#f4f6f9', // Light gray background
+    backgroundColor: '#f4f6f9',
     borderRadius: '8px',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   },
@@ -188,7 +204,7 @@ const styles = {
     marginBottom: '30px',
     fontSize: '2rem',
     fontFamily: 'Georgia, serif',
-    color: '#003366', // Darker blue for header
+    color: '#003366',
   },
   searchContainer: {
     display: 'flex',
@@ -203,6 +219,9 @@ const styles = {
     fontSize: '1rem',
     outline: 'none',
     transition: 'border-color 0.3s ease',
+    '&:focus': {
+      borderColor: '#007BFF',
+    },
   },
   table: {
     width: '100%',
@@ -214,24 +233,32 @@ const styles = {
     overflow: 'hidden',
   },
   tableHeader: {
-    backgroundColor: '#003366', // Dark blue header
-    color: 'black',
+    backgroundColor: '#003366',
+    color: '#fff',
     textAlign: 'left',
     fontWeight: 'bold',
     padding: '12px 15px',
   },
   evenRow: {
     backgroundColor: '#f7f7f7',
+    transition: 'background-color 0.3s ease',
+    '&:hover': {
+      backgroundColor: '#e6f2ff',
+    },
   },
   oddRow: {
     backgroundColor: '#ffffff',
+    transition: 'background-color 0.3s ease',
+    '&:hover': {
+      backgroundColor: '#e6f2ff',
+    },
   },
   totalAmount: {
     marginTop: '20px',
     fontWeight: 'bold',
     fontSize: '1.2rem',
     textAlign: 'right',
-    color: '#003366', // Dark blue for total
+    color: '#003366',
     padding: '10px',
     backgroundColor: '#fff',
     borderRadius: '8px',

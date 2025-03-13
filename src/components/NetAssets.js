@@ -1,19 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 
 const NetAssets = () => {
   const [netAssetsData, setNetAssetsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState(''); // State for the search term
+  const [searchTerm, setSearchTerm] = useState('');
   const [filteredTransactions, setFilteredTransactions] = useState([]);
 
   useEffect(() => {
-    // Fetch data from the /net-assets route
     const fetchNetAssets = async () => {
       try {
-        // Retrieve the JWT token from local storage or wherever it's stored
         const token = localStorage.getItem('token');
-
         const response = await fetch('http://127.0.0.1:5000/net-assets', {
           method: 'GET',
           headers: {
@@ -28,7 +25,7 @@ const NetAssets = () => {
 
         const data = await response.json();
         setNetAssetsData(data);
-        setFilteredTransactions(data.transactions); // Initialize filtered transactions
+        setFilteredTransactions(data.transactions);
       } catch (error) {
         setError(error.message);
       } finally {
@@ -38,29 +35,39 @@ const NetAssets = () => {
 
     fetchNetAssets();
   }, []);
+
   useEffect(() => {
-    // Filter transactions when search term changes
     if (netAssetsData && searchTerm) {
       const filtered = netAssetsData.transactions.filter((txn) => {
-        const creditedAccount = txn.credited_account_name.toLowerCase();
-        const debitedAccount = txn.debited_account_name.toLowerCase();
-        const parentAccountCredited = txn.parent_account_credited.toLowerCase();
-        const parentAccountDebited = txn.parent_account_debited.toLowerCase();
-        
         const search = searchTerm.toLowerCase();
-        
-        return (
-          creditedAccount.includes(search) ||
-          debitedAccount.includes(search) ||
-          parentAccountCredited.includes(search) ||
-          parentAccountDebited.includes(search)
-        );
+        const creditedAccount = Array.isArray(txn.credited_account_name)
+          ? txn.credited_account_name.some(acc => acc.toLowerCase().includes(search))
+          : txn.credited_account_name.toLowerCase().includes(search);
+        const debitedAccount = Array.isArray(txn.debited_account_name)
+          ? txn.debited_account_name.some(acc => acc.toLowerCase().includes(search))
+          : txn.debited_account_name.toLowerCase().includes(search);
+        const parentAccountCredited = txn.parent_account_credited.toLowerCase().includes(search);
+        const parentAccountDebited = txn.parent_account_debited.toLowerCase().includes(search);
+
+        return creditedAccount || debitedAccount || parentAccountCredited || parentAccountDebited;
       });
       setFilteredTransactions(filtered);
     } else {
-      setFilteredTransactions(netAssetsData?.transactions || []); // Show all if no search term
+      setFilteredTransactions(netAssetsData?.transactions || []);
     }
   }, [searchTerm, netAssetsData]);
+
+  const totalCredits = useMemo(() =>
+    filteredTransactions.reduce((sum, txn) => sum + txn.amount_credited, 0),
+    [filteredTransactions]
+  );
+
+  const totalDebits = useMemo(() =>
+    filteredTransactions.reduce((sum, txn) => sum + txn.amount_debited, 0),
+    [filteredTransactions]
+  );
+
+  const netAssets = totalCredits - totalDebits;
 
   if (loading) {
     return <div style={styles.loading}>Loading...</div>;
@@ -74,7 +81,6 @@ const NetAssets = () => {
     <div style={styles.container}>
       <h1 style={styles.header}>Net Assets</h1>
 
-      {/* Search Input */}
       <div style={styles.searchContainer}>
         <input
           type="text"
@@ -85,14 +91,12 @@ const NetAssets = () => {
         />
       </div>
 
-      {/* Display Totals */}
       <div style={styles.totals}>
-        <p>Total Credits: {netAssetsData.total_credits.toFixed(2)}</p>
-        <p>Total Debits: {netAssetsData.total_debits.toFixed(2)}</p>
-        <p>Net Assets: {netAssetsData.net_assets.toFixed(2)}</p>
+        <p>Total Credits: {totalCredits.toFixed(2)}</p>
+        <p>Total Debits: {totalDebits.toFixed(2)}</p>
+        <p>Net Assets: {netAssets.toFixed(2)}</p>
       </div>
 
-      {/* Display Transactions Table */}
       <table style={styles.table}>
         <thead>
           <tr>
@@ -107,8 +111,8 @@ const NetAssets = () => {
         <tbody>
           {filteredTransactions.map((txn) => (
             <tr key={txn.id}>
-              <td>{txn.credited_account_name}</td>
-              <td>{txn.debited_account_name}</td>
+              <td>{Array.isArray(txn.credited_account_name) ? txn.credited_account_name.join(', ') : txn.credited_account_name}</td>
+              <td>{Array.isArray(txn.debited_account_name) ? txn.debited_account_name.join(', ') : txn.debited_account_name}</td>
               <td>{txn.amount_credited.toFixed(2)}</td>
               <td>{txn.amount_debited.toFixed(2)}</td>
               <td>{txn.description}</td>
@@ -121,7 +125,6 @@ const NetAssets = () => {
   );
 };
 
-// Styling
 const styles = {
   container: {
     fontFamily: 'Arial, sans-serif',
@@ -153,7 +156,7 @@ const styles = {
     backgroundColor: '#e0f7fa',
     borderRadius: '5px',
     textAlign: 'center',
-    color:'black'
+    color: 'black',
   },
   table: {
     width: '100%',
