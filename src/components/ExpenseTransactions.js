@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const ExpenseTransactions = () => {
+const ExpenseTransactions = ({ startDate, endDate }) => {
   const [combinedData, setCombinedData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +16,11 @@ const ExpenseTransactions = () => {
           throw new Error('Authentication token not found.');
         }
 
-        const response = await fetch('http://127.0.0.1:5000/expensetransactions', {
+        const queryParams = new URLSearchParams();
+        if (startDate) queryParams.append('start_date', startDate);
+        if (endDate) queryParams.append('end_date', endDate);
+
+        const response = await fetch(`http://127.0.0.1:5000/expensetransactions?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -33,7 +37,6 @@ const ExpenseTransactions = () => {
         // Normalize and combine data
         const normalizedData = [
           ...data.cash_disbursements.map((cd) => {
-            // Include both account code and account name (e.g., "5190- Bank Charges")
             const accountNameWithCode = cd.account_debited?.trim() || 'N/A';
 
             return {
@@ -45,7 +48,7 @@ const ExpenseTransactions = () => {
               debited_amount: Number(cd.total) || 0,
               credited_amount: 0,
               parent_account: cd.parent_account?.trim() || 'N/A',
-              account_name: accountNameWithCode, // Include full account name with code
+              account_name: accountNameWithCode,
             };
           }),
           ...data.invoices_received.flatMap((inv) =>
@@ -58,7 +61,7 @@ const ExpenseTransactions = () => {
               debited_amount: Number(account.amount) || 0,
               credited_amount: 0,
               parent_account: inv.parent_account?.trim() || 'N/A',
-              account_name: account.name || 'N/A', // Use the provided account name
+              account_name: account.name || 'N/A',
             })) || []
           ),
           ...data.transactions.map((txn) => {
@@ -76,7 +79,7 @@ const ExpenseTransactions = () => {
               debited_amount: isAssetAccount ? Number(txn.amount_debited) || 0 : 0,
               credited_amount: isLiabilityAccount ? Number(txn.amount_credited) || 0 : 0,
               parent_account: txn.parent_account?.trim() || 'N/A',
-              account_name: '', // No account name for transactions
+              account_name: '',
             };
           }),
         ];
@@ -91,7 +94,7 @@ const ExpenseTransactions = () => {
     };
 
     fetchData();
-  }, []);
+  }, [startDate, endDate]); // Re-fetch data when start or end date changes
 
   // Handle search by account, reference, or description
   const handleSearch = (e) => {
@@ -134,8 +137,6 @@ const ExpenseTransactions = () => {
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>Expense Transactions</h1>
-
-      {/* Search Bar */}
       <div style={styles.searchContainer}>
         <input
           type="text"
@@ -145,8 +146,6 @@ const ExpenseTransactions = () => {
           style={styles.searchInput}
         />
       </div>
-
-      {/* Table */}
       <table style={styles.table}>
         <thead>
           <tr style={styles.tableHeader}>
@@ -177,8 +176,6 @@ const ExpenseTransactions = () => {
           ))}
         </tbody>
       </table>
-
-      {/* Totals */}
       <div style={styles.totalAmount}>
         <div>Total DR: {formatNumber(totalDR)}</div>
         <div>Total CR: {formatNumber(totalCR)}</div>
@@ -188,7 +185,6 @@ const ExpenseTransactions = () => {
   );
 };
 
-// Styling
 const styles = {
   container: {
     fontFamily: 'Arial, sans-serif',
@@ -234,7 +230,7 @@ const styles = {
   },
   tableHeader: {
     backgroundColor: '#003366',
-    color: '#fff',
+    color: 'white',
     textAlign: 'left',
     fontWeight: 'bold',
     padding: '12px 15px',

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 
-const AssetTransactions = () => {
+const AssetTransactions = ({ startDate, endDate }) => {
   const [combinedData, setCombinedData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,7 +11,11 @@ const AssetTransactions = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://127.0.0.1:5000/assettransactions', {
+        const queryParams = new URLSearchParams();
+        if (startDate) queryParams.append('start_date', startDate);
+        if (endDate) queryParams.append('end_date', endDate);
+
+        const response = await fetch(`http://127.0.0.1:5000/assettransactions?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -89,13 +93,12 @@ const AssetTransactions = () => {
               credited_account: txn.credited_account_name || '',
               parent_account: txn.parent_account || '',
               amount: txn.amount_debited || txn.amount_credited || 0,
-              dr: isAssetAccount ? txn.amount_debited || 0 : 0, // DR if account is between 1100-1999
-              cr: isLiabilityAccount ? txn.amount_credited || 0 : 0, // CR if account is between 1100-1999
+              dr: isAssetAccount ? txn.amount_debited || 0 : 0,
+              cr: isLiabilityAccount ? txn.amount_credited || 0 : 0,
             };
           }),
         ];
 
-        console.log('Combined Data:', combined);
         setCombinedData(combined);
         setFilteredData(combined);
       } catch (error) {
@@ -105,7 +108,7 @@ const AssetTransactions = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [startDate, endDate]);
 
   const handleSearch = (e) => {
     const account = e.target.value.trim().toLowerCase();
@@ -117,10 +120,8 @@ const AssetTransactions = () => {
           : String(item.debited_account).toLowerCase().includes(account);
         const creditedAccount = String(item.credited_account).toLowerCase().includes(account);
         const parentAccount = String(item.parent_account).toLowerCase().includes(account);
-        console.log(`Filtering item: ${item.type}, Debited: ${debitedAccount}, Credited: ${creditedAccount}, Parent: ${parentAccount}`);
         return debitedAccount || creditedAccount || parentAccount;
       });
-      console.log(`Filtered data:`, filtered);
       setFilteredData(filtered);
     } else {
       setFilteredData(combinedData);
@@ -128,10 +129,13 @@ const AssetTransactions = () => {
   };
 
   const totalAmount = useMemo(() => filteredData.reduce((sum, item) => sum + item.amount, 0), [filteredData]);
-  const totalDR = useMemo(() => filteredData.reduce((sum, item) => sum + (item.dr || 0), 0), [filteredData]);
-  const totalCR = useMemo(() => filteredData.reduce((sum, item) => sum + (item.cr || 0), 0), [filteredData]);
-  const closingBalance = totalDR - totalCR;
 
+  const totalDR = useMemo(() => filteredData.reduce((sum, item) => sum + (item.dr || 0), 0), [filteredData]);
+  
+  const totalCR = useMemo(() => filteredData.reduce((sum, item) => sum + (item.cr || 0), 0), [filteredData]);
+  
+  const closingBalance = totalDR - totalCR;
+  
   const formatNumber = (num) => {
     if (num === 0 || !num) return '0.00';
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

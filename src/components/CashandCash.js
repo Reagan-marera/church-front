@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const CashTransactions = () => {
+const CashTransactions = ({ startDate, endDate }) => {
   const [transactions, setTransactions] = useState([]);
   const [groupedAccounts, setGroupedAccounts] = useState([]);
   const [searchAccount, setSearchAccount] = useState('');
@@ -14,7 +14,11 @@ const CashTransactions = () => {
         if (!token) {
           throw new Error('No token found. Please log in.');
         }
-        const response = await fetch('http://127.0.0.1:5000/api/transactions', {
+        const queryParams = new URLSearchParams();
+        if (startDate) queryParams.append('start_date', startDate);
+        if (endDate) queryParams.append('end_date', endDate);
+
+        const response = await fetch(`http://127.0.0.1:5000/api/transactions?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -25,7 +29,6 @@ const CashTransactions = () => {
           throw new Error('Failed to fetch data');
         }
         const data = await response.json();
-        console.log('Data received:', data); // Debugging
         setTransactions(data.transactions);
         setGroupedAccounts(data.filtered_grouped_accounts);
       } catch (error) {
@@ -35,7 +38,7 @@ const CashTransactions = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [startDate, endDate]);
 
   const handleSearch = (e) => {
     setSearchAccount(e.target.value);
@@ -58,11 +61,11 @@ const CashTransactions = () => {
   const totalDebited = filteredTransactions.reduce(
     (acc, item) => {
       if (item.transaction_type === "Cash Receipt") {
-        return acc + (item.total || 0); // Cash Receipts are Debits
+        return acc + (item.total || 0);
       } else if (item.transaction_type === "Transaction") {
-        return acc + (item.amount_debited || 0); // Transactions use amount_debited
+        return acc + (item.amount_debited || 0);
       } else {
-        return acc; // Cash Disbursements and Invoices are Credits, so they don't contribute to totalDebited
+        return acc;
       }
     },
     0
@@ -71,11 +74,11 @@ const CashTransactions = () => {
   const totalCredited = filteredTransactions.reduce(
     (acc, item) => {
       if (item.transaction_type === "Cash Disbursement") {
-        return acc + (item.total || 0); // Cash Disbursements are Credits
+        return acc + (item.total || 0);
       } else if (item.transaction_type === "Transaction" || item.transaction_type === "Invoice Issued") {
-        return acc + (item.amount_credited || 0); // Transactions and Invoices use amount_credited
+        return acc + (item.amount_credited || 0);
       } else {
-        return acc; // Cash Receipts are Debits, so they don't contribute to totalCredited
+        return acc;
       }
     },
     0
@@ -137,19 +140,19 @@ const CashTransactions = () => {
               <td>
                 {formatNumber(
                   item.transaction_type === "Cash Receipt"
-                    ? item.total || 0 // Cash Receipts are Debits
+                    ? item.total || 0
                     : item.transaction_type === "Transaction"
-                    ? item.amount_debited || 0 // Transactions use amount_debited
-                    : 0 // Cash Disbursements and Invoices are Credits, so no Debit amount
+                    ? item.amount_debited || 0
+                    : 0
                 )}
               </td>
               <td>
                 {formatNumber(
                   item.transaction_type === "Cash Disbursement"
-                    ? item.total || 0 // Cash Disbursements are Credits
+                    ? item.total || 0
                     : item.transaction_type === "Transaction" || item.transaction_type === "Invoice Issued"
-                    ? item.amount_credited || 0 // Transactions and Invoices use amount_credited
-                    : 0 // Cash Receipts are Debits, so no Credit amount
+                    ? item.amount_credited || 0
+                    : 0
                 )}
               </td>
             </tr>

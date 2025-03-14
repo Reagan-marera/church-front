@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const RevenueTransactions = () => {
+const RevenueTransactions = ({ startDate, endDate }) => {
   const [combinedData, setCombinedData] = useState([]);
   const [searchAccount, setSearchAccount] = useState('');
   const [loading, setLoading] = useState(true);
@@ -15,7 +15,11 @@ const RevenueTransactions = () => {
           throw new Error('No token found. Please log in.');
         }
 
-        const response = await fetch('http://127.0.0.1:5000/revenuetransactions', {
+        const queryParams = new URLSearchParams();
+        if (startDate) queryParams.append('start_date', startDate);
+        if (endDate) queryParams.append('end_date', endDate);
+
+        const response = await fetch(`http://127.0.0.1:5000/revenuetransactions?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -54,27 +58,25 @@ const RevenueTransactions = () => {
               cr_amount: account.amount || 0,
             }))
           ),
-        // Transactions
-        ...data.transactions.map((txn) => {
-          const isAssetAccount = txn.debited_account_name && /^1[1-9]\d{2}/.test(txn.debited_account_name.split('-')[0].trim());
-          const isLiabilityAccount = txn.credited_account_name && /^1[1-9]\d{2}/.test(txn.credited_account_name.split('-')[0].trim());
+          ...data.transactions.map((txn) => {
+            const isAssetAccount = txn.debited_account_name && /^1[1-9]\d{2}/.test(txn.debited_account_name.split('-')[0].trim());
+            const isLiabilityAccount = txn.credited_account_name && /^1[1-9]\d{2}/.test(txn.credited_account_name.split('-')[0].trim());
 
-          return {
-            type: 'Transaction',
-            date: txn.date_issued,
-            reference: txn.id,
-            from: txn.debited_account_name || txn.credited_account_name || '',
-            description: txn.description,
-            debited_account: txn.debited_account_name || '',
-            credited_account: txn.credited_account_name || '',
-            parent_account: txn.parent_account || '',
-            amount: txn.amount_debited || txn.amount_credited || 0,
-            dr: isAssetAccount ? txn.amount_debited || 0 : 0, // DR if account is between 1100-1999
-            cr: isLiabilityAccount ? txn.amount_credited || 0 : 0, // CR if account is between 1100-1999
-          };
-        }),
-      ];
-
+            return {
+              type: 'Transaction',
+              date: txn.date_issued,
+              reference: txn.id,
+              from: txn.debited_account_name || txn.credited_account_name || '',
+              description: txn.description,
+              debited_account: txn.debited_account_name || '',
+              credited_account: txn.credited_account_name || '',
+              parent_account: txn.parent_account || '',
+              amount: txn.amount_debited || txn.amount_credited || 0,
+              dr: isAssetAccount ? txn.amount_debited || 0 : 0,
+              cr: isLiabilityAccount ? txn.amount_credited || 0 : 0,
+            };
+          }),
+        ];
 
         setCombinedData(combined);
       } catch (error) {
@@ -85,15 +87,15 @@ const RevenueTransactions = () => {
     };
 
     fetchData();
-  }, []);
+  }, [startDate, endDate]);
 
   const handleSearch = (e) => {
     setSearchAccount(e.target.value);
   };
 
   const filteredData = combinedData.filter((item) => {
-    const creditedAccount = item.credited_account ? item.credited_account.toString() : '';  // Convert to string
-    const parentAccount = item.parent_account ? item.parent_account.toString() : '';  // Convert to string
+    const creditedAccount = item.credited_account ? item.credited_account.toString() : '';
+    const parentAccount = item.parent_account ? item.parent_account.toString() : '';
 
     return (
       creditedAccount.toLowerCase().includes(searchAccount.toLowerCase()) ||
@@ -121,7 +123,6 @@ const RevenueTransactions = () => {
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>Revenue Transactions</h1>
-
       <div style={styles.searchContainer}>
         <input
           type="text"
@@ -131,7 +132,6 @@ const RevenueTransactions = () => {
           style={styles.searchInput}
         />
       </div>
-
       <table style={styles.table}>
         <thead>
           <tr style={styles.tableHeader}>
@@ -162,7 +162,6 @@ const RevenueTransactions = () => {
           ))}
         </tbody>
       </table>
-
       <div style={styles.totalAmount}>
         <div>Total DR: {formatNumber(totalDR)}</div>
         <div>Total CR: {formatNumber(totalCR)}</div>

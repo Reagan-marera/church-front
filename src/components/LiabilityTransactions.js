@@ -1,131 +1,126 @@
 import React, { useEffect, useState } from 'react';
 
-const LiabilityTransactions = () => {
+const LiabilityTransactions = ({ startDate, endDate }) => {
   const [combinedData, setCombinedData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchAccount, setSearchAccount] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
+  // Fetch data from the API
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Retrieve the JWT token from local storage
         const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Authentication token not found.');
+        }
 
-        const response = await fetch('http://127.0.0.1:5000/liabilitytransactions', {
+        const queryParams = new URLSearchParams();
+        if (startDate) queryParams.append('start_date', startDate);
+        if (endDate) queryParams.append('end_date', endDate);
+
+        const response = await fetch(`http://127.0.0.1:5000/liabilitytransactions?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch data');
+          throw new Error(`Failed to fetch data: ${response.statusText}`);
         }
 
         const data = await response.json();
 
-        // Combine all data into a single array
-        const combined = [
-          ...data.cash_disbursements.map((cd) => ({
-            type: 'Cash Disbursement',
-            date: cd.disbursement_date,
-            reference: cd.cheque_no,
-            from: cd.to_whom_paid,
-            description: cd.description,
-            debited_account: cd.account_debited,
-            credited_account: '', 
-            parent_account: cd.parent_account,
-            amount: cd.total,
-            dr: cd.total,  
-            cr: 0,         
-          })),
+        // Normalize and combine data
+        const normalizedData = [
+          ...data.cash_disbursements.map((cd) => {
+            const accountNameWithCode = cd.account_debited?.trim() || 'N/A';
 
-          ...data.invoices_received.map((inv) => ({
-            type: 'Invoice Received',
-            date: inv.date_issued,
-            reference: inv.invoice_number,
-            from: inv.name,
-            description: inv.description,
-            debited_account: '', 
-            credited_account: inv.account_credited,
-            parent_account: inv.parent_account,
-            amount: inv.amount,
-            dr: 0,         
-            cr: inv.amount, 
-          })),
-
-          ...data.cash_receipts.map((cr) => ({
-            type: 'Cash Receipt',
-            date: cr.receipt_date,
-            reference: cr.receipt_no,
-            from: cr.from_whom_received,
-            description: cr.description,
-            debited_account: '', 
-            credited_account: cr.account_credited,
-            parent_account: cr.parent_account,
-            amount: cr.total,
-            dr: 0,         
-            cr: cr.total,  
-          })),
-
-          // Transactions
+            return {
+              type: 'Cash Disbursement',
+              date: cd.disbursement_date,
+              reference: cd.cheque_no || 'N/A',
+              from: cd.to_whom_paid || 'N/A',
+              description: cd.description || 'No description',
+              debited_amount: Number(cd.total) || 0,
+              credited_amount: 0,
+              parent_account: cd.parent_account?.trim() || 'N/A',
+              account_name: accountNameWithCode,
+            };
+          }),
+          ...data.invoices_received.flatMap((inv) =>
+            inv.account_debited?.map((account) => ({
+              type: 'Invoice Received',
+              date: inv.date_issued,
+              reference: inv.invoice_number || 'N/A',
+              from: inv.name || 'N/A',
+              description: inv.description || 'No description',
+              debited_amount: Number(account.amount) || 0,
+              credited_amount: 0,
+              parent_account: inv.parent_account?.trim() || 'N/A',
+              account_name: account.name || 'N/A',
+            })) || []
+          ),
           ...data.transactions.map((txn) => {
-            const isLiabilityAccount = txn.account_name && /^2[0-9]\d{2}/.test(txn.account_name.split('-')[0].trim());
+            const isLiabilityAccount =
+              txn.credited_account_name && /^2[0-9]\d{2}/.test(txn.credited_account_name.split('-')[0].trim());
 
             return {
               type: 'Transaction',
               date: txn.date_issued,
-              reference: txn.id,
-              from: txn.account_name || '',
-              description: txn.description,
-              debited_account: '', // No debited account for liability transactions
-              credited_account: txn.account_name || '',
-              parent_account: txn.parent_account || '',
-              amount: txn.amount || 0,
-              dr: 0, // DR is always 0 for liability transactions
-              cr: isLiabilityAccount ? txn.amount || 0 : 0, // CR if account is a liability (starts with 2)
+              reference: txn.id || 'N/A',
+              from: txn.credited_account_name || 'N/A',
+              description: txn.description || 'No description',
+              debited_amount: 0,
+              credited_amount: isLiabilityAccount ? Number(txn.amount_credited) || 0 : 0,
+              parent_account: txn.parent_account?.trim() || 'N/A',
+              account_name: txn.credited_account_name || 'N/A',
             };
           }),
         ];
 
-        setCombinedData(combined);
-        setFilteredData(combined);
-      } catch (error) {
-        setError(error.message);
+        setCombinedData(normalizedData);
+        setFilteredData(normalizedData); // Initialize filtered data with all data
+      } catch (err) {
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [startDate, endDate]); // Re-fetch data when start or end date changes
 
+  // Handle search by account, reference, or description
   const handleSearch = (e) => {
-    const account = e.target.value;
-    setSearchAccount(account);
+    const term = e.target.value.toLowerCase();
+    setSearchTerm(term);
 
-    if (account) {
+    if (term) {
       const filtered = combinedData.filter((item) =>
-        (item.debited_account && item.debited_account.toLowerCase().includes(account.toLowerCase())) ||
-        (item.credited_account && item.credited_account.toLowerCase().includes(account.toLowerCase())) ||
-        (item.parent_account && item.parent_account.toLowerCase().includes(account.toLowerCase()))
+        item.type.toLowerCase().includes(term) ||
+        item.reference.toLowerCase().includes(term) ||
+        item.from.toLowerCase().includes(term) ||
+        item.description.toLowerCase().includes(term) ||
+        item.parent_account.toLowerCase().includes(term) ||
+        item.account_name.toLowerCase().includes(term)
       );
       setFilteredData(filtered);
     } else {
-      setFilteredData(combinedData);
+      setFilteredData(combinedData); // Reset to all data if search is empty
     }
   };
 
-  const totalAmount = filteredData.reduce((sum, item) => sum + (item.amount || 0), 0);
-  const totalDR = filteredData.reduce((sum, item) => sum + (item.dr || 0), 0);
-  const totalCR = filteredData.reduce((sum, item) => sum + (item.cr || 0), 0);
-  const closingBalance = totalCR - totalDR; // Calculate closing balance
+  // Calculate total DR and CR amounts
+  const totalDR = filteredData.reduce((sum, item) => sum + (Number(item.debited_amount) || 0), 0);
+  const totalCR = filteredData.reduce((sum, item) => sum + (Number(item.credited_amount) || 0), 0);
+  const closingBalance = totalCR - totalDR;
 
+  // Format numbers with two decimal places
   const formatNumber = (num) => {
-    if (num === 0 || !num) return "0.00";
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
@@ -140,19 +135,15 @@ const LiabilityTransactions = () => {
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>Liability Transactions</h1>
-
-      {/* Search by Account */}
       <div style={styles.searchContainer}>
         <input
           type="text"
-          placeholder="Search by account or parent account..."
-          value={searchAccount}
+          placeholder="Search by type, reference, description, or account..."
+          value={searchTerm}
           onChange={handleSearch}
           style={styles.searchInput}
         />
       </div>
-
-      {/* Display Combined Data in One Table */}
       <table style={styles.table}>
         <thead>
           <tr style={styles.tableHeader}>
@@ -161,11 +152,10 @@ const LiabilityTransactions = () => {
             <th>Reference</th>
             <th>From</th>
             <th>Description</th>
-            <th>Account</th>
+            <th>DR Amount</th>
+            <th>CR Amount</th>
             <th>Parent Account</th>
-            <th>DR</th>
-            <th>CR</th>
-            <th>Amount</th>
+            <th>Account Name</th>
           </tr>
         </thead>
         <tbody>
@@ -176,29 +166,23 @@ const LiabilityTransactions = () => {
               <td>{item.reference}</td>
               <td>{item.from}</td>
               <td>{item.description}</td>
-              <td>{item.credited_account || item.debited_account}</td>
+              <td>{formatNumber(item.debited_amount)}</td>
+              <td>{formatNumber(item.credited_amount)}</td>
               <td>{item.parent_account}</td>
-              <td>{formatNumber(item.dr)}</td>
-              <td>{formatNumber(item.cr)}</td>
-              <td>{formatNumber(item.amount)}</td>
+              <td>{item.account_name}</td>
             </tr>
           ))}
         </tbody>
       </table>
-
-      {/* Display Total Amounts and Closing Balance */}
       <div style={styles.totalAmount}>
         <div>Total DR: {formatNumber(totalDR)}</div>
         <div>Total CR: {formatNumber(totalCR)}</div>
-        <div style={{ fontWeight: 'bold', marginTop: '10px' }}>
-          Closing Balance: {formatNumber(closingBalance)}
-        </div>
+        <div>Closing Balance: {formatNumber(closingBalance)}</div>
       </div>
     </div>
   );
 };
 
-// Styling (same as before)
 const styles = {
   container: {
     fontFamily: 'Arial, sans-serif',
@@ -229,6 +213,9 @@ const styles = {
     fontSize: '1rem',
     outline: 'none',
     transition: 'border-color 0.3s ease',
+    '&:focus': {
+      borderColor: '#007BFF',
+    },
   },
   table: {
     width: '100%',
@@ -248,9 +235,17 @@ const styles = {
   },
   evenRow: {
     backgroundColor: '#f7f7f7',
+    transition: 'background-color 0.3s ease',
+    '&:hover': {
+      backgroundColor: '#e6f2ff',
+    },
   },
   oddRow: {
     backgroundColor: '#ffffff',
+    transition: 'background-color 0.3s ease',
+    '&:hover': {
+      backgroundColor: '#e6f2ff',
+    },
   },
   totalAmount: {
     marginTop: '20px',

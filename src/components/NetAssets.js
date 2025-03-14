@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 
-const NetAssets = () => {
+const NetAssets = ({ startDate, endDate }) => {
   const [netAssetsData, setNetAssetsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -11,7 +11,11 @@ const NetAssets = () => {
     const fetchNetAssets = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://127.0.0.1:5000/net-assets', {
+        const queryParams = new URLSearchParams();
+        if (startDate) queryParams.append('start_date', startDate);
+        if (endDate) queryParams.append('end_date', endDate);
+
+        const response = await fetch(`http://127.0.0.1:5000/net-assets?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -34,7 +38,7 @@ const NetAssets = () => {
     };
 
     fetchNetAssets();
-  }, []);
+  }, [startDate, endDate]);
 
   useEffect(() => {
     if (netAssetsData && searchTerm) {
@@ -80,7 +84,6 @@ const NetAssets = () => {
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>Net Assets</h1>
-
       <div style={styles.searchContainer}>
         <input
           type="text"
@@ -90,13 +93,11 @@ const NetAssets = () => {
           style={styles.searchInput}
         />
       </div>
-
       <div style={styles.totals}>
         <p>Total Credits: {totalCredits.toFixed(2)}</p>
         <p>Total Debits: {totalDebits.toFixed(2)}</p>
         <p>Net Assets: {netAssets.toFixed(2)}</p>
       </div>
-
       <table style={styles.table}>
         <thead>
           <tr>
