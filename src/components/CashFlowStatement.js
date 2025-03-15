@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
+import './CashFlowStatement.css'; // Import CSS for styling
 
 const CashFlowStatement = () => {
   const [balanceData, setBalanceData] = useState(null);
@@ -9,7 +11,7 @@ const CashFlowStatement = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://127.0.0.1:5000/cash_flow_statement', {
+        const response = await fetch('http://127.0.0.1:5000/cash-flow', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -41,134 +43,115 @@ const CashFlowStatement = () => {
     return <div>Error: {error.message}</div>;
   }
 
-  // Function to calculate totals for revenue and expenses
+  // Function to calculate totals for revenue and expenses based on categories
   const calculateTotals = (data) => {
-    let totalRevenue400to449 = 0;
-    let totalRevenue450to479 = 0;
-    let totalExpenses500to599 = 0;
+    let totalOperating = 0;
+    let totalInvesting = 0;
+    let totalFinancing = 0;
 
-    Object.entries(data).forEach(([accountName, accountData]) => {
-      const accountNumber = parseInt(accountName.split('-')[0], 10);
+    Object.entries(data).forEach(([category, accounts]) => {
+      accounts.forEach((account) => {
+        const inflowCash = account.inflow_cash || 0;
+        const inflowBank = account.inflow_bank || 0;
+        const outflowCash = account.outflow_cash || 0;
+        const outflowBank = account.outflow_bank || 0;
 
-      if (accountNumber >= 400 && accountNumber <= 449) {
-        totalRevenue400to449 += accountData.total_amount || 0;
-      } else if (accountNumber >= 450 && accountNumber <= 479) {
-        totalRevenue450to479 += accountData.total_amount || 0;
-      } else if (accountNumber >= 500 && accountNumber <= 599) {
-        totalExpenses500to599 += accountData.total_amount || 0;
-      }
+        if (category === 'Operating Activities') {
+          totalOperating += inflowCash + inflowBank - outflowCash - outflowBank;
+        } else if (category === 'Investing Activities') {
+          totalInvesting += inflowCash + inflowBank - outflowCash - outflowBank;
+        } else if (category === 'Financing Activities') {
+          totalFinancing += inflowCash + inflowBank - outflowCash - outflowBank;
+        }
+      });
     });
 
-    const totalRevenue = totalRevenue400to449 + totalRevenue450to479;
-    const netSurplusDeficit = totalRevenue - totalExpenses500to599;
+    const netCashFlow = totalOperating + totalInvesting + totalFinancing;
 
     return {
-      totalRevenue400to449,
-      totalRevenue450to479,
-      totalRevenue,
-      totalExpenses500to599,
-      netSurplusDeficit,
+      totalOperating,
+      totalInvesting,
+      totalFinancing,
+      netCashFlow,
     };
   };
 
   const {
-    totalRevenue400to449,
-    totalRevenue450to479,
-    totalRevenue,
-    totalExpenses500to599,
-    netSurplusDeficit,
+    totalOperating,
+    totalInvesting,
+    totalFinancing,
+    netCashFlow,
   } = calculateTotals(balanceData);
 
-  // Function to group parent accounts by note numbers and filter out accounts without amounts
-  const groupByNoteNumber = (data) => {
-    const groupedData = {};
-
-    Object.entries(data).forEach(([accountName, accountData]) => {
-      if (Array.isArray(accountData.parent_accounts)) {
-        accountData.parent_accounts.forEach((parentAccount, index) => {
-          const noteNumber = accountData.notes ? accountData.notes[index] : null;
-          const amount = accountData.amounts ? accountData.amounts[index] : 'N/A';
-
-          // Only include accounts with a valid note number and amount
-          if (noteNumber && amount !== 'N/A') {
-            if (!groupedData[noteNumber]) {
-              groupedData[noteNumber] = [];
-            }
-            groupedData[noteNumber].push({
-              parentAccount,
-              amount,
-              accountName,
-            });
-          }
+  // Function to handle Excel export
+  const exportToExcel = () => {
+    const dataForExcel = [];
+    
+    // Loop through the categories and prepare data for the Excel file
+    Object.entries(balanceData).forEach(([category, accounts]) => {
+      accounts.forEach((account) => {
+        dataForExcel.push({
+          Category: category,
+          ParentAccount: account.parent_account,
+          InflowCash: account.inflow_cash || 0,
+          InflowBank: account.inflow_bank || 0,
+          OutflowCash: account.outflow_cash || 0,
+          OutflowBank: account.outflow_bank || 0,
+          NetCashFlow: (account.inflow_cash + account.inflow_bank - account.outflow_cash - account.outflow_bank) || 0,
         });
-      } else {
-        Object.entries(accountData.parent_accounts).forEach(([parentAccount, parentData]) => {
-          const noteNumber = parentData.note_number || null;
-          const amount = parentData.amount ? parentData.amount : 'N/A';
-
-          // Only include accounts with a valid note number and amount
-          if (noteNumber && amount !== 'N/A') {
-            if (!groupedData[noteNumber]) {
-              groupedData[noteNumber] = [];
-            }
-            groupedData[noteNumber].push({
-              parentAccount,
-              amount,
-              accountName,
-            });
-          }
-        });
-      }
+      });
     });
 
-    return groupedData;
+    // Add Totals row
+    dataForExcel.push({
+      Category: 'Total',
+      ParentAccount: 'N/A',
+      InflowCash: 'N/A',
+      InflowBank: 'N/A',
+      OutflowCash: 'N/A',
+      OutflowBank: 'N/A',
+      NetCashFlow: netCashFlow,
+    });
+
+    // Create a new worksheet and add the data
+    const ws = XLSX.utils.json_to_sheet(dataForExcel);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'CashFlowStatement');
+
+    // Export the Excel file
+    XLSX.writeFile(wb, 'CashFlowStatement.xlsx');
   };
 
   return (
-    <div className="balance-statement-container">
-      <h1>Income Statement</h1>
-      {Object.entries(balanceData).map(([accountName, data]) => {
-        const groupedData = groupByNoteNumber({ [accountName]: data });
+    <div className="cash-flow-statement-container">
+      <h1>Cash Flow Statement</h1>
 
-        // Skip rendering if no valid note numbers or amounts are found
-        if (Object.keys(groupedData).length === 0) {
-          return null;
-        }
+      {/* Button to Export to Excel */}
+      <button onClick={exportToExcel} className="export-button">
+        Export to Excel
+      </button>
 
+      {Object.entries(balanceData).map(([category, accounts]) => {
         return (
-          <div key={accountName} className="account-group">
-            <h2>{accountName}</h2>
-            <table className="balance-table">
+          <div key={category} className="category-section">
+            <h2>{category}</h2>
+            <table className="cash-flow-table">
               <thead>
                 <tr>
                   <th>Parent Account</th>
-                  <th>Note Number</th>
-                  <th>Amount</th>
+                
+                  <th>Net Cash Flow</th>
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(groupedData).map(([noteNumber, parentAccounts]) => (
-                  <React.Fragment key={noteNumber}>
-                    {parentAccounts.map(({ parentAccount, amount }, index) => (
-                      <tr key={`${noteNumber}-${index}`}>
-                        <td>{parentAccount}</td>
-                        <td>{index === 0 ? noteNumber : ''}</td>
-                        <td>{amount.toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </React.Fragment>
+                {accounts.map((account, index) => (
+                  <tr key={index}>
+                    <td>{account.parent_account}</td>
+                   
+                    <td>{(account.inflow_cash + account.inflow_bank - account.outflow_cash - account.outflow_bank).toLocaleString()}</td>
+                  </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={2} style={{ color: '#ff8c42' }}>
-                    <strong>Total Amount for {accountName}</strong>
-                  </td>
-                  <td>
-                    <strong>{data.total_amount.toLocaleString()}</strong>
-                  </td>
-                </tr>
-              </tfoot>
             </table>
           </div>
         );
@@ -177,7 +160,7 @@ const CashFlowStatement = () => {
       {/* Display Totals */}
       <div className="totals-section">
         <h2>Totals</h2>
-        <table className="balance-table">
+        <table className="totals-table">
           <thead>
             <tr>
               <th>Category</th>
@@ -186,24 +169,8 @@ const CashFlowStatement = () => {
           </thead>
           <tbody>
             <tr>
-              <td>Total Revenue (400-449)</td>
-              <td>{totalRevenue400to449.toLocaleString()}</td>
-            </tr>
-            <tr>
-              <td>Total Revenue (450-479)</td>
-              <td>{totalRevenue450to479.toLocaleString()}</td>
-            </tr>
-            <tr>
-              <td><strong>Total Revenue</strong></td>
-              <td><strong>{totalRevenue.toLocaleString()}</strong></td>
-            </tr>
-            <tr>
-              <td>Total Expenses (500-599)</td>
-              <td>{totalExpenses500to599.toLocaleString()}</td>
-            </tr>
-            <tr>
-              <td><strong>Net Surplus/Deficit</strong></td>
-              <td><strong>{netSurplusDeficit.toLocaleString()}</strong></td>
+              <td><strong>Net Cash Flow</strong></td>
+              <td><strong>{netCashFlow.toLocaleString()}</strong></td>
             </tr>
           </tbody>
         </table>

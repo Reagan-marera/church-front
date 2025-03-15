@@ -17,6 +17,7 @@
     "react-router-dom": "^7.0.2",
     "react-scripts": "5.0.1",
     "react-select": "^5.10.0",
+    "xlsx": "^0.18.5",
     "yocto-queue": "^1.2.0"
   },
   "scripts": {
