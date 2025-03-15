@@ -30,6 +30,7 @@ const DisbursementForm = () => {
     bank: 0,
     total: 0,
     cashbook: "",
+    parent_account: "",
   });
   const [errorMessage, setErrorMessage] = useState("");
   const [coaAccounts, setCoaAccounts] = useState([]);
@@ -165,13 +166,12 @@ const DisbursementForm = () => {
       disbursement_date: new Date(formData.disbursement_date).toISOString().split("T")[0],
       p_voucher_no: editingDisbursement ? formData.p_voucher_no : generateUniqueVoucherNumber(disbursements),
       manual_number: formData.manual_number || null,
-      cash: parseFloat(formData.cash), // Convert to number
-      bank: parseFloat(formData.bank), // Convert to number
+      cash: parseFloat(formData.cash),
+      bank: parseFloat(formData.bank),
     };
-    
-  
-    console.log("Payload being sent:", payload); // Add this line to inspect the payload
-  
+
+    console.log("Payload being sent:", payload);
+
     try {
       let response;
       if (editingDisbursement) {
@@ -218,42 +218,11 @@ const DisbursementForm = () => {
         bank: 0,
         total: 0,
         cashbook: "",
+        parent_account: "",
       });
       setErrorMessage("");
       setShowForm(false);
       setEditingDisbursement(null);
-    } catch (error) {
-      setErrorMessage(error.message);
-    }
-  };
-  
-  const handleUpdateDisbursement = async (id, updatedData) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setErrorMessage("Unauthorized: Missing token.");
-      return;
-    }
-    try {
-      const response = await fetch(`http://127.0.0.1:5000/cash-disbursement-journals/${id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(updatedData),
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText);
-      }
-      const result = await response.json();
-      const disbursementsResponse = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
-      const disbursementsData = await disbursementsResponse.json();
-      setDisbursements(disbursementsData);
-      alert("Disbursement updated successfully!");
     } catch (error) {
       setErrorMessage(error.message);
     }
@@ -304,6 +273,7 @@ const DisbursementForm = () => {
       bank: disbursement.bank,
       total: disbursement.total,
       cashbook: disbursement.cashbook,
+      parent_account: disbursement.parent_account,
     });
     setShowForm(true);
   };
@@ -359,6 +329,7 @@ const DisbursementForm = () => {
       bank: 0,
       total: 0,
       cashbook: "",
+      parent_account: "",
     });
     setErrorMessage("");
     setEditingDisbursement(null);
@@ -470,7 +441,7 @@ const DisbursementForm = () => {
                       ...prev,
                       to_whom_paid: selectedOption.value,
                     }));
-                    calculateBalanceAndTotalDisbursed(selectedOption.value); // Trigger balance calculation
+                    calculateBalanceAndTotalDisbursed(selectedOption.value);
                   }}
                   options={payeeOptions}
                   placeholder="Select Payee"
@@ -512,6 +483,23 @@ const DisbursementForm = () => {
                   <option value="">Select Payment Type</option>
                   <option value="Cash">Cash</option>
                   <option value="Invoiced">Invoiced</option>
+                </select>
+              </div>
+              <div className="form-row">
+                <label htmlFor="parent_account">Parent Account:</label>
+                <select
+                  name="parent_account"
+                  value={formData.parent_account}
+                  onChange={handleInputChange}
+                  required
+                  className="form-input"
+                >
+                  <option value="">Select Parent Account</option>
+                  {coaAccounts.filter(account => account.parent_account).map((account) => (
+                    <option key={account.id} value={account.parent_account}>
+                      {account.parent_account}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="form-row">

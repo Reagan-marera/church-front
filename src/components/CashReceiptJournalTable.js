@@ -41,6 +41,7 @@ const CashReceiptJournalTable = () => {
     total: 0,
     cashbook: "",
     selectedInvoice: null,
+    parent_account: "", // Add parent_account to formData
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editingData, setEditingData] = useState(null);
@@ -155,7 +156,7 @@ const CashReceiptJournalTable = () => {
   const initializeReceiptCounter = () => {
     // Check if receipt_counter already exists in localStorage
     let currentReceiptCounter = localStorage.getItem("receipt_counter");
-  
+
     // If no counter exists, initialize it with the highest receipt number from the journals (only once)
     if (currentReceiptCounter === null) {
       const highestReceiptNumber = journals.reduce((max, journal) => {
@@ -163,26 +164,25 @@ const CashReceiptJournalTable = () => {
         const receiptNumber = receiptNumberMatch ? parseInt(receiptNumberMatch[1], 10) : 0;
         return Math.max(max, isNaN(receiptNumber) ? 0 : receiptNumber);
       }, 0);
-  
+
       // Set the initial counter to the highest receipt number found
       localStorage.setItem("receipt_counter", highestReceiptNumber);
     }
   };
-  
+
   const generateUniqueReceiptNumber = () => {
     // Retrieve the current counter from localStorage
     let currentCounter = parseInt(localStorage.getItem("receipt_counter"), 10) || 0;
-  
+
     // Increment the counter to generate a new unique receipt number
     currentCounter += 1;
-  
+
     // Save the updated counter back to localStorage
     localStorage.setItem("receipt_counter", currentCounter);
-  
+
     // Return the formatted receipt number (e.g., "R-1", "R-2", etc.)
     return `R-${currentCounter}`;
   };
-  
 
   const handleCustomerChange = (selectedOption) => {
     const selectedSubAccount = selectedOption.value;
@@ -319,6 +319,7 @@ const CashReceiptJournalTable = () => {
           total: parseFloat(formData.total),
           cashbook: formData.cashbook,
           selected_invoice_id: formData.selectedInvoice?.id,
+          parent_account: formData.parent_account, // Include parent_account in the payload
         };
       });
       for (const payload of payloads) {
@@ -366,7 +367,7 @@ const CashReceiptJournalTable = () => {
         throw new Error(errorText);
       }
       refreshData();
-  
+
       // Recalculate the highest receipt number after deletion
       const remainingJournals = journals.filter(journal => journal.id !== id);
       const highestReceiptNumber = remainingJournals.reduce((max, journal) => {
@@ -374,14 +375,13 @@ const CashReceiptJournalTable = () => {
         const receiptNumber = receiptNumberMatch ? parseInt(receiptNumberMatch[1], 10) : 0;
         return Math.max(max, isNaN(receiptNumber) ? 0 : receiptNumber);
       }, 0);
-  
+
       // Update the counter in localStorage
       localStorage.setItem("receipt_counter", highestReceiptNumber);
     } catch (err) {
       setError(err.message);
     }
   };
-  
 
   const openFormPopup = (journal = null) => {
     if (journal) {
@@ -402,6 +402,7 @@ const CashReceiptJournalTable = () => {
         total: journal.total,
         cashbook: journal.cashbook,
         selectedInvoice: journal.selectedInvoice || null,
+        parent_account: journal.parent_account, // Set parent_account when editing
       });
     } else {
       setIsEditing(false);
@@ -421,6 +422,7 @@ const CashReceiptJournalTable = () => {
         total: 0,
         cashbook: "",
         selectedInvoice: null,
+        parent_account: "", // Reset parent_account when adding new
       });
     }
     setShowForm(true);
@@ -443,12 +445,12 @@ const CashReceiptJournalTable = () => {
       total: 0,
       cashbook: "",
       selectedInvoice: null,
+      parent_account: "", // Reset parent_account
     });
     setError("");
     setIsEditing(false);
     setEditingData(null);
     setSingleCustomerName("");
-    
   };
 
   const printReceipt = async (journal) => {
@@ -629,6 +631,11 @@ const CashReceiptJournalTable = () => {
     label: subAccount.name,
   }));
 
+  const parentAccountOptions = coa.filter(account => account.parent_account).map((account) => ({
+    value: account.parent_account,
+    label: account.parent_account,
+  }));
+
   // Filter journals based on search query
   const filteredJournals = journals.filter((journal) =>
     journal.from_whom_received.toLowerCase().includes(searchQuery.toLowerCase())
@@ -746,6 +753,22 @@ const CashReceiptJournalTable = () => {
                 <option></option>
                 <option value="Cash">Cash</option>
                 <option value="Invoiced">Invoiced</option>
+              </select>
+            </div>
+            <div className="form-row">
+              <label>Parent Account:</label>
+              <select
+                name="parent_account"
+                value={formData.parent_account}
+                onChange={handleInputChange}
+                className="form-input"
+              >
+                <option value="">Select Parent Account</option>
+                {parentAccountOptions.map((account) => (
+                  <option key={account.value} value={account.value}>
+                    {account.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="form-row">
