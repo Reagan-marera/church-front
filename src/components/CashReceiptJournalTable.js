@@ -23,8 +23,8 @@ const CashReceiptJournalTable = () => {
   const [singleCustomerName, setSingleCustomerName] = useState("");
   const [allCustomersSelected, setAllCustomersSelected] = useState([]);
   const [allCustomersSubAccounts, setAllCustomersSubAccounts] = useState([]);
-  const [invoiceAmount, setInvoiceAmount] = useState(0);
-  const [balance, setBalance] = useState(0);
+  const [invoiceAmount, setInvoiceAmount] = useState("$0.00");
+  const [balance, setBalance] = useState("$0.00");
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     receipt_date: "",
@@ -36,18 +36,27 @@ const CashReceiptJournalTable = () => {
     manual_number: "",
     account_debited: "",
     account_credited: "",
-    cash: 0,
-    bank: 0,
-    total: 0,
+    cash: "$0.00",
+    bank: "$0.00",
+    total: "$0.00",
     cashbook: "",
     selectedInvoice: null,
-    parent_account: "", // Add parent_account to formData
+    parent_account: "",
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState(""); // State for search query
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'ksh',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
 
   const customStyles = {
     option: (provided, state) => ({
@@ -76,7 +85,6 @@ const CashReceiptJournalTable = () => {
     fetchCOA();
     fetchCustomers();
     fetchInvoices();
-    // Initialize the receipt counter after fetching journals
     initializeReceiptCounter();
   }, []);
 
@@ -154,33 +162,21 @@ const CashReceiptJournalTable = () => {
   };
 
   const initializeReceiptCounter = () => {
-    // Check if receipt_counter already exists in localStorage
     let currentReceiptCounter = localStorage.getItem("receipt_counter");
-
-    // If no counter exists, initialize it with the highest receipt number from the journals (only once)
     if (currentReceiptCounter === null) {
       const highestReceiptNumber = journals.reduce((max, journal) => {
         const receiptNumberMatch = journal.receipt_no.match(/R-(\d+)/);
         const receiptNumber = receiptNumberMatch ? parseInt(receiptNumberMatch[1], 10) : 0;
         return Math.max(max, isNaN(receiptNumber) ? 0 : receiptNumber);
       }, 0);
-
-      // Set the initial counter to the highest receipt number found
       localStorage.setItem("receipt_counter", highestReceiptNumber);
     }
   };
 
   const generateUniqueReceiptNumber = () => {
-    // Retrieve the current counter from localStorage
     let currentCounter = parseInt(localStorage.getItem("receipt_counter"), 10) || 0;
-
-    // Increment the counter to generate a new unique receipt number
     currentCounter += 1;
-
-    // Save the updated counter back to localStorage
     localStorage.setItem("receipt_counter", currentCounter);
-
-    // Return the formatted receipt number (e.g., "R-1", "R-2", etc.)
     return `R-${currentCounter}`;
   };
 
@@ -194,17 +190,17 @@ const CashReceiptJournalTable = () => {
     );
     const totalAmount = customerInvoices.reduce(
       (sum, invoice) => sum + parseFloat(invoice.amount),
-      0
+      0.00
     );
-    setInvoiceAmount(totalAmount);
+    setInvoiceAmount(formatCurrency(totalAmount));
     const customerReceipts = journals.filter(
       (journal) => journal.from_whom_received === selectedSubAccount
     );
     const totalReceipts = customerReceipts.reduce(
       (sum, journal) => sum + parseFloat(journal.total),
-      0
+      0.00
     );
-    const customerBalance = totalAmount - totalReceipts;
+    const customerBalance = formatCurrency(totalAmount - totalReceipts);
     setBalance(customerBalance);
     setFormData((prev) => ({
       ...prev,
@@ -230,17 +226,17 @@ const CashReceiptJournalTable = () => {
     );
     const totalAmount = customerInvoices.reduce(
       (sum, invoice) => sum + parseFloat(invoice.amount),
-      0
+      0.00
     );
-    setInvoiceAmount(totalAmount);
+    setInvoiceAmount(formatCurrency(totalAmount));
     const customerReceipts = journals.filter((journal) =>
       selectedCustomerNames.includes(journal.from_whom_received)
     );
     const totalReceipts = customerReceipts.reduce(
       (sum, journal) => sum + parseFloat(journal.total),
-      0
+      0.00
     );
-    const customerBalance = totalAmount - totalReceipts;
+    const customerBalance = formatCurrency(totalAmount - totalReceipts);
     setBalance(customerBalance);
     setFormData((prev) => ({
       ...prev,
@@ -255,7 +251,7 @@ const CashReceiptJournalTable = () => {
     setFormData((prev) => ({
       ...prev,
       selectedInvoice: selectedInvoice,
-      total: parseFloat(selectedInvoice?.amount || 0),
+      total: formatCurrency(parseFloat(selectedInvoice?.amount || 0)),
     }));
   };
 
@@ -302,42 +298,84 @@ const CashReceiptJournalTable = () => {
         setError("User is not authenticated.");
         return;
       }
-      const payloads = allCustomersSubAccounts.map((subAccount, index) => {
-        const newReceiptNo = generateUniqueReceiptNumber();
-        return {
-          receipt_date: formData.receipt_date,
-          receipt_no: newReceiptNo,
-          ref_no: formData.ref_no,
-          manual_number: formData.manual_number,
-          from_whom_received: subAccount.value,
-          description: formData.description,
-          receipt_type: formData.receipt_type,
-          account_debited: formData.account_debited,
-          account_credited: formData.account_credited,
-          cash: parseFloat(formData.cash) || 0,
-          bank: parseFloat(formData.bank) || 0,
-          total: parseFloat(formData.total),
-          cashbook: formData.cashbook,
-          selected_invoice_id: formData.selectedInvoice?.id,
-          parent_account: formData.parent_account, // Include parent_account in the payload
-        };
-      });
-      for (const payload of payloads) {
-        const response = await fetch("http://127.0.0.1:5000/cash-receipt-journals", {
-          method: "POST",
+
+      const payload = {
+        receipt_date: formData.receipt_date,
+        receipt_no: formData.receipt_no,
+        ref_no: formData.ref_no,
+        manual_number: formData.manual_number,
+        from_whom_received: formData.from_whom_received,
+        description: formData.description,
+        receipt_type: formData.receipt_type,
+        account_debited: formData.account_debited,
+        account_credited: formData.account_credited,
+        cash: parseFloat(formData.cash.replace(/[^\d.-]/g, '')),
+        bank: parseFloat(formData.bank.replace(/[^\d.-]/g, '')),
+        total: parseFloat(formData.total.replace(/[^\d.-]/g, '')),
+        cashbook: formData.cashbook,
+        selected_invoice_id: formData.selectedInvoice?.id,
+        parent_account: formData.parent_account,
+      };
+
+      if (isEditing && editingData) {
+        const response = await fetch(`http://127.0.0.1:5000/cash-receipt-journals/${editingData.id}`, {
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(payload),
         });
+
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText);
         }
+      } else {
+        const payloads = allCustomersSubAccounts.map((subAccount, index) => {
+          const newReceiptNo = generateUniqueReceiptNumber();
+          return {
+            ...payload,
+            receipt_no: newReceiptNo,
+            from_whom_received: subAccount.value,
+          };
+        });
+
+        for (const payload of payloads) {
+          const response = await fetch("http://127.0.0.1:5000/cash-receipt-journals", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText);
+          }
+        }
       }
+
       refreshData();
-      setFormData({});
+      setFormData({
+        receipt_date: "",
+        receipt_no: "",
+        ref_no: "",
+        from_whom_received: "",
+        description: "",
+        receipt_type: "",
+        manual_number: "",
+        account_debited: "",
+        account_credited: "",
+        cash: "0.00",
+        bank: "0.00",
+        total: "0.00",
+        cashbook: "",
+        selectedInvoice: null,
+        parent_account: "",
+      });
       setError("");
       setShowForm(false);
       setAllCustomersSelected([]);
@@ -368,7 +406,6 @@ const CashReceiptJournalTable = () => {
       }
       refreshData();
 
-      // Recalculate the highest receipt number after deletion
       const remainingJournals = journals.filter(journal => journal.id !== id);
       const highestReceiptNumber = remainingJournals.reduce((max, journal) => {
         const receiptNumberMatch = journal.receipt_no.match(/R-(\d+)/);
@@ -376,7 +413,6 @@ const CashReceiptJournalTable = () => {
         return Math.max(max, isNaN(receiptNumber) ? 0 : receiptNumber);
       }, 0);
 
-      // Update the counter in localStorage
       localStorage.setItem("receipt_counter", highestReceiptNumber);
     } catch (err) {
       setError(err.message);
@@ -397,12 +433,12 @@ const CashReceiptJournalTable = () => {
         receipt_type: journal.receipt_type,
         account_debited: journal.account_debited,
         account_credited: journal.account_credited,
-        cash: journal.cash,
-        bank: journal.bank,
-        total: journal.total,
+        cash: formatCurrency(parseFloat(journal.cash)),
+        bank: formatCurrency(parseFloat(journal.bank)),
+        total: formatCurrency(parseFloat(journal.total)),
         cashbook: journal.cashbook,
         selectedInvoice: journal.selectedInvoice || null,
-        parent_account: journal.parent_account, // Set parent_account when editing
+        parent_account: journal.parent_account,
       });
     } else {
       setIsEditing(false);
@@ -417,12 +453,12 @@ const CashReceiptJournalTable = () => {
         receipt_type: "",
         account_debited: "",
         account_credited: "",
-        cash: 0,
-        bank: 0,
-        total: 0,
+        cash: "0.00",
+        bank: "0.00",
+        total: "0.00",
         cashbook: "",
         selectedInvoice: null,
-        parent_account: "", // Reset parent_account when adding new
+        parent_account: "",
       });
     }
     setShowForm(true);
@@ -440,12 +476,12 @@ const CashReceiptJournalTable = () => {
       receipt_type: "",
       account_debited: "",
       account_credited: "",
-      cash: 0,
-      bank: 0,
-      total: 0,
+      cash: "$0.00",
+      bank: "$0.00",
+      total: "$0.00",
       cashbook: "",
       selectedInvoice: null,
-      parent_account: "", // Reset parent_account
+      parent_account: "",
     });
     setError("");
     setIsEditing(false);
@@ -484,7 +520,7 @@ const CashReceiptJournalTable = () => {
         invoiceCreditedAccounts = [];
       }
     }
-    let remainingBalance = parseFloat(journal.total) || 0;
+    let remainingBalance = parseFloat(journal.total) || 0.00;
     const clearedAccounts = invoiceCreditedAccounts.map((account) => {
       const clearedAmount = Math.min(remainingBalance, account.amount);
       remainingBalance -= clearedAmount;
@@ -497,7 +533,7 @@ const CashReceiptJournalTable = () => {
     });
     const totalRemainingBalance = clearedAccounts.reduce(
       (total, account) => total + account.remainingAmount,
-      0
+      0.00
     );
     printWindow.document.write(`
       <html>
@@ -556,7 +592,7 @@ const CashReceiptJournalTable = () => {
             </tr>
             <tr>
               <td>Total Amount</td>
-              <td>${journal.total || "N/A"}</td>
+              <td>${formatCurrency(parseFloat(journal.total)) || "N/A"}</td>
             </tr>
           </table>
         </div>
@@ -566,7 +602,6 @@ const CashReceiptJournalTable = () => {
             <tr>
               <th>Account Name</th>
               <th>Total Amount</th>
-            >
             </tr>
             ${
               clearedAccounts.length > 0
@@ -575,7 +610,7 @@ const CashReceiptJournalTable = () => {
                       (account) => `
                     <tr>
                       <td>${account.name}</td>
-                      <td>${account.amount.toFixed(2)}</td>
+                      <td>${formatCurrency(account.amount)}</td>
                     </tr>
                   `
                     )
@@ -586,7 +621,7 @@ const CashReceiptJournalTable = () => {
         </div>
         <div class="section">
           <h3>Summary</h3>
-          <p class="total">Total Remaining Balance: ${totalRemainingBalance.toFixed(2)}</p>
+          <p class="total">Total Remaining Balance: ${formatCurrency(totalRemainingBalance)}</p>
         </div>
         <div class="footer">
           <p>Thank you for your payment. This is an official receipt.</p>
@@ -618,7 +653,7 @@ const CashReceiptJournalTable = () => {
     )
     .map((invoice) => ({
       value: invoice.invoice_number,
-      label: `Invoice ${invoice.invoice_number} - ${invoice.amount}`,
+      label: `Invoice ${invoice.invoice_number} - ${formatCurrency(parseFloat(invoice.amount))}`,
     }));
 
   const debitAccountOptions = getDebitAccounts().map((subAccount) => ({
@@ -636,7 +671,6 @@ const CashReceiptJournalTable = () => {
     label: account.parent_account,
   }));
 
-  // Filter journals based on search query
   const filteredJournals = journals.filter((journal) =>
     journal.from_whom_received.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -645,7 +679,6 @@ const CashReceiptJournalTable = () => {
     <div>
       {error && <p style={{ color: "red" }}>{error}</p>}
       <button onClick={() => openFormPopup()}>Add New Receipt</button>
-      {/* Search input field */}
       <input
         type="text"
         placeholder="Search by Customer"
@@ -726,7 +759,7 @@ const CashReceiptJournalTable = () => {
             <div className="form-row">
               <label>Balance:</label>
               <input
-                type="number"
+                type="text"
                 value={balance}
                 readOnly
                 className="form-input read-only"
@@ -810,7 +843,7 @@ const CashReceiptJournalTable = () => {
             <div className="form-row">
               <label>Cash:</label>
               <input
-                type="number"
+                type="text"
                 name="cash"
                 value={formData.cash}
                 onChange={handleInputChange}
@@ -820,7 +853,7 @@ const CashReceiptJournalTable = () => {
             <div className="form-row">
               <label>Bank:</label>
               <input
-                type="number"
+                type="text"
                 name="bank"
                 value={formData.bank}
                 onChange={handleInputChange}
@@ -830,7 +863,7 @@ const CashReceiptJournalTable = () => {
             <div className="form-row">
               <label>Total:</label>
               <input
-                type="number"
+                type="text"
                 name="total"
                 value={formData.total}
                 onChange={handleInputChange}
@@ -858,6 +891,7 @@ const CashReceiptJournalTable = () => {
             <th>From Whom Received</th>
             <th>Description</th>
             <th>Receipt Type</th>
+            <th>parent Account</th>
             <th>Credited Account</th>
             <th>Debited Account</th>
             <th>Total</th>
@@ -874,9 +908,10 @@ const CashReceiptJournalTable = () => {
               <td>{journal.from_whom_received}</td>
               <td>{journal.description}</td>
               <td>{journal.receipt_type}</td>
+              <td>{journal.parent_account}</td>
               <td>{journal.account_credited}</td>
               <td>{journal.account_debited}</td>
-              <td>{journal.total}</td>
+              <td>{formatCurrency(parseFloat(journal.total))}</td>
               <td>
                 <button onClick={() => openFormPopup(journal)}>Edit</button>
                 <button onClick={() => handleDelete(journal.id)}>Delete</button>

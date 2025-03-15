@@ -15,7 +15,7 @@ button {
   background-color: #0004ff;
   color: #ffffff;
   border: none;
-  padding: 10px 20px;
+  padding: 2px 2px;
   border-radius: 5px;
   cursor: pointer;
   font-size: 14px;
@@ -93,7 +93,7 @@ table {
 }
 
 th, td {
-  padding: 12px;
+  padding: 2px;
   text-align: left;
   border-bottom: 1px solid #444;
   background-color: #000000;
@@ -113,7 +113,7 @@ tr:hover {
   background-color: transparent;
   border: 1px solid #ff8c42;
   color: #ff8c42;
-  padding: 5px 10px;
+  padding: 5px 5px;
   margin: 2px;
 }
 
