@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useBalance } from './BalanceContext';
 
 const CashTransactions = ({ startDate, endDate }) => {
+  const { updateBalances } = useBalance();
   const [transactions, setTransactions] = useState([]);
   const [groupedAccounts, setGroupedAccounts] = useState([]);
   const [searchAccount, setSearchAccount] = useState('');
@@ -31,6 +33,13 @@ const CashTransactions = ({ startDate, endDate }) => {
         const data = await response.json();
         setTransactions(data.transactions);
         setGroupedAccounts(data.filtered_grouped_accounts);
+
+        // Calculate opening and closing balances
+        const openingBalance = calculateOpeningBalance(data.transactions);
+        const closingBalance = calculateClosingBalance(data.transactions);
+
+        // Update the balances in the context
+        updateBalances(openingBalance, closingBalance);
       } catch (error) {
         setError(error.message);
       } finally {
@@ -38,7 +47,7 @@ const CashTransactions = ({ startDate, endDate }) => {
       }
     };
     fetchData();
-  }, [startDate, endDate]);
+  }, [startDate, endDate, updateBalances]);
 
   const handleSearch = (e) => {
     setSearchAccount(e.target.value);
@@ -85,6 +94,18 @@ const CashTransactions = ({ startDate, endDate }) => {
   );
 
   const closingBalance = totalDebited - totalCredited;
+
+  const calculateOpeningBalance = (transactions) => {
+    // Logic to calculate opening balance based on transactions
+    return transactions.length > 0 ? transactions[0].opening_balance || 0 : 0;
+  };
+
+  const calculateClosingBalance = (transactions) => {
+    // Logic to calculate closing balance based on transactions
+    const totalDebited = transactions.reduce((acc, item) => acc + (item.amount_debited || 0), 0);
+    const totalCredited = transactions.reduce((acc, item) => acc + (item.amount_credited || 0), 0);
+    return totalDebited - totalCredited;
+  };
 
   if (loading) {
     return <div style={styles.loading}>Loading...</div>;

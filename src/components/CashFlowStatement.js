@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import './CashFlowStatement.css'; // Import CSS for styling
+import { useBalance } from './BalanceContext';
 
 const CashFlowStatement = () => {
+  const { balances } = useBalance();
   const [balanceData, setBalanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -49,21 +51,28 @@ const CashFlowStatement = () => {
     let totalInvesting = 0;
     let totalFinancing = 0;
 
+    const categoryTotals = {};
+
     Object.entries(data).forEach(([category, accounts]) => {
+      let categoryTotal = 0;
       accounts.forEach((account) => {
         const inflowCash = account.inflow_cash || 0;
         const inflowBank = account.inflow_bank || 0;
         const outflowCash = account.outflow_cash || 0;
         const outflowBank = account.outflow_bank || 0;
 
+        const netCashFlow = inflowCash + inflowBank - outflowCash - outflowBank;
+        categoryTotal += netCashFlow;
+
         if (category === 'Operating Activities') {
-          totalOperating += inflowCash + inflowBank - outflowCash - outflowBank;
+          totalOperating += netCashFlow;
         } else if (category === 'Investing Activities') {
-          totalInvesting += inflowCash + inflowBank - outflowCash - outflowBank;
+          totalInvesting += netCashFlow;
         } else if (category === 'Financing Activities') {
-          totalFinancing += inflowCash + inflowBank - outflowCash - outflowBank;
+          totalFinancing += netCashFlow;
         }
       });
+      categoryTotals[category] = categoryTotal;
     });
 
     const netCashFlow = totalOperating + totalInvesting + totalFinancing;
@@ -73,6 +82,7 @@ const CashFlowStatement = () => {
       totalInvesting,
       totalFinancing,
       netCashFlow,
+      categoryTotals,
     };
   };
 
@@ -81,12 +91,13 @@ const CashFlowStatement = () => {
     totalInvesting,
     totalFinancing,
     netCashFlow,
+    categoryTotals,
   } = calculateTotals(balanceData);
 
   // Function to handle Excel export
   const exportToExcel = () => {
     const dataForExcel = [];
-    
+
     // Loop through the categories and prepare data for the Excel file
     Object.entries(balanceData).forEach(([category, accounts]) => {
       accounts.forEach((account) => {
@@ -100,11 +111,22 @@ const CashFlowStatement = () => {
           NetCashFlow: (account.inflow_cash + account.inflow_bank - account.outflow_cash - account.outflow_bank) || 0,
         });
       });
+
+      // Add Category Total row
+      dataForExcel.push({
+        Category: `${category} Total`,
+        ParentAccount: 'N/A',
+        InflowCash: 'N/A',
+        InflowBank: 'N/A',
+        OutflowCash: 'N/A',
+        OutflowBank: 'N/A',
+        NetCashFlow: categoryTotals[category],
+      });
     });
 
-    // Add Totals row
+    // Add Overall Totals row
     dataForExcel.push({
-      Category: 'Total',
+      Category: 'Overall Total',
       ParentAccount: 'N/A',
       InflowCash: 'N/A',
       InflowBank: 'N/A',
@@ -120,6 +142,14 @@ const CashFlowStatement = () => {
 
     // Export the Excel file
     XLSX.writeFile(wb, 'CashFlowStatement.xlsx');
+  };
+
+  // Function to format numbers with brackets for negative values
+  const formatNumber = (value) => {
+    if (value < 0) {
+      return `(${Math.abs(value).toLocaleString()})`;
+    }
+    return value.toLocaleString();
   };
 
   return (
@@ -139,27 +169,32 @@ const CashFlowStatement = () => {
               <thead>
                 <tr>
                   <th>Parent Account</th>
-                
                   <th>Net Cash Flow</th>
                 </tr>
               </thead>
               <tbody>
-                {accounts.map((account, index) => (
-                  <tr key={index}>
-                    <td>{account.parent_account}</td>
-                   
-                    <td>{(account.inflow_cash + account.inflow_bank - account.outflow_cash - account.outflow_bank).toLocaleString()}</td>
-                  </tr>
-                ))}
+                {accounts.map((account, index) => {
+                  const netCashFlow = account.inflow_cash + account.inflow_bank - account.outflow_cash - account.outflow_bank;
+                  return (
+                    <tr key={index}>
+                      <td>{account.parent_account}</td>
+                      <td>{formatNumber(netCashFlow)}</td>
+                    </tr>
+                  );
+                })}
+                <tr>
+                  <td><strong>Net CashFlows From {category}</strong></td>
+                  <td><strong>{formatNumber(categoryTotals[category])}</strong></td>
+                </tr>
               </tbody>
             </table>
           </div>
         );
       })}
 
-      {/* Display Totals */}
+      {/* Display Overall Net Cash Flow */}
       <div className="totals-section">
-        <h2>Totals</h2>
+        <h2>Overall Net Cash Flow</h2>
         <table className="totals-table">
           <thead>
             <tr>
@@ -169,8 +204,16 @@ const CashFlowStatement = () => {
           </thead>
           <tbody>
             <tr>
-              <td><strong>Net Cash Flow</strong></td>
-              <td><strong>{netCashFlow.toLocaleString()}</strong></td>
+              <td><strong>Opening Balance</strong></td>
+              <td><strong>{formatNumber(balances.openingBalance)}</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Net Increase/(Decrease) in Cash & Cash Equivalents</strong></td>
+              <td><strong>{formatNumber(netCashFlow)}</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Closing Balance</strong></td>
+              <td><strong>{formatNumber(balances.closingBalance)}</strong></td>
             </tr>
           </tbody>
         </table>
