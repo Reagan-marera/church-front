@@ -14,6 +14,7 @@ const InvoiceReceived = () => {
   const [accountCredited, setAccountCredited] = useState("");
   const [grnNumber, setGrnNumber] = useState("");
   const [payeeName, setPayeeName] = useState("");
+  const [parentAccount, setParentAccount] = useState("");
 
   const [invoices, setInvoices] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -179,6 +180,7 @@ const InvoiceReceived = () => {
       account_credited: accountCredited,
       grn_number: grnNumber,
       name: payeeName,
+      parent_account: parentAccount, // Include parent account in the payload
     };
 
     try {
@@ -216,6 +218,7 @@ const InvoiceReceived = () => {
     setAccountsDebited([]);
     setGrnNumber("");
     setPayeeName("");
+    setParentAccount(""); // Reset parent account
   };
 
   const getSubAccountNames = () => {
@@ -244,6 +247,7 @@ const InvoiceReceived = () => {
     })));
     setGrnNumber(invoice.grn_number);
     setPayeeName(invoice.name);
+    setParentAccount(invoice.parent_account || ""); // Set parent account for editing
     setEditingInvoice(invoice.id);
     setShowForm(true);
   };
@@ -284,6 +288,11 @@ const InvoiceReceived = () => {
   const debitedAccountOptions = getSubAccountNames().map((subAccountName) => ({
     value: subAccountName,
     label: subAccountName,
+  }));
+
+  const parentAccountOptions = chartOfAccounts.map((account) => ({
+    value: account.parent_account,
+    label: account.parent_account,
   }));
 
   const handleAddDebitedAccount = () => {
@@ -330,7 +339,7 @@ const InvoiceReceived = () => {
               &times;
             </span>
             <form onSubmit={handleSubmit} className="invoice-form">
-            <div>
+              <div>
                 <label>Date:</label>
                 <input
                   type="date"
@@ -348,7 +357,7 @@ const InvoiceReceived = () => {
                   required
                 />
               </div>
-            
+
               <div>
                 <label>GRN Number:</label>
                 <input
@@ -364,6 +373,17 @@ const InvoiceReceived = () => {
                   onChange={handlePayeeChange}
                   options={payeeOptions}
                   placeholder="Select Payee"
+                  isSearchable
+                  styles={customStyles}
+                />
+              </div>
+              <div>
+                <label>Parent Account:</label>
+                <Select
+                  value={parentAccountOptions.find((option) => option.value === parentAccount)}
+                  onChange={(selectedOption) => setParentAccount(selectedOption.value)}
+                  options={parentAccountOptions}
+                  placeholder="Select Parent Account"
                   isSearchable
                   styles={customStyles}
                 />
@@ -427,12 +447,6 @@ const InvoiceReceived = () => {
                 />
               </div>
 
-           
-
-             
-
-           
-
               <button type="submit" disabled={loading}>
                 {loading ? "Submitting..." : editingInvoice ? "Update Invoice" : "Submit Invoice"}
               </button>
@@ -450,57 +464,53 @@ const InvoiceReceived = () => {
         <table className="compact-table">
           <thead>
             <tr>
-            <th>Date </th>
+              <th>Date</th>
               <th>Invoice Number</th>
               <th>GRN Number</th>
               <th>Payee Name</th>
-
               <th>Description</th>
-              
               <th>Account Debited</th>
               <th>Account Credited</th>
+              <th>Parent Account</th>
               <th>Amount</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoices.length > 0 ? (
-            invoices.map((invoice) => (
-              <tr key={invoice.id}>
-                <td>{invoice.date_issued}</td>
-                <td>{invoice.invoice_number}</td>
-                <td>{invoice.grn_number}</td>
-                <td>{invoice.name}</td>
-
-                <td>{invoice.description}</td>
-                <td>
-                  {invoice.account_debited.map((account, index) => (
-                    <div key={index}>
-                      {account.name}: {account.amount}
-                    </div>
-                  ))}
-                </td>
-                <td>{invoice.account_credited}</td>
-                <td>{invoice.amount}</td>
-
-                <td>
-                  <button onClick={() => handleEdit(invoice)}><FaEdit /></button>
-                  <button onClick={() => handleDelete(invoice.id)}><FaTrash /></button>
-                </td>
-                
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="9">No invoices found.</td>
+              <th>Actions</th>
             </tr>
-          )}
-        </tbody>
-      </table>
-    )}
-  </div>
-);
-
+          </thead>
+          <tbody>
+            {invoices.length > 0 ? (
+              invoices.map((invoice) => (
+                <tr key={invoice.id}>
+                  <td>{invoice.date_issued}</td>
+                  <td>{invoice.invoice_number}</td>
+                  <td>{invoice.grn_number}</td>
+                  <td>{invoice.name}</td>
+                  <td>{invoice.description}</td>
+                  <td>
+                    {invoice.account_debited.map((account, index) => (
+                      <div key={index}>
+                        {account.name}: {account.amount}
+                      </div>
+                    ))}
+                  </td>
+                  <td>{invoice.account_credited}</td>
+                  <td>{invoice.parent_account}</td>
+                  <td>{invoice.amount}</td>
+                  <td>
+                    <button onClick={() => handleEdit(invoice)}><FaEdit /></button>
+                    <button onClick={() => handleDelete(invoice.id)}><FaTrash /></button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="10">No invoices found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
 };
 
 export default InvoiceReceived;

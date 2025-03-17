@@ -15,6 +15,7 @@ const InvoiceIssued = () => {
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [allCustomersSelected, setAllCustomersSelected] = useState([]);
   const [manualNumber, setManualNumber] = useState("");
+  const [parentAccount, setParentAccount] = useState("");
 
   const [invoices, setInvoices] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -63,7 +64,7 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch("http://127.0.01:5000/invoices", {
+      const response = await fetch("http://127.0.0.1:5000/invoices", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -215,6 +216,7 @@ const InvoiceIssued = () => {
         })),
         name: subAccount.name,
         manual_number: manualNumber || null,
+        parent_account: parentAccount, // Include parent account in the payload
       };
 
       try {
@@ -262,6 +264,7 @@ const InvoiceIssued = () => {
     })));
     setSelectedCustomer(invoice.name);
     setManualNumber(invoice.manual_number || ""); // Set manual_number for editing
+    setParentAccount(invoice.parent_account || ""); // Set parent account for editing
     setIsEditing(true);
     setEditingInvoiceId(invoice.id);
     setShowForm(true);
@@ -328,6 +331,7 @@ const InvoiceIssued = () => {
     setAllCustomersSelected([]);
     setTotalAmount(0);
     setManualNumber("");
+    setParentAccount(""); // Reset parent account
   };
 
   const getSubAccountNames = () => {
@@ -355,6 +359,11 @@ const InvoiceIssued = () => {
   const creditedAccountOptions = getSubAccountNames().map((subAccountName) => ({
     value: subAccountName,
     label: subAccountName,
+  }));
+
+  const parentAccountOptions = chartOfAccounts.map((account) => ({
+    value: account.parent_account || account.name, // Use account name if parent_account is not available
+    label: account.parent_account || account.name,
   }));
 
   const handleAddCreditedAccount = () => {
@@ -480,6 +489,7 @@ const InvoiceIssued = () => {
         <tr><th>Customer Name</th><td>${invoice.name}</td></tr>
         <tr><th>Description</th><td>${invoice.description}</td></tr>
         <tr><th>Total Amount</th><td class="number">${formatFinancialValue(invoice.amount)}</td></tr>
+        <tr><th>Parent Account</th><td>${invoice.parent_account}</td></tr>
       </table>
 
       <div class="vote-heads">
@@ -616,7 +626,21 @@ const InvoiceIssued = () => {
                   styles={customStyles}
                 />
               </div>
-
+              <div>
+                <label>Parent Account:</label>
+                <Select
+                  value={parentAccountOptions.find(
+                    (option) => option.value === parentAccount
+                  )}
+                  onChange={(selectedOption) =>
+                    setParentAccount(selectedOption.value)
+                  }
+                  options={parentAccountOptions}
+                  placeholder="Select Parent Account"
+                  isSearchable
+                  styles={customStyles}
+                />
+              </div>
               <div>
                 <label>All Customers:</label>
                 <Select
@@ -697,13 +721,6 @@ const InvoiceIssued = () => {
                 />
               </div>
 
-            
-
-
-            
-
-            
-
               <button type="submit" disabled={loading}>
                 {loading ? "Submitting..." : isEditing ? "Update Invoice" : "Submit Invoice"}
               </button>
@@ -724,40 +741,47 @@ const InvoiceIssued = () => {
             <th>Description</th>
             <th>Account Debited</th>
             <th>Account Credited</th>
+            <th>Parent Account</th>
             <th>Amount</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {filteredInvoices.map((invoice) => (
-            <tr key={invoice.id}>
-              <td>{invoice.date_issued}</td>
-              <td>{invoice.invoice_number}</td>
-              <td>{invoice.manual_number}</td>
-              <td>{invoice.name}</td>
-              <td>{invoice.description}</td>
-              <td>{invoice.account_debited}</td>
-              <td>
-                {invoice.account_credited.map((account, index) => (
-                  <div key={index}>
-                    {account.name}: {account.amount}
-                  </div>
-                ))}
-              </td>
-              <td>{invoice.amount}</td>
-              <td>
-                <button onClick={() => handleUpdate(invoice)}>
-                  <FaEdit /> Edit
-                </button>
-                <button onClick={() => handleDelete(invoice.id)}>
-                  <FaTrash /> Delete
-                </button>
-                <button onClick={() => handlePrint(invoice)}>
-                  <FaPrint /> Print
-                </button>
-              </td>
-            </tr>
-          ))}
+          {filteredInvoices.map((invoice) => {
+            // Calculate the total amount for the invoice
+            const totalAmount = invoice.account_credited.reduce((sum, account) => sum + account.amount, 0);
+
+            return (
+              <tr key={invoice.id}>
+                <td>{invoice.date_issued}</td>
+                <td>{invoice.invoice_number}</td>
+                <td>{invoice.manual_number}</td>
+                <td>{invoice.name}</td>
+                <td>{invoice.description}</td>
+                <td>{invoice.account_debited}</td>
+                <td>
+                  {invoice.account_credited.map((account, index) => (
+                    <div key={index}>
+                      {account.name}: {account.amount}
+                    </div>
+                  ))}
+                </td>
+                <td>{invoice.parent_account}</td>
+                <td>{formatFinancialValue(totalAmount)}</td>
+                <td>
+                  <button onClick={() => handleUpdate(invoice)}>
+                    <FaEdit /> Edit
+                  </button>
+                  <button onClick={() => handleDelete(invoice.id)}>
+                    <FaTrash /> Delete
+                  </button>
+                  <button onClick={() => handlePrint(invoice)}>
+                    <FaPrint /> Print
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

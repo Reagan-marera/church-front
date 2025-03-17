@@ -2,35 +2,45 @@ import React, { useState } from 'react';
 import AccountsTransactions from './Notes';
 import IncomeStatement from './Balance';
 import Trial from './Income';
-import './trialbalance.css'; // Import the CSS file for styling
-import TrialBalance from './TrialBalance'; // Ensure this is used or adjust accordingly
-import CashFlowStatement from './CashFlowStatement'; // Import the Cash Flow Statement component
-import EstimateTable from './EstimateTable'; // Import your Estimate component
+import TrialBalance from './TrialBalance';
+import CashFlowStatement from './CashFlowStatement';
+import EstimateTable from './EstimateTable';
+import DepartmentalBudget from './DepartmentalBudget';
+import ConsolidatedBudget from './ConsolidatedBudget';
+import BudgetVsActuals from './BudgetVsActuals';
+import './FinancialOverview.css'; // Import CSS for styling
+
 const FinancialOverview = () => {
   const [activeTab, setActiveTab] = useState('TrialBalance'); // Default tab
 
   const renderComponent = () => {
     switch (activeTab) {
-      case 'TrialBalance': // Fixed this to match the correct component name
+      case 'TrialBalance':
         return <TrialBalance />;
       case 'AccountsTransactions':
         return <AccountsTransactions />;
       case 'IncomeStatement':
         return <IncomeStatement />;
-      case 'Trial': // This is correctly linked to the Trial component
+      case 'Trial':
         return <Trial />;
-      case 'CashFlowStatement': // Add the case for CashFlowStatement
+      case 'CashFlowStatement':
         return <CashFlowStatement />;
-      case 'Estimate': // Add case for the new "Estimate" tab
+      case 'Estimate':
         return <EstimateTable />;
+      case 'DepartmentalBudget':
+        return <DepartmentalBudget />;
+      case 'ConsolidatedBudget':
+        return <ConsolidatedBudget />;
+      case 'BudgetVsActuals':
+        return <BudgetVsActuals />;
       default:
-        return <AccountsTransactions />;
+        return <TrialBalance />; // Default fallback
     }
   };
 
   // Print function
   const printOut = () => {
-    window.print();  // Trigger the browser's print dialog
+    window.print(); // Trigger the browser's print dialog
   };
 
   return (
@@ -44,7 +54,10 @@ const FinancialOverview = () => {
         <button onClick={() => setActiveTab('IncomeStatement')}>Balance Sheet</button>
         <button onClick={() => setActiveTab('AccountsTransactions')}>Notes</button>
         <button onClick={() => setActiveTab('CashFlowStatement')}>Cash Flow</button>
-        <button onClick={() => setActiveTab('Estimate')}>Estimates</button> {/* Added Estimate tab */}
+        <button onClick={() => setActiveTab('Estimate')}>Budget Estimates</button>
+        <button onClick={() => setActiveTab('DepartmentalBudget')}>Departmental Budget</button>
+        <button onClick={() => setActiveTab('ConsolidatedBudget')}>Consolidated Budget</button>
+        <button onClick={() => setActiveTab('BudgetVsActuals')}>Budget vs Actuals</button>
       </div>
 
       {/* Component content based on active tab */}
