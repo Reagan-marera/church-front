@@ -53,19 +53,22 @@ const AssetTransactions = ({ startDate, endDate }) => {
             cr: 0,
             amount: item.amount,
           })),
-          ...data.invoices_issued.map(item => ({
-            type: 'Invoice Issued',
-            date: item.date_issued,
-            reference: item.invoice_number,
-            from: item.name,
-            description: item.description,
-            debited_account: item.account_debited,
-            credited_account: item.account_credited,
-            parent_account: item.parent_account,
-            cr: 0,
-            dr: item.amount,
-            amount: item.amount,
-          })),
+          ...data.invoices_issued.map(item => {
+            const totalAmount = item.account_credited.reduce((sum, acc) => sum + acc.amount, 0);
+            return {
+              type: 'Invoice Issued',
+              date: item.date_issued,
+              reference: item.invoice_number,
+              from: item.name,
+              description: item.description,
+              debited_account: item.account_debited,
+              credited_account: item.account_credited.map(acc => acc.name).join(', '),
+              parent_account: item.parent_account,
+              cr: 0,
+              dr: totalAmount,
+              amount: totalAmount,
+            };
+          }),
           ...data.cash_receipts.map(item => ({
             type: 'Cash Receipt',
             date: item.receipt_date,
@@ -118,7 +121,9 @@ const AssetTransactions = ({ startDate, endDate }) => {
         const debitedAccount = Array.isArray(item.debited_account)
           ? item.debited_account.some(acc => acc.name.toLowerCase().includes(account))
           : String(item.debited_account).toLowerCase().includes(account);
-        const creditedAccount = String(item.credited_account).toLowerCase().includes(account);
+        const creditedAccount = Array.isArray(item.credited_account)
+          ? item.credited_account.some(acc => acc.name.toLowerCase().includes(account))
+          : String(item.credited_account).toLowerCase().includes(account);
         const parentAccount = String(item.parent_account).toLowerCase().includes(account);
         return debitedAccount || creditedAccount || parentAccount;
       });
@@ -131,11 +136,11 @@ const AssetTransactions = ({ startDate, endDate }) => {
   const totalAmount = useMemo(() => filteredData.reduce((sum, item) => sum + item.amount, 0), [filteredData]);
 
   const totalDR = useMemo(() => filteredData.reduce((sum, item) => sum + (item.dr || 0), 0), [filteredData]);
-  
+
   const totalCR = useMemo(() => filteredData.reduce((sum, item) => sum + (item.cr || 0), 0), [filteredData]);
-  
+
   const closingBalance = totalDR - totalCR;
-  
+
   const formatNumber = (num) => {
     if (num === 0 || !num) return '0.00';
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

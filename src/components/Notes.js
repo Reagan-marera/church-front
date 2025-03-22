@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './TransactionList.css'; // Import the CSS file
 
 const AccountsTransactions = () => {
-  const [transactions, setTransactions] = useState({});
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -32,7 +32,14 @@ const AccountsTransactions = () => {
 
         const data = await response.json();
         console.log('Data:', data);
-        setTransactions(data);
+
+        // Convert the note groups into an array for easier rendering
+        const enrichedNoteGroups = Object.entries(data).map(([noteNumber, group]) => ({
+          note_number: noteNumber,
+          ...group,
+        }));
+
+        setTransactions(enrichedNoteGroups);
         setLoading(false);
       } catch (error) {
         console.error('Fetch error:', error);
@@ -47,7 +54,7 @@ const AccountsTransactions = () => {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'ksh',
+      currency: 'KES', // Kenyan Shillings
       minimumFractionDigits: 2,
     }).format(amount);
   };
@@ -63,33 +70,42 @@ const AccountsTransactions = () => {
   return (
     <div>
       <h1>Notes To The Financial Statements</h1>
-      {Object.keys(transactions).map((note) => (
-        <div key={note} className="note-group">
-          <h2>Note {note}</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Parent Account</th>
-                <th>Relevant Account</th>
-                <th>Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions[note].relevant_accounts.map((account, index) => (
-                <tr key={index}>
-                  <td>{transactions[note].parent_account || 'N/A'}</td>
-                  <td>{account}</td>
-                  <td>{formatCurrency(transactions[note].amounts[index])}</td>
+      {transactions.length === 0 ? (
+        <div className="no-data">No transactions available.</div>
+      ) : (
+        transactions.map((group, index) => (
+          <div key={index} className="note-group">
+            <h2>Note {group.note_number || 'N/A'}</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Parent Account</th>
+                  <th>Relevant Account</th>
+                  <th>Amount</th>
                 </tr>
-              ))}
-              <tr>
-                <td colSpan="2"><strong>Total Amount</strong></td>
-                <td><strong>{formatCurrency(transactions[note].total_amount)}</strong></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      ))}
+              </thead>
+              <tbody>
+                {/* Render Parent Account and Relevant Accounts */}
+                {group.relevant_accounts.map((account, idx) => (
+                  <tr key={idx}>
+                    <td>{idx === 0 ? group.parent_account || 'N/A' : ''}</td>
+                    <td style={{ paddingLeft: idx > 0 ? '20px' : '0' }}>
+                      {idx > 0 ? '↳ ' : ''}
+                      {account}
+                    </td>
+                    <td>{formatCurrency(group.amounts[idx])}</td>
+                  </tr>
+                ))}
+                {/* Render Total Amount */}
+                <tr>
+                  <td colSpan="2"><strong>Total Amount</strong></td>
+                  <td><strong>{formatCurrency(group.total_amount)}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        ))
+      )}
     </div>
   );
 };

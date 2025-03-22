@@ -98,11 +98,11 @@ const LiabilityTransactions = ({ startDate, endDate }) => {
   const handleSearch = (e) => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
-
+  
     if (term) {
       const filtered = combinedData.filter((item) =>
         item.type.toLowerCase().includes(term) ||
-        item.reference.toLowerCase().includes(term) ||
+        String(item.reference).toLowerCase().includes(term) || // Ensure reference is a string
         item.from.toLowerCase().includes(term) ||
         item.description.toLowerCase().includes(term) ||
         item.parent_account.toLowerCase().includes(term) ||
@@ -113,7 +113,7 @@ const LiabilityTransactions = ({ startDate, endDate }) => {
       setFilteredData(combinedData); // Reset to all data if search is empty
     }
   };
-
+  
   // Calculate total DR and CR amounts
   const totalDR = filteredData.reduce((sum, item) => sum + (Number(item.debited_amount) || 0), 0);
   const totalCR = filteredData.reduce((sum, item) => sum + (Number(item.credited_amount) || 0), 0);

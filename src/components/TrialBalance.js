@@ -23,7 +23,7 @@ const TrialBalance = () => {
       }
 
       const data = await response.json(); // Expecting an array of trial balance data
-      setTrialBalance(data); // Set the trial balance data directly
+      setTrialBalance(data.trial_balance); // Set the trial balance data directly
     } catch (err) {
       setError(err.message);
     } finally {
@@ -35,19 +35,9 @@ const TrialBalance = () => {
     fetchTrialBalance();
   }, []);
 
-  // Group accounts by parent account (assuming no parent-child hierarchy in the current data)
-  const groupedByParentAccount = trialBalance.reduce((acc, account) => {
-    const parentAccount = 'Uncategorized'; // Default grouping since no parent-child hierarchy exists
-    if (!acc[parentAccount]) {
-      acc[parentAccount] = [];
-    }
-    acc[parentAccount].push(account);
-    return acc;
-  }, {});
-
   // Helper function to format numbers with commas and two decimal places
   const formatNumber = (value) => {
-    return value > 0 ? value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+    return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   if (loading) {
@@ -65,31 +55,37 @@ const TrialBalance = () => {
         <thead>
           <tr>
             <th className="account-header">Account</th>
-            <th className="numeric-header">Debit</th>
-            <th className="numeric-header">Credit</th>
+            <th className="numeric-header">Dr</th>
+            <th className="numeric-header">Cr</th>
           </tr>
         </thead>
         <tbody>
-          {Object.keys(groupedByParentAccount).map((parentAccount) => {
-            const subAccounts = groupedByParentAccount[parentAccount];
+          {trialBalance.map((account, index) => {
+            const isDebit = account.balance >= 0; // Positive balance goes to Dr
+            const drValue = isDebit ? account.balance : 0; // Dr column gets balance if positive
+            const crValue = !isDebit ? Math.abs(account.balance) : 0; // Cr column gets abs(balance) if negative
 
-            return subAccounts.map((account, index) => (
-              <tr key={account.Account}>
-                <td className="account-cell">{account.Account}</td>
-                <td className="numeric-cell">{formatNumber(account.Debit)}</td>
-                <td className="numeric-cell">{formatNumber(account.Credit)}</td>
+            return (
+              <tr key={account.account}>
+                <td className="account-cell">{account.account}</td>
+                <td className="numeric-cell">{formatNumber(drValue)}</td>
+                <td className="numeric-cell">{formatNumber(crValue)}</td>
               </tr>
-            ));
+            );
           })}
         </tbody>
         <tfoot>
           <tr>
             <td className="total-label"><strong>Total</strong></td>
             <td className="total-value">
-              {formatNumber(trialBalance.reduce((total, account) => total + account.Debit, 0))}
+              {formatNumber(
+                trialBalance.reduce((total, account) => total + (account.balance >= 0 ? account.balance : 0), 0)
+              )}
             </td>
             <td className="total-value">
-              {formatNumber(trialBalance.reduce((total, account) => total + account.Credit, 0))}
+              {formatNumber(
+                trialBalance.reduce((total, account) => total + (account.balance < 0 ? Math.abs(account.balance) : 0), 0)
+              )}
             </td>
           </tr>
         </tfoot>
