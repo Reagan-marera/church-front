@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './TransactionList.css'; // Import the CSS file
 
 const AccountsTransactions = () => {
-  const [transactions, setTransactions] = useState([]);
+  const [transactions, setTransactions] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -33,13 +33,13 @@ const AccountsTransactions = () => {
         const data = await response.json();
         console.log('Data:', data);
 
-        // Convert the note groups into an array for easier rendering
-        const enrichedNoteGroups = Object.entries(data).map(([noteNumber, group]) => ({
-          note_number: noteNumber,
-          ...group,
-        }));
+        // Extract the account balances from the response
+        const accountBalances = data.account_balances || [];
 
-        setTransactions(enrichedNoteGroups);
+        // Group accounts by parent account and note number
+        const groupedAccounts = groupAccountsByParentAndNote(accountBalances);
+
+        setTransactions(groupedAccounts);
         setLoading(false);
       } catch (error) {
         console.error('Fetch error:', error);
@@ -50,6 +50,19 @@ const AccountsTransactions = () => {
 
     fetchTransactions();
   }, []);
+
+  const groupAccountsByParentAndNote = (accounts) => {
+    const grouped = {};
+    accounts.forEach((account) => {
+      const key = `${account.parent_account || 'No Parent'}`;
+      if (!grouped[key]) {
+        grouped[key] = { accounts: [], total: 0 };
+      }
+      grouped[key].accounts.push(account);
+      grouped[key].total += account.balance;
+    });
+    return grouped;
+  };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -69,42 +82,49 @@ const AccountsTransactions = () => {
 
   return (
     <div>
-      <h1>Notes To The Financial Statements</h1>
-      {transactions.length === 0 ? (
+      <h1>Account Balances</h1>
+      {Object.keys(transactions).length === 0 ? (
         <div className="no-data">No transactions available.</div>
       ) : (
-        transactions.map((group, index) => (
-          <div key={index} className="note-group">
-            <h2>Note {group.note_number || 'N/A'}</h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>Parent Account</th>
-                  <th>Relevant Account</th>
-                  <th>Amount</th>
+        <table>
+          <thead>
+            <tr>
+              <th>Parent Account</th>
+              <th>Note Number</th>
+              <th>Account</th>
+              <th>Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(transactions).map(([parentAccount, { accounts, total }], index) => (
+              <React.Fragment key={index}>
+                <tr className="group-header">
+                  <td>{parentAccount}</td>
+                  <td></td>
+                  <td colSpan="2"></td>
                 </tr>
-              </thead>
-              <tbody>
-                {/* Render Parent Account and Relevant Accounts */}
-                {group.relevant_accounts.map((account, idx) => (
-                  <tr key={idx}>
-                    <td>{idx === 0 ? group.parent_account || 'N/A' : ''}</td>
-                    <td style={{ paddingLeft: idx > 0 ? '20px' : '0' }}>
-                      {idx > 0 ? '↳ ' : ''}
-                      {account}
-                    </td>
-                    <td>{formatCurrency(group.amounts[idx])}</td>
+                {accounts && accounts.length > 0 ? (
+                  accounts.map((account, idx) => (
+                    <tr key={idx}>
+                      <td></td>
+                      <td>{account.note_number || 'N/A'}</td>
+                      <td>{account.account}</td>
+                      <td>{formatCurrency(account.balance)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4">No accounts available for this parent.</td>
                   </tr>
-                ))}
-                {/* Render Total Amount */}
-                <tr>
-                  <td colSpan="2"><strong>Total Amount</strong></td>
-                  <td><strong>{formatCurrency(group.total_amount)}</strong></td>
+                )}
+                <tr className="group-total">
+                  <td colSpan="3" style={{ color: 'orange' }}>Total for {parentAccount}</td>
+                 <i><td style={{ color: 'orange' }}>{formatCurrency(total)}</td></i> 
                 </tr>
-              </tbody>
-            </table>
-          </div>
-        ))
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );

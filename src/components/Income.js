@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-const Incomestatement = () => {
+const IncomeStatement = () => {
   const [balanceData, setBalanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -64,6 +64,17 @@ const Incomestatement = () => {
 
   const groupedData = groupByAccountType(balanceData);
 
+  // Calculate total amounts for each category
+  const categoryTotals = {};
+  Object.entries(groupedData).forEach(([accountType, accounts]) => {
+    categoryTotals[accountType] = accounts.reduce((sum, account) => sum + account.totalAmount, 0);
+  });
+
+  // Calculate net surplus/deficit
+  const totalIncome = categoryTotals['40-Revenue'] || 0;
+  const totalExpenses = categoryTotals['50-Expenses'] || 0;
+  const netSurplusDeficit = totalIncome - totalExpenses;
+
   return (
     <div className="balance-statement-container">
       <h1>Income Statement</h1>
@@ -71,10 +82,12 @@ const Incomestatement = () => {
         <thead>
           <tr>
             <th>Account Type</th>
+            
+
             <th>Account Name</th>
+            <th>Note Number</th>
             <th>Parent Account</th>
             <th>Amount</th>
-            <th>Note Number</th>
           </tr>
         </thead>
         <tbody>
@@ -94,18 +107,25 @@ const Incomestatement = () => {
                     <tr key={`${accountType}-${index}-${idx}`}>
                       <td></td> {/* Empty cell for account type column */}
                       <td>{account.accountName}</td>
+                      <td>{parentData.note_number}</td>
+
                       <td>{parentAccount}</td>
                       <td>{parentData.amount.toLocaleString()}</td>
-                      <td>{parentData.note_number}</td>
                     </tr>
                   ))
               ))}
             </React.Fragment>
           ))}
+          {/* Net Surplus/Deficit Row */}
+          <tr style={{ fontWeight: 'bold', color: 'orange', backgroundColor: 'orange' }}>
+            <td colSpan={4}>Net Surplus/Deficit</td>
+            <td>{netSurplusDeficit.toLocaleString()}</td>
+            <td></td>
+          </tr>
         </tbody>
       </table>
     </div>
   );
 };
 
-export default Incomestatement;
+export default IncomeStatement;
