@@ -143,7 +143,12 @@ const DisbursementForm = () => {
       (disbursement) => disbursement.to_whom_paid === payeeName
     );
     const totalDisbursedAmount = payeeDisbursements.reduce(
-      (sum, disbursement) => sum + parseFloat(disbursement.total.replace(/[^\d.-]/g, '')),
+      (sum, disbursement) => {
+        const totalAsString = typeof disbursement.total === 'string'
+          ? disbursement.total
+          : disbursement.total.toString();
+        return sum + parseFloat(totalAsString.replace(/[^\d.-]/g, ''));
+      },
       0
     );
     const payeeBalance = formatCurrency(totalInvoiceAmount - totalDisbursedAmount);

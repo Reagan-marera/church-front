@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Select from 'react-select'; // Import react-select
+import Select from 'react-select';
+import * as XLSX from 'xlsx';
 import './AccountSelection.css';
 
 const AccountSelection = () => {
@@ -14,18 +15,17 @@ const AccountSelection = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [currentTransactionId, setCurrentTransactionId] = useState(null);
-  const [accountOptions, setAccountOptions] = useState([]); // Options for react-select
+  const [accountOptions, setAccountOptions] = useState([]);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Custom styles for react-select
   const customStyles = {
     option: (provided, state) => ({
       ...provided,
-      backgroundColor: state.isFocused ? '#e2e8f0' : 'white', // Background color on hover
-      color: state.isSelected ? '#4a5568' : 'black', // Text color for selected option
+      backgroundColor: state.isFocused ? '#e2e8f0' : 'white',
+      color: state.isSelected ? '#4a5568' : 'black',
       padding: '10px',
-      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? 'bold' : 'normal', // Bold matching options
+      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? 'bold' : 'normal',
     }),
     control: (provided) => ({
       ...provided,
@@ -79,12 +79,11 @@ const AccountSelection = () => {
 
       setAccounts(allAccounts);
 
-      // Prepare options for react-select
       const options = allAccounts.flatMap(account =>
         account.subaccounts.map(subaccount => ({
           value: subaccount.name,
           label: subaccount.name,
-          type: account.type, // Add account type for color coding
+          type: account.type,
         }))
       );
       setAccountOptions(options);
@@ -189,7 +188,6 @@ const AccountSelection = () => {
         const data = await response.json();
         setSuccessMessage(data.message);
 
-        // Refetch transactions to update the table
         fetchData();
 
         clearForm();
@@ -212,7 +210,6 @@ const AccountSelection = () => {
       if (response.ok) {
         const data = await response.json();
         setSuccessMessage(data.message);
-        // Refetch transactions to update the table
         fetchData();
       } else {
         throw new Error('Failed to delete transaction');
@@ -236,6 +233,13 @@ const AccountSelection = () => {
     }
   };
 
+  const exportToExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(transactions);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+    XLSX.writeFile(wb, 'transactions.xlsx');
+  };
+
   const filteredTransactions = transactions.filter(transaction =>
     transaction.credited_account_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     transaction.debited_account_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -244,6 +248,7 @@ const AccountSelection = () => {
   return (
     <div>
       <button onClick={() => setIsPopupOpen(true)}>Add Transaction</button>
+      <button onClick={exportToExcel}>Export to Excel</button>
       <input
         type="text"
         placeholder="Search by account..."
@@ -255,12 +260,10 @@ const AccountSelection = () => {
       <table>
         <thead>
           <tr>
-          <th>Date </th>
-
+            <th>Date</th>
             <th>Debited Account</th>
             <th>Credited Account</th>
             <th>Description</th>
-
             <th>Amount Credited</th>
             <th>Amount Debited</th>
             <th>Actions</th>
@@ -269,12 +272,10 @@ const AccountSelection = () => {
         <tbody>
           {filteredTransactions.map((transaction) => (
             <tr key={transaction.id}>
-                            <td>{transaction.date_issued}</td>
-
+              <td>{transaction.date_issued}</td>
               <td>{transaction.debited_account_name}</td>
               <td>{transaction.credited_account_name}</td>
               <td>{transaction.description}</td>
-
               <td>{formatAmount(transaction.amount_credited)}</td>
               <td>{formatAmount(transaction.amount_debited)}</td>
               <td>
@@ -291,7 +292,7 @@ const AccountSelection = () => {
           <div className="popup-content">
             <span className="close" onClick={clearForm}>&times;</span>
             <form onSubmit={handleSubmit}>
-            <div>
+              <div>
                 <label>Date:</label>
                 <input
                   type="date"
@@ -346,8 +347,6 @@ const AccountSelection = () => {
                   readOnly
                 />
               </div>
-            
-           
               <button type="submit">{isEditing ? 'Update' : 'Submit'}</button>
             </form>
           </div>

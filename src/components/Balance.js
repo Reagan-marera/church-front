@@ -232,7 +232,7 @@ const BalanceStatementAccounts = () => {
           {/* Net Assets Row */}
           <tr style={{ fontWeight: 'bold', color: 'orange', backgroundColor: 'orange' }}>
             <td colSpan={4}>30-Net Assets</td>
-            <td>{netDifference.toLocaleString('en-US', { style: 'currency', currency: 'ksh' })}</td>
+            <td style={{ color: 'orange' }}>{netDifference.toLocaleString('en-US', { style: 'currency', currency: 'ksh' })}</td>
           </tr>
           {/* Unrestricted Net Assets Row */}
          

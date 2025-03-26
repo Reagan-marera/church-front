@@ -8,8 +8,8 @@ import {
   faFileInvoiceDollar,
   faMoneyBill,
   faCreditCard,
-  
 } from "@fortawesome/free-solid-svg-icons";
+
 function Home() {
   const [loading, setLoading] = useState(true);
 
@@ -33,21 +33,26 @@ function Home() {
         <>
           {/* Navigation Bar */}
           <nav className="navbarhome">
-    <div className="navbar-brand">
-        <i className="fas fa-laptop-code"></i> {/* Technology icon */}
-        <span className="company-name">YOUMING TECHNOLOGIES</span>
-    </div>
-</nav>
+            <div className="navbar-brand">
+              <i className="fas fa-laptop-code"></i> {/* Technology icon */}
+              <span className="company-name">YOUMING TECHNOLOGIES</span>
+            </div>
+            <div className="navbar-links">
+              <Link to="/login" className="navbar-link">
+                Sign In
+              </Link>
+            </div>
+          </nav>
 
           {/* Hero Section */}
           <header className="hero">
             <div className="hero-content">
-              <h1 >Non-Profit Financial Management Toolkit</h1>
-              <h2 className="navbar-brands">For Schools, Churches, and NGOs</h2>
-              <h1><p className="intro">
+              <h1>Non-Profit Financial Management Toolkit</h1>
+              <h2>For Schools, Churches, and NGOs</h2>
+              <p className="intro">
                 Manage invoices, receipts, disbursements, and generate accurate
-                financial reports all in one place.
-              </p></h1>
+                financial reports—all in one place.
+              </p>
               <Link to="/register" className="cta-button">
                 Get Started
               </Link>
@@ -56,7 +61,7 @@ function Home() {
 
           {/* Features Section */}
           <section className="features">
-            <h2 className="intro2">Our Core Features</h2>
+            <h2 className="features-title">Our Core Features</h2>
             <div className="feature-cards">
               <FeatureCard
                 icon={<FaChartLine />}
@@ -95,13 +100,16 @@ function Home() {
           <footer className="footer">
             <div className="footer-content">
               <p>&copy; 2024 InstitutionFinance | All Rights Reserved</p>
-              <h5 className="attractive-text">
-    <i className="fas fa-code"></i> {/* Add a code icon for visual appeal */}
-    Code Engineered and Maintained by <span className="highlight">marierareagan@gmail.com</span>
-</h5>              <div className="footer-links">
+              <p className="attractive-text">
+                <i className="fas fa-code"></i> Code Engineered and Maintained by{" "}
+                <a href="mailto:marierareagan@gmail.com" className="highlight">
+                  marierareagan@gmail.com
+                </a>
+              </p>
+              <div className="footer-links">
                 <Link to="/privacy-policy">Privacy Policy</Link>
                 <Link to="/terms-of-service">Terms of Service</Link>
-                <Link to="/contact-us">Contact Us</Link>
+                <Link to="/about-us">About Us</Link>
               </div>
             </div>
           </footer>
@@ -111,7 +119,7 @@ function Home() {
   );
 }
 
-// Reusable Feature Card Component with Icons
+// Reusable Feature Card Component
 const FeatureCard = ({ icon, title, description }) => (
   <div className="feature-card">
     <div className="feature-icon">{icon}</div>

@@ -21,10 +21,7 @@ const CashFlowStatement = () => {
           },
         });
 
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-
+        if (!response.ok) throw new Error('Network response was not ok');
         const data = await response.json();
         setBalanceData(data);
       } catch (error) {
@@ -45,12 +42,10 @@ const CashFlowStatement = () => {
     return <div>Error: {error.message}</div>;
   }
 
-  // Function to calculate totals for revenue and expenses based on categories
   const calculateTotals = (data) => {
     let totalOperating = 0;
     let totalInvesting = 0;
     let totalFinancing = 0;
-
     const categoryTotals = {};
 
     Object.entries(data).forEach(([category, accounts]) => {
@@ -60,7 +55,6 @@ const CashFlowStatement = () => {
         const inflowBank = account.inflow_bank || 0;
         const outflowCash = account.outflow_cash || 0;
         const outflowBank = account.outflow_bank || 0;
-
         const netCashFlow = inflowCash + inflowBank - outflowCash - outflowBank;
         categoryTotal += netCashFlow;
 
@@ -72,11 +66,11 @@ const CashFlowStatement = () => {
           totalFinancing += netCashFlow;
         }
       });
+
       categoryTotals[category] = categoryTotal;
     });
 
     const netCashFlow = totalOperating + totalInvesting + totalFinancing;
-
     return {
       totalOperating,
       totalInvesting,
@@ -94,11 +88,9 @@ const CashFlowStatement = () => {
     categoryTotals,
   } = calculateTotals(balanceData);
 
-  // Function to handle Excel export
   const exportToExcel = () => {
     const dataForExcel = [];
 
-    // Loop through the categories and prepare data for the Excel file
     Object.entries(balanceData).forEach(([category, accounts]) => {
       accounts.forEach((account) => {
         dataForExcel.push({
@@ -144,8 +136,8 @@ const CashFlowStatement = () => {
     XLSX.writeFile(wb, 'CashFlowStatement.xlsx');
   };
 
-  // Function to format numbers with brackets for negative values
   const formatNumber = (value) => {
+    if (!value && value !== 0) return "0.00"; // Handle undefined or null
     if (value < 0) {
       return `(${Math.abs(value).toLocaleString()})`;
     }
@@ -161,7 +153,18 @@ const CashFlowStatement = () => {
         Export to Excel
       </button>
 
-      {Object.entries(balanceData).map(([category, accounts]) => {
+      {/* Display category-wise cash flow */}
+      {Object.entries(balanceData || {}).map(([category, accounts]) => {
+        const categoryTotal = accounts.reduce(
+          (acc, account) =>
+            acc +
+            (account.inflow_cash || 0) +
+            (account.inflow_bank || 0) -
+            (account.outflow_cash || 0) -
+            (account.outflow_bank || 0),
+          0
+        );
+
         return (
           <div key={category} className="category-section">
             <h2>{category}</h2>
@@ -174,7 +177,12 @@ const CashFlowStatement = () => {
               </thead>
               <tbody>
                 {accounts.map((account, index) => {
-                  const netCashFlow = account.inflow_cash + account.inflow_bank - account.outflow_cash - account.outflow_bank;
+                  const netCashFlow =
+                    (account.inflow_cash || 0) +
+                    (account.inflow_bank || 0) -
+                    (account.outflow_cash || 0) -
+                    (account.outflow_bank || 0);
+
                   return (
                     <tr key={index}>
                       <td>{account.parent_account}</td>
@@ -184,7 +192,7 @@ const CashFlowStatement = () => {
                 })}
                 <tr>
                   <td><strong>Net CashFlows From {category}</strong></td>
-                  <td><strong>{formatNumber(categoryTotals[category])}</strong></td>
+                  <td><strong>{formatNumber(categoryTotal)}</strong></td>
                 </tr>
               </tbody>
             </table>
@@ -212,8 +220,12 @@ const CashFlowStatement = () => {
               <td><strong>{formatNumber(netCashFlow)}</strong></td>
             </tr>
             <tr>
-              <td><strong>Closing Balance</strong></td>
-              <td><strong>{formatNumber(balances.closingBalance)}</strong></td>
+              <td><strong>Cash Closing</strong></td> {/* Renamed to "Cash Closing" */}
+              <td><strong>{formatNumber(balances.cashClosing)}</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Passed Balance</strong></td> {/* Added "Passed Balance" */}
+              <td><strong>{formatNumber(balances.cashClosing)}</strong></td>
             </tr>
           </tbody>
         </table>

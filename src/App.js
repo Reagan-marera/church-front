@@ -27,6 +27,7 @@ import TrialBalance from './components/TrialBalance';
 import AccountsTransactions from './components/Notes';
 import Incomestatement from './components/Income';
 import CashFlowApp from './components/CashFlowApp';
+import AboutUs from './components/AboutUs';
 import { BalanceProvider } from './components/BalanceContext'; // Import BalanceProvider
 
 function App() {
@@ -78,6 +79,7 @@ function App() {
             <Route path="/cash-receipt-journal" element={<ProtectedRoute><CashReceiptJournalTable /></ProtectedRoute>} />
             <Route path="/cash-disbursement-journal" element={<ProtectedRoute><CashDisbursementJournalTable /></ProtectedRoute>} />
             <Route path="/" element={<Home />} />
+            <Route path="/about-us" element={<AboutUs />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/member/:user_id" element={<ProtectedRoute><MemberInfo /></ProtectedRoute>} />
             <Route path="/create-pledge" element={<ProtectedRoute><CreatePledge username={username} /></ProtectedRoute>} />

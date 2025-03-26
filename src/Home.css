@@ -1,10 +1,12 @@
 /* General Styles */
 .App {
-  font-family: Arial, sans-serif;
+  font-family: 'Poppins', sans-serif; /* Modern font */
   text-align: center;
-  background-color: #cccbcb; /* Black background */
-  color: #fff; /* White text */
+  background-color: #141414; /* Netflix dark gray */
+  color: #e5e5e5; /* Light text */
   min-height: 100vh;
+  line-height: 1.6;
+  overflow-x: hidden;
 }
 
 /* Loader */
@@ -14,13 +16,13 @@
   align-items: center;
   justify-content: center;
   height: 100vh;
-  background-color: #000; /* Black background */
+  background-color: #141414; /* Netflix dark gray */
 }
 
-.spinner-icon {
-  font-size: 3rem;
+.loader .spinner-icon {
+  font-size: 3rem; /* Smaller size */
   animation: spin 1s linear infinite;
-  color: #ff8c42; /* Orange spinner */
+  color: #e50914; /* Netflix red */
 }
 
 @keyframes spin {
@@ -28,144 +30,138 @@
   100% { transform: rotate(360deg); }
 }
 
-.loader-text {
+.loader .loader-text {
   margin-top: 1rem;
-  font-size: 1.2rem;
-  color: #ff8c42; /* Orange text */
+  font-size: 1rem;
+  color: #e5e5e5;
 }
 
 /* Navigation Bar */
 .navbarhome {
-  background-color: #000; /* Black background */
-  padding: 1rem;
-  border-bottom: 2px solid #ff8c42; /* Orange border */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #141414;
+  border-bottom: 1px solid #e50914; /* Netflix red */
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
 
-/* Import the Orbitron font from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap');
-
-@keyframes ledEffect {
-  0% {
-    color: #ff8c42; /* Start with orange */
-    text-shadow: 0 0 2px #ff8c42, 0 0 1px #ff8c42, 0 0 5px #ff8c42, 0 0 2px #ff8c42; /* Subtle glow */
-  }
-  25% {
-    color:#ff8c42;; /* Change to a bright red */
-    text-shadow: 0 0 2px #ff1e56, 0 0 1px #1eddff, 0 0 5px #1ee5ff, 0 0 2px #1ef8ff;
-  }
-  50% {
-    color:#ff8c42 ; /* Change to bright green */
-    text-shadow: 0 0 2px #42ff87, 0 0 1px #42ff87, 0 0 5px #42ff87, 0 0 2px #42ff87;
-  }
-  75% {
-    color: #ffa742; /* Change to bright blue */
-    text-shadow: 0 0 2px #4287ff, 0 0 1px #4287ff, 0 0 5px #4287ff, 0 0 2px #4287ff;
-  }
-  100% {
-    color: #ff8c42; /* Go back to orange */
-    text-shadow: 0 0 2px #ff8c42, 0 0 1px #ff8c42, 0 0 5px #ff8c42, 0 0 2px #ff8c42;
-  }
+.navbarhome .navbar-brand {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #e50914; /* Netflix red */
+  display: flex;
+  align-items: center;
 }
 
-.navbar-brand {
-  font-size: 1.5rem; /* Increased font size for more impact */
-  font-weight: bold;
-  color: #ff8c42; /* Orange text */
-  font-family: 'Orbitron', sans-serif; /* Orbitron font */
-  animation: ledEffect 5s infinite; /* Apply the animation */
-  border: 1px solid transparent; /* Invisible border for subtle effect */
-  padding: 5px 10px; /* Space for the border effect */
-  position: relative;
-}
-.navbar-brands {
-  font-size: 2.5rem; /* Increased font size for more impact */
-  font-weight: bold;
-  color: #ff8c42; /* Orange text */
-}
-.navbar-brand:hover {
-  color: #ff8c42; /* Keep the same color when hovered */
-  text-shadow: 0 0 5px #ff8c42, 0 0 1px #ff8c42, 0 0 5px #ff8c42, 0 0 2px #ff8c42; /* Subtle glow on hover */
+.navbarhome .navbar-brand i {
+  margin-right: 0.5rem;
+  color: #e50914; /* Netflix red */
 }
 
+.navbarhome .navbar-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.navbarhome .navbar-link {
+  font-size: 0.9rem;
+  color: #e50914; /* Netflix red */
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.navbarhome .navbar-link:hover {
+  color: #b20710; /* Darker Netflix red */
+}
 
 /* Hero Section */
 .hero {
-  background: linear-gradient(135deg, #000, #333); /* Black gradient */
-  color: #fff; /* White text */
-  padding: 4rem 2rem;
-  background-image: url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1600&auto=format&fit=crop&q=60&ixid=rb-4.0.3');  
-  background-size: cover; /* Ensures the image covers the entire element */
-  background-position: center; /* Keeps the focus in the center */
-  background-repeat: no-repeat; /* Prevents repetition */
-  transition: background-image 1s ease-in-out; /* Smooth transition for background image */
+  position: relative;
+  color: #ffffff;
+  padding: 4rem 2rem; /* Reduced padding */
+  background: url('https://images.pexels.com/photos/6694485/pexels-photo-6694485.jpeg?auto=compress&cs=tinysrgb&w=1200') center/cover no-repeat;
+  overflow: hidden;
+  height: 60vh; /* Reduced height */
 }
 
-.hero:hover {
-  background-image: url('https://plus.unsplash.com/premium_photo-1661877737564-3dfd7282efcb?w=1600&auto=format&fit=crop&q=60&ixid=rb-4.0.3');
+.hero .hero-content {
+  max-width: 800px;
+  margin: 0 auto;
+  animation: fadeInUp 1s ease-out;
+  text-align: center; /* Center the content */
 }
 
-.hero:active {
-  background-image: url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1600&auto=format&fit=crop&q=60&ixid=rb-4.0.3');
-}
-
-
-.hero h1 {
-  font-size: 2.5rem;
+.hero h1.curved-heading {
+  font-size: 2.5rem; /* Smaller font size */
   margin-bottom: 1rem;
-  color: #fffc42; /* Orange heading */
-  font-family: 'Georgia', serif; /* New font for hero heading */
+  color: #e50914; /* Netflix red */
+  font-weight: 700;
+  font-style: italic; /* Italic style */
+  letter-spacing: 1px;
+  text-shadow: 0 0 10px rgba(229, 9, 20, 0.3);
+  position: relative;
+  display: inline-block;
+  transform: rotate(-10deg) skew(-10deg); /* Create the "C" shape by skewing */
+  transform-origin: center center; /* Center the transformation */
+}
+
+.hero h1.curved-heading::before {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  width: 150px;
+  height: 2px;
+  background: #e50914;
+  transform: translateX(-50%) rotate(-5deg); /* Subtle curve effect for the line */
 }
 
 .hero h2 {
-  font-size: 2.2rem;
+  font-size: 1.5rem;
   margin-bottom: 1.5rem;
-  color: #49e600; /* Orange subheading */
-  font-family: "Moon Dance", serif;
+  color: #ffffff;
+  font-weight: 600;
+  font-style: italic; /* Italic style */
 }
 
 .hero .intro {
-  font-size: 1.5rem;
-  margin-bottom: 2rem;
-  color:rgb(252, 0, 0); /* Light gray text */
-  font-family: 'Georgia', serif; 
-}
-.attractive-text {
-  font-family: 'Arial', sans-serif; /* Use a modern font */
-  font-size: 0.9rem; /* Slightly larger font size */
-  color: #ffffff; /* Dark gray color for text */
-  display: flex; /* Align icon and text horizontally */
-  align-items: center; /* Center items vertically */
-  gap: 1px; /* Add space between icon and text */
-}
-
-.attractive-text i {
-  color: #007bff; /* Blue color for the icon */
-  font-size: 1.5rem; /* Larger icon size */
-}
-
-.highlight {
-  color: #007bff; /* Blue color for the name */
-  font-weight: bold; /* Make the name bold */
-  text-transform: lowercase; /* Uppercase the name */
-}
-.cta-button {
-  background: #ff8c42; /* Orange button */
-  color: #000; /* Black text */
-  padding: 0.8rem 2rem;
-  border-radius: 5px;
-  text-decoration: none;
   font-size: 1rem;
-  transition: background 0.3s ease;
+  margin-bottom: 2rem;
+  color: #ffffff;
+  font-weight: 300;
+  font-style: italic; /* Italic style */
 }
 
-.cta-button:hover {
-  background: #e67332; /* Darker orange on hover */
+.hero .cta-button {
+  padding: 0.8rem 1.5rem;
+  background-color: #e50914; /* Netflix red */
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.hero .cta-button:hover {
+  background-color: #b20710; /* Darker Netflix red */
 }
 
 /* Features Section */
 .features {
-  padding: 4rem 2rem;
-  background-color: #000; /* Black background */
+  padding: 4rem 2rem; /* Reduced padding */
+  background-color: #1f1f1f; /* Slightly lighter than Netflix dark gray */
+}
+
+.features-title {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: #e5e5e5;
+  font-weight: 700;
 }
 
 .feature-cards {
@@ -173,62 +169,119 @@
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 2rem;
   margin-top: 2rem;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .feature-card {
-  background: #1a1a1a; /* Dark gray background */
+  background-color: #2e2e2e; /* Slightly lighter than Netflix dark gray */
   padding: 2rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s ease;
+  border-radius: 8px;
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
 }
 
 .feature-card:hover {
-  transform: translateY(-10px);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
 }
 
-.feature-icon {
+.feature-card .feature-icon {
   font-size: 2rem;
+  color: #e50914; /* Netflix red */
   margin-bottom: 1rem;
-  color: #ff8c42; /* Orange icon */
 }
 
 .feature-card h3 {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   margin-bottom: 1rem;
-  color: #ff8c42; /* Orange heading */
-  font-family: 'Trebuchet MS', sans-serif; /* New font for feature card heading */
+  color: #e5e5e5;
+  font-weight: 600;
 }
 
 .feature-card p {
-  font-size: 1rem;
-  color: #ccc; /* Light gray text */
+  font-size: 0.9rem;
+  color: #e5e5e5;
+  font-weight: 300;
 }
 
 /* Footer */
 .footer {
-  background-color: #000; /* Black background */
-  color: #fff; /* White text */
-  padding: 2rem;
-  margin-top: 4rem;
-  border-top: 2px solid #ff8c42; /* Orange border */
+  background-color: #141414; /* Netflix dark gray */
+  color: #e5e5e5;
+  padding: 2rem; /* Reduced padding */
+  border-top: 1px solid #e50914; /* Netflix red */
 }
 
 .footer-content {
-  max-width: 1200px;
+  max-width: 1000px;
   margin: 0 auto;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
+  gap: 1rem;
+}
+
+.footer-content .attractive-text {
+  font-size: 0.9rem;
+  color: #e5e5e5;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footer-content .attractive-text i {
+  color: #e50914; /* Netflix red */
+}
+
+.footer-content .highlight {
+  color: #e50914; /* Netflix red */
+  font-weight: 700;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
 }
 
 .footer-links a {
-  color: #ff8c42; /* Orange links */
+  color: #e5e5e5;
   text-decoration: none;
-  margin: 0 1rem;
+  font-weight: 500;
+  font-size: 0.9rem;
   transition: color 0.3s ease;
 }
 
 .footer-links a:hover {
-  color: #e67332; /* Darker orange on hover */
+  color: #b20710; /* Darker Netflix red */
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .hero h1.curved-heading {
+    font-size: 2rem;
+  }
+
+  .hero h2 {
+    font-size: 1.2rem;
+  }
+
+  .hero .intro {
+    font-size: 0.9rem;
+  }
+
+  .feature-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .navbarhome .navbar-brand {
+    font-size: 1rem;
+  }
+
+  .footer-links a {
+    font-size: 0.8rem;
+  }
 }

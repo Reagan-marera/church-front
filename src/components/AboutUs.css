@@ -1,0 +1,215 @@
+.about-us-container {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px;
+    color: #2d3748;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    line-height: 1.6;
+  }
+  
+  .about-us-header {
+    text-align: center;
+    margin-bottom: 40px;
+    position: relative;
+    padding-bottom: 20px;
+  }
+  
+  .about-us-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    border-radius: 2px;
+  }
+  
+  .about-us-section, 
+  .commitment-section, 
+  .objectives-section, 
+  .toolkit-section, 
+  .features-section, 
+  .schools-section, 
+  .public-schools-section, 
+  .fundamental-principles-section, 
+  .accounting-policies-section, 
+  .significant-judgements-section {
+    margin-bottom: 32px;
+    padding: 24px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s ease;
+  }
+  
+  .about-us-section:hover, 
+  .commitment-section:hover, 
+  .objectives-section:hover, 
+  .toolkit-section:hover, 
+  .features-section:hover, 
+  .schools-section:hover, 
+  .public-schools-section:hover, 
+  .fundamental-principles-section:hover, 
+  .accounting-policies-section:hover, 
+  .significant-judgements-section:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.08);
+  }
+  
+  h2 {
+    color: #1e40af;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 8px;
+    margin-bottom: 20px;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    position: relative;
+  }
+  
+  h2::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  }
+  
+  h3 {
+    color: #374151;
+    margin-top: 24px;
+    font-size: 22px;
+    font-weight: 600;
+    position: relative;
+    padding-left: 16px;
+  }
+  
+  h3::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    height: 16px;
+    width: 4px;
+    background: #3b82f6;
+    border-radius: 2px;
+  }
+  
+  h4 {
+    color: #4b5563;
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: 500;
+  }
+  
+  ul {
+    list-style-type: none;
+    margin-left: 0;
+    padding-left: 0;
+  }
+  
+  li {
+    margin-bottom: 12px;
+    padding-left: 24px;
+    position: relative;
+  }
+  
+  li::before {
+    content: '•';
+    color: #3b82f6;
+    font-weight: bold;
+    position: absolute;
+    left: 8px;
+  }
+  
+  .cta-section {
+    text-align: center;
+    margin-top: 40px;
+    padding: 40px;
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    border-radius: 16px;
+    color: white;
+  }
+  
+  .cta-section h2 {
+    color: white;
+    border-bottom: none;
+  }
+  
+  .cta-section h2::after {
+    display: none;
+  }
+  
+  .cta-button {
+    background-color: white;
+    color: #3b82f6;
+    border: none;
+    padding: 14px 32px;
+    margin: 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 180px;
+  }
+  
+  .cta-button:hover {
+    background-color: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 7px 14px rgba(0, 0, 0, 0.15);
+  }
+  
+  .cta-button:active {
+    transform: translateY(0);
+  }
+  
+  /* Animation */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .about-us-section, 
+  .commitment-section, 
+  .objectives-section, 
+  .toolkit-section, 
+  .features-section, 
+  .schools-section, 
+  .public-schools-section, 
+  .fundamental-principles-section, 
+  .accounting-policies-section, 
+  .significant-judgements-section {
+    animation: fadeIn 0.6s ease forwards;
+  }
+  
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .about-us-container {
+      padding: 20px;
+    }
+    
+    h2 {
+      font-size: 24px;
+    }
+    
+    h3 {
+      font-size: 20px;
+    }
+    
+    .cta-button {
+      width: 100%;
+      margin: 8px 0;
+    }
+  }
