@@ -56,7 +56,7 @@ const EstimateTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("http://127.0.0.1:5000/estimates", {
+      const response = await fetch("https://church.boogiecoin.com/estimates", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error(await response.text());
@@ -71,7 +71,7 @@ const EstimateTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("http://127.0.0.1:5000/chart-of-accounts", {
+      const response = await fetch("https://church.boogiecoin.com/chart-of-accounts", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error(await response.text());
@@ -102,7 +102,7 @@ const EstimateTable = () => {
           parseFloat(formData.quantity) *
           parseFloat(formData.current_estimated_price),
       };
-      const response = await fetch("http://127.0.0.1:5000/estimates", {
+      const response = await fetch("https://church.boogiecoin.com/estimates", {
         method: isEditing ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
@@ -144,7 +144,7 @@ const EstimateTable = () => {
       return;
     }
     try {
-      const response = await fetch(`http://127.0.0.1:5000/estimates/${id}`, {
+      const response = await fetch(`https://church.boogiecoin.com/estimates/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -250,7 +250,7 @@ const EstimateTable = () => {
         adjusted_price: adjustments.adjusted_price || estimate.adjusted_price || estimate.current_estimated_price,
       };
 
-      const response = await fetch(`http://127.0.0.1:5000/estimates/${id}`, {
+      const response = await fetch(`https://church.boogiecoin.com/estimates/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

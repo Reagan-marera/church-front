@@ -85,7 +85,7 @@ const BalanceStatementAccounts = () => {
         const token = localStorage.getItem('token');
 
         // Fetch balance statement data
-        const balanceResponse = await fetch('http://127.0.0.1:5000/balance-statement/accounts', {
+        const balanceResponse = await fetch('https://church.boogiecoin.com/balance-statement/accounts', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -101,7 +101,7 @@ const BalanceStatementAccounts = () => {
         setAccountData(balanceData);
 
         // Fetch income statement data
-        const incomeResponse = await fetch('http://127.0.0.1:5000/income-statement/accounts', {
+        const incomeResponse = await fetch('https://church.boogiecoin.com/income-statement/accounts', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,

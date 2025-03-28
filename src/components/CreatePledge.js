@@ -44,7 +44,7 @@ const CreatePledge = () => {
 
   const fetchPledges = async () => {
     const token = localStorage.getItem('token');
-    const response = await fetch('http://localhost:5000/create-pledge', {
+    const response = await fetch('https://church.boogiecoin.com/create-pledge', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -144,7 +144,7 @@ const CreatePledge = () => {
   
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch('http://localhost:5000/make-payment', {
+      const response = await fetch('https://church.boogiecoin.com/make-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

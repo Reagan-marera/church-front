@@ -20,7 +20,7 @@ const ExpenseTransactions = ({ startDate, endDate }) => {
         if (startDate) queryParams.append('start_date', startDate);
         if (endDate) queryParams.append('end_date', endDate);
 
-        const response = await fetch(`http://127.0.0.1:5000/expensetransactions?${queryParams.toString()}`, {
+        const response = await fetch(`https://church.boogiecoin.com/expensetransactions?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -34,52 +34,43 @@ const ExpenseTransactions = ({ startDate, endDate }) => {
 
         const data = await response.json();
 
+        // Log the data for debugging
+        console.log('API Response:', data);
+
+        // Validate the response
+        if (!data || Object.keys(data).length === 0) {
+          throw new Error('No data available.');
+        }
+
         // Normalize and combine data
         const normalizedData = [
-          ...data.cash_disbursements.map((cd) => {
-            const accountNameWithCode = cd.account_debited?.trim() || 'N/A';
+          ...(data.transactions ?? []).map((txn) => {
+            // Handle account_name, which can be a string or an array of objects
+            const accountName =
+              typeof txn.account_name === 'string'
+                ? txn.account_name.trim()
+                : Array.isArray(txn.account_name) && txn.account_name.length > 0
+                ? txn.account_name[0].name.trim()
+                : 'N/A';
+
+            // Determine DR and CR amounts based on transaction type
+            const debitedAmount = txn.type === 'Cash Disbursement' || txn.type === 'Invoice Received'
+              ? Number(txn.dr_amount) || 0
+              : 0;
+            const creditedAmount = txn.type === 'Transaction'
+              ? Number(txn.cr_amount) || 0
+              : 0;
 
             return {
-              type: 'Cash Disbursement',
-              date: cd.disbursement_date,
-              reference: cd.cheque_no || 'N/A',
-              from: cd.to_whom_paid || 'N/A',
-              description: cd.description || 'No description',
-              debited_amount: Number(cd.total) || 0,
-              credited_amount: 0,
-              parent_account: cd.parent_account?.trim() || 'N/A',
-              account_name: accountNameWithCode,
-            };
-          }),
-          ...data.invoices_received.flatMap((inv) =>
-            inv.account_debited?.map((account) => ({
-              type: 'Invoice Received',
-              date: inv.date_issued,
-              reference: inv.invoice_number || 'N/A',
-              from: inv.name || 'N/A',
-              description: inv.description || 'No description',
-              debited_amount: Number(account.amount) || 0,
-              credited_amount: 0,
-              parent_account: inv.parent_account?.trim() || 'N/A',
-              account_name: account.name || 'N/A',
-            })) || []
-          ),
-          ...data.transactions.map((txn) => {
-            const isAssetAccount =
-              txn.debited_account_name && /^1[1-9]\d{2}/.test(txn.debited_account_name.split('-')[0].trim());
-            const isLiabilityAccount =
-              txn.credited_account_name && /^1[1-9]\d{2}/.test(txn.credited_account_name.split('-')[0].trim());
-
-            return {
-              type: 'Transaction',
-              date: txn.date_issued,
-              reference: txn.id || 'N/A',
-              from: txn.debited_account_name || txn.credited_account_name || 'N/A',
-              description: txn.description || 'No description',
-              debited_amount: isAssetAccount ? Number(txn.amount_debited) || 0 : 0,
-              credited_amount: isLiabilityAccount ? Number(txn.amount_credited) || 0 : 0,
+              type: txn.type,
+              date: txn.date,
+              reference: txn.reference || 'N/A',
+              from: txn.from || 'N/A',
+              description: txn.description?.trim() || 'No description',
+              debited_amount: debitedAmount,
+              credited_amount: creditedAmount,
               parent_account: txn.parent_account?.trim() || 'N/A',
-              account_name: '',
+              account_name: accountName,
             };
           }),
         ];
