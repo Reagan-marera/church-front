@@ -41,7 +41,7 @@ const MemberInfo = () => {
   const fetchMemberInfo = async (username) => {
     try {
       setLoading(true);  // Start loading
-      const response = await fetch(`https://church.boogiecoin.com/member/${username}`, {
+      const response = await fetch(`http://127.0.0.1:5000/member/${username}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`  // Ensure authorization token is sent

@@ -47,9 +47,9 @@ const AccountSelection = () => {
 
       const headers = { Authorization: `Bearer ${token}` };
 
-      const chartOfAccountsResponse = await fetch('https://church.boogiecoin.com/chart-of-accounts', { headers });
-      const customersResponse = await fetch('https://church.boogiecoin.com/customer', { headers });
-      const payeesResponse = await fetch('https://church.boogiecoin.com/payee', { headers });
+      const chartOfAccountsResponse = await fetch('http://127.0.0.1:5000/chart-of-accounts', { headers });
+      const customersResponse = await fetch('http://127.0.0.1:5000/customer', { headers });
+      const payeesResponse = await fetch('http://127.0.0.1:5000/payee', { headers });
 
       if (!chartOfAccountsResponse.ok || !customersResponse.ok || !payeesResponse.ok) {
         throw new Error('Failed to fetch data');
@@ -88,7 +88,7 @@ const AccountSelection = () => {
       );
       setAccountOptions(options);
 
-      const transactionsResponse = await fetch('https://church.boogiecoin.com/get-transactions', { headers });
+      const transactionsResponse = await fetch('http://127.0.0.1:5000/get-transactions', { headers });
       const data = await transactionsResponse.json();
 
       const validTransactions = Array.isArray(data.transactions) ? data.transactions.filter(t => t) : [];
@@ -175,8 +175,8 @@ const AccountSelection = () => {
 
     try {
       const response = await fetch(isEditing
-        ? `https://church.boogiecoin.com/update-transaction/${currentTransactionId}`
-        : 'https://church.boogiecoin.com/submit-transaction', {
+        ? `http://127.0.0.1:5000/update-transaction/${currentTransactionId}`
+        : 'http://127.0.0.1:5000/submit-transaction', {
         method: isEditing ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,7 +203,7 @@ const AccountSelection = () => {
 
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(`https://church.boogiecoin.com/delete-transaction/${id}`, {
+      const response = await fetch(`http://127.0.0.1:5000/delete-transaction/${id}`, {
         method: 'DELETE',
       });
 

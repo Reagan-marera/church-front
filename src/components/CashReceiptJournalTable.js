@@ -99,7 +99,7 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("https://church.boogiecoin.com/invoices", {
+      const response = await fetch("z/invoices", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error(await response.text());
@@ -114,7 +114,7 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("https://church.boogiecoin.com/cash-receipt-journals", {
+      const response = await fetch("http://127.0.0.1:5000/cash-receipt-journals", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error(await response.text());
@@ -135,7 +135,7 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("https://church.boogiecoin.com/chart-of-accounts", {
+      const response = await fetch("http://127.0.0.1:5000/chart-of-accounts", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error(await response.text());
@@ -150,7 +150,7 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("https://church.boogiecoin.com/customer", {
+      const response = await fetch("http://127.0.0.1:5000/customer", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) throw new Error(await response.text());
@@ -318,7 +318,7 @@ const CashReceiptJournalTable = () => {
       };
 
       if (isEditing && editingData) {
-        const response = await fetch(`https://church.boogiecoin.com/cash-receipt-journals/${editingData.id}`, {
+        const response = await fetch(`http://127.0.0.1:5000/cash-receipt-journals/${editingData.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -342,7 +342,7 @@ const CashReceiptJournalTable = () => {
         });
 
         for (const payload of payloads) {
-          const response = await fetch("https://church.boogiecoin.com/cash-receipt-journals", {
+          const response = await fetch("http://127.0.0.1:5000/cash-receipt-journals", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -394,7 +394,7 @@ const CashReceiptJournalTable = () => {
       return;
     }
     try {
-      const response = await fetch(`https://church.boogiecoin.com/cash-receipt-journals/${id}`, {
+      const response = await fetch(`http://127.0.0.1:5000/cash-receipt-journals/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -499,7 +499,7 @@ const CashReceiptJournalTable = () => {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("User is not authenticated");
         const response = await fetch(
-          `https://church.boogiecoin.com/invoices?name=${encodeURIComponent(customerName)}`,
+          `z/invoices?name=${encodeURIComponent(customerName)}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

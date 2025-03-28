@@ -86,8 +86,8 @@ const PayeeList = () => {
     }
 
     const url = editingAccountId
-      ? `https://church.boogiecoin.com/payee/${editingAccountId}`
-      : 'https://church.boogiecoin.com/payee';
+      ? `http://127.0.0.1:5000/payee/${editingAccountId}`
+      : 'http://127.0.0.1:5000/payee';
 
     const method = editingAccountId ? 'PUT' : 'POST';
 
@@ -131,7 +131,7 @@ const PayeeList = () => {
     }
 
     try {
-      const response = await fetch('https://church.boogiecoin.com/payee', {
+      const response = await fetch('http://127.0.0.1:5000/payee', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -177,7 +177,7 @@ const PayeeList = () => {
     }
 
     try {
-      const response = await fetch(`https://church.boogiecoin.com/payee/${accountId}`, {
+      const response = await fetch(`http://127.0.0.1:5000/payee/${accountId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

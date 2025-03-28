@@ -23,7 +23,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
     };
 
     try {
-      const response = await fetch('https://church.boogiecoin.com/login', {
+      const response = await fetch('http://127.0.0.1:5000/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
     }
 
     try {
-      const response = await fetch('https://church.boogiecoin.com/request_reset_password', {
+      const response = await fetch('http://127.0.0.1:5000/request_reset_password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -97,7 +97,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
     }
 
     try {
-      const response = await fetch('https://church.boogiecoin.com/verify_otp', {
+      const response = await fetch('http://127.0.0.1:5000/verify_otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),
@@ -128,7 +128,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
     }
 
     try {
-      const response = await fetch('https://church.boogiecoin.com/reset_password', {
+      const response = await fetch('http://127.0.0.1:5000/reset_password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp, new_password: newPassword }),
@@ -205,6 +205,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
             onChange={(e) => setOtp(e.target.value)}
             style={styles.input}
           />
+          <button onClick={handleOtpVerificationSubmit} style={styles.button}>Verify OTP</button>
         </div>
       )}
 

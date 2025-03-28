@@ -36,7 +36,7 @@ const Dashboard = () => {
   const getTransactions = async () => {
     setLoadingTransactions(true);
     try {
-      const response = await fetch('https://church.boogiecoin.com/transactions', {
+      const response = await fetch('htps://finance.boogiecoin.com/transactions', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

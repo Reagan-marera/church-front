@@ -1,5 +1,6 @@
 import React from 'react';
 import './AboutUs.css'; // Assuming you have a CSS file for styling
+import ContactUs from './ContactUs'; // Import the ContactUs component
 
 const AboutUs = () => {
   return (
@@ -256,9 +257,8 @@ const AboutUs = () => {
         </p>
       </section>
       <section className="cta-section">
-        <button className="cta-button">Learn More</button>
-        <button className="cta-button">Contact Us</button>
       </section>
+      <ContactUs /> {/* Include the ContactUs component here */}
     </div>
   );
 };

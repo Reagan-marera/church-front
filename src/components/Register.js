@@ -44,7 +44,7 @@ const Register = () => {
     console.log('Sending user data:', userData);  // Log the data for debugging
   
     try {
-      const response = await fetch('https://church.boogiecoin.com/register', {
+      const response = await fetch('http://127.0.0.1:5000/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -112,7 +112,13 @@ const Register = () => {
             style={styles.input}
           />
         </div>
-      
+        <div style={styles.formGroup}>
+          <label>Role:</label>
+          <select value={role} onChange={(e) => setRole(e.target.value)} style={styles.select}>
+            <option value="Church CEO">Church Exucutive</option>
+            <option value="Member">church Member</option>
+          </select>
+        </div>
 
         {role === 'Church CEO' && (
           <div>

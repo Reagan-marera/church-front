@@ -19,7 +19,7 @@ const RevenueTransactions = ({ startDate, endDate }) => {
         if (startDate) queryParams.append('start_date', startDate);
         if (endDate) queryParams.append('end_date', endDate);
 
-        const response = await fetch(`https://church.boogiecoin.com/revenuetransactions?${queryParams.toString()}`, {
+        const response = await fetch(`http://127.0.0.1:5000/revenuetransactions?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

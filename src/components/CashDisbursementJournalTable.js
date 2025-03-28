@@ -81,28 +81,28 @@ const DisbursementForm = () => {
         return;
       }
       try {
-        const coaResponse = await fetch("https://church.boogiecoin.com/chart-of-accounts", {
+        const coaResponse = await fetch("http://127.0.0.1:5000/chart-of-accounts", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!coaResponse.ok) throw new Error("Failed to fetch COA(token expired).");
         const coaData = await coaResponse.json();
         setCoaAccounts(coaData);
 
-        const payeesResponse = await fetch("https://church.boogiecoin.com/payee", {
+        const payeesResponse = await fetch("http://127.0.0.1:5000/payee", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!payeesResponse.ok) throw new Error("Failed to fetch payees.");
         const payeesData = await payeesResponse.json();
         setPayees(payeesData);
 
-        const invoicesResponse = await fetch("https://church.boogiecoin.com/invoice-received", {
+        const invoicesResponse = await fetch("http://127.0.0.1:5000/invoice-received", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!invoicesResponse.ok) throw new Error("Failed to fetch invoices.");
         const invoicesData = await invoicesResponse.json();
         setInvoices(invoicesData);
 
-        const disbursementsResponse = await fetch("https://church.boogiecoin.com/cash-disbursement-journals", {
+        const disbursementsResponse = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
@@ -192,7 +192,7 @@ const DisbursementForm = () => {
       let response;
       if (editingDisbursement) {
         // Update existing entry using PUT method
-        response = await fetch(`https://church.boogiecoin.com/cash-disbursement-journals/${editingDisbursement.id}`, {
+        response = await fetch(`http://127.0.0.1:5000/cash-disbursement-journals/${editingDisbursement.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -202,7 +202,7 @@ const DisbursementForm = () => {
         });
       } else {
         // Add new entry using POST method
-        response = await fetch("https://church.boogiecoin.com/cash-disbursement-journals", {
+        response = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -218,7 +218,7 @@ const DisbursementForm = () => {
       }
 
       // Fetch updated disbursements data
-      const disbursementsResponse = await fetch("https://church.boogiecoin.com/cash-disbursement-journals", {
+      const disbursementsResponse = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
@@ -259,7 +259,7 @@ const DisbursementForm = () => {
       return;
     }
     try {
-      const response = await fetch(`https://church.boogiecoin.com/cash-disbursement-journals/${id}`, {
+      const response = await fetch(`http://127.0.0.1:5000/cash-disbursement-journals/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -269,7 +269,7 @@ const DisbursementForm = () => {
         const errorText = await response.text();
         throw new Error(errorText);
       }
-      const disbursementsResponse = await fetch("https://church.boogiecoin.com/cash-disbursement-journals", {
+      const disbursementsResponse = await fetch("http://127.0.0.1:5000/cash-disbursement-journals", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
