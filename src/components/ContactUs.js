@@ -28,7 +28,7 @@ const ContactUs = () => {
           We'd love to hear from you! Whether you have a question about our services, want to provide feedback, or just want to say hello, feel free to reach out to us using the contact information below.
         </p>
         <div className="contact-info">
-          <p><FaEnvelope /> Email: contact@youmingtechnologies.com</p>
+          <p><FaEnvelope /> Email:youmingtechnologies@gmail.com</p>
           <p><FaPhone /> Phone: +254 783 001 125</p>
         </div>
         <div className="social-media-icons">

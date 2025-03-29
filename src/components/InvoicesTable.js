@@ -64,7 +64,7 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/invoices", {
+      const response = await fetch("https://church.boogiecoin.com/invoices", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -94,7 +94,7 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/customer", {
+      const response = await fetch("https://church.boogiecoin.com/customer", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -124,7 +124,7 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/chart-of-accounts", {
+      const response = await fetch("https://church.boogiecoin.com/chart-of-accounts", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -221,8 +221,8 @@ const InvoiceIssued = () => {
 
       try {
         const url = isEditing
-          ? `http://127.0.0.1:5000/invoices/${editingInvoiceId}`
-          : "http://127.0.0.1:5000/invoices";
+          ? `https://church.boogiecoin.com/invoices/${editingInvoiceId}`
+          : "https://church.boogiecoin.com/invoices";
         const method = isEditing ? "PUT" : "POST";
 
         const response = await fetch(url, {
@@ -278,7 +278,7 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/invoices/${id}`, {
+      const response = await fetch(`https://church.boogiecoin.com/invoices/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -304,7 +304,7 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch(`http://127.0.0.1:5000/invoices/${id}/post`, {
+      const response = await fetch(`https://church.boogiecoin.com/invoices/${id}/post`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

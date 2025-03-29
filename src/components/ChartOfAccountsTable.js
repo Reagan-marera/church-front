@@ -87,7 +87,7 @@ const ChartOfAccountsTable = () => {
 
     const url = editingAccountId
       ? `zz/chart-of-accounts/${editingAccountId}`
-      : 'http://127.0.0.1:5000/chart-of-accounts';
+      : 'https://church.boogiecoin.com/chart-of-accounts';
 
     const method = editingAccountId ? 'PUT' : 'POST';
 
@@ -131,7 +131,7 @@ const ChartOfAccountsTable = () => {
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/chart-of-accounts', {
+      const response = await fetch('https://church.boogiecoin.com/chart-of-accounts', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -177,7 +177,7 @@ const ChartOfAccountsTable = () => {
     }
 
     try {
-      const response = await fetch(`zz/chart-of-accounts/${accountId}`, {
+      const response = await fetch(`https://church.boogiecoin.com/chart-of-accounts/${accountId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
