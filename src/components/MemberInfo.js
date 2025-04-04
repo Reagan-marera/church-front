@@ -41,7 +41,7 @@ const MemberInfo = () => {
   const fetchMemberInfo = async (username) => {
     try {
       setLoading(true);  // Start loading
-      const response = await fetch(`https://church.boogiecoin.com/member/${username}`, {
+      const response = await fetch(`https://yoming.boogiecoin.com/member/${username}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`  // Ensure authorization token is sent
@@ -62,39 +62,29 @@ const MemberInfo = () => {
 
   return (
     <div style={styles.container}>
-      <h2>Member Information</h2>
-      {loading && <p>Loading...</p>}
+      <h2 style={styles.header}>Member Information</h2>
+      {loading && <p style={styles.loading}>Loading...</p>}
       {errorMessage && <p style={styles.error}>{errorMessage}</p>}
       {memberInfo ? (
         <div>
           {/* Check if we have a list of all members or just a single member */}
           {Array.isArray(memberInfo) ? (
             <div>
-              <h3>All Members Information</h3>
+              <h3 style={styles.subHeader}>All Members Information</h3>
               {memberInfo.map((member, index) => (
-                <div key={index}>
-                  <p><strong>Username:</strong> {member.username}</p>
-                  <p><strong>Email:</strong> {member.email}</p>
-                  <p><strong>Role:</strong> {member.role}</p>
-                  <p><strong>Residence:</strong> {member.residence}</p>
-                  <p><strong>Phone Number:</strong> {member.phone_number}</p>
-                  <p><strong>Occupation:</strong> {member.occupation}</p>
-                  <p><strong>Member Number:</strong> {member.member_number}</p>
-                  <p><strong>Church Name:</strong> {member.church_name}</p>
-                  <hr />
+                <div key={index} style={styles.memberCard}>
+                  <p style={styles.memberText}><strong>Username:</strong> {member.username}</p>
+                  <p style={styles.memberText}><strong>Email:</strong> {member.email}</p>
+                  <p style={styles.memberText}><strong>Role:</strong> {member.role}</p>
+                  <hr style={styles.hr} />
                 </div>
               ))}
             </div>
           ) : (
-            <div>
-              <p><strong>Username:</strong> {memberInfo.username}</p>
-              <p><strong>Email:</strong> {memberInfo.email}</p>
-              <p><strong>Role:</strong> {memberInfo.role}</p>
-              <p><strong>Residence:</strong> {memberInfo.residence}</p>
-              <p><strong>Phone Number:</strong> {memberInfo.phone_number}</p>
-              <p><strong>Occupation:</strong> {memberInfo.occupation}</p>
-              <p><strong>Member Number:</strong> {memberInfo.member_number}</p>
-              <p><strong>Church Branch:</strong> {memberInfo.church_name}</p>
+            <div style={styles.memberCard}>
+              <p style={styles.memberText}><strong>Username:</strong> {memberInfo.username}</p>
+              <p style={styles.memberText}><strong>Email:</strong> {memberInfo.email}</p>
+              <p style={styles.memberText}><strong>Role:</strong> {memberInfo.role}</p>
             </div>
           )}
         </div>
@@ -105,17 +95,53 @@ const MemberInfo = () => {
 
 const styles = {
   container: {
-    maxWidth: '600px',
+    maxWidth: '700px',
     margin: '50px auto',
     padding: '20px',
-    backgroundColor: '#f8f9fa',
-    borderRadius: '10px',
-    boxShadow: '0 10px 20px rgba(0, 0, 0, 0.1)',
+    backgroundColor: '#000',  // Black background
+    borderRadius: '12px',
+    boxShadow: '0 15px 30px rgba(0, 0, 0, 0.6)',
+    color: '#e50914',  // Red text color for contrast
+  },
+  header: {
+    fontSize: '2rem',
+    color: '#e50914',  // Red color for the header
+    marginBottom: '20px',
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  subHeader: {
+    fontSize: '1.5rem',
+    color: '#e50914',  // Red color for subheader
+    marginBottom: '15px',
+    fontWeight: '600',
   },
   error: {
-    color: '#e74c3c',
+    color: '#e50914',  // Red color for error message
     fontSize: '1rem',
     marginTop: '10px',
+    textAlign: 'center',
+  },
+  loading: {
+    color: '#fff',  // White loading text on black background
+    fontSize: '1.2rem',
+    textAlign: 'center',
+  },
+  memberCard: {
+    backgroundColor: '#000',  // Black background for member cards
+    borderRadius: '8px',
+    padding: '15px',
+    marginBottom: '15px',
+    boxShadow: '0 5px 10px rgba(0, 0, 0, 0.6)',
+  },
+  memberText: {
+    fontSize: '1rem',
+    marginBottom: '10px',
+    color: '#e50914',  // Red text for member details
+  },
+  hr: {
+    borderColor: '#e50914',  // Red color for horizontal rule
+    marginTop: '15px',
   },
 };
 

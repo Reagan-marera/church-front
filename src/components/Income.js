@@ -9,7 +9,7 @@ const IncomeStatement = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('https://church.boogiecoin.com/income-statement/accounts', {
+        const response = await fetch('https://yoming.boogiecoin.com/income-statement/accounts', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

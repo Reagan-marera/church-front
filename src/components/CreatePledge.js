@@ -77,7 +77,7 @@ const CreatePledge = () => {
     }
   
     const token = localStorage.getItem('token');
-    const response = await fetch('https://church.boogiecoin.com/create-pledge', {
+    const response = await fetch('https://yoming.boogiecoin.com/create-pledge', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ const CreatePledge = () => {
     }
 
     try {
-      const response = await fetch(`https://church.boogiecoin.com/delete-pledge/${pledgeId}`, {
+      const response = await fetch(`https://yoming.boogiecoin.com/delete-pledge/${pledgeId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

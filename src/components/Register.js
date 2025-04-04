@@ -5,53 +5,34 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('User');
-  const [churchName, setChurchName] = useState('');
-  const [residence, setResidence] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [occupation, setOccupation] = useState('');
-  const [memberNumber, setMemberNumber] = useState('');
-  const [churchData, setChurchData] = useState({ name: '', address: '', phoneNumber: '', churchEmail: '' });
+  const [secretCode, setSecretCode] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => { 
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
-  
+
     const userData = {
       username,
       email,
       password,
       role,
-      church: role === 'Church CEO' ? {
-        name: churchData.name,  
-        address: churchData.address,  
-        phone_number: churchData.phoneNumber,  
-        email: churchData.churchEmail  
-      } : undefined,
-  
-      
-      ...(role === 'Member' && {
-        residence,
-        phone_number: phoneNumber,
-        occupation,
-        member_number: memberNumber,
-        church_name: churchName,
-      })
+      ...(role === 'CEO' && { secret_code: secretCode })
     };
-  
+
     console.log('Sending user data:', userData);  // Log the data for debugging
-  
+
     try {
-      const response = await fetch('https://church.boogiecoin.com/register', {
+      const response = await fetch('https://yoming.boogiecoin.com/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(userData),
       });
-  
+
       if (response.ok) {
         setSuccessMessage('User registered successfully');
         // Reset the form fields after successful registration
@@ -59,25 +40,17 @@ const Register = () => {
         setEmail('');
         setPassword('');
         setRole('User');
-        setChurchName('');
-        setResidence('');
-        setPhoneNumber('');
-        setOccupation('');
-        setMemberNumber('');
-        setChurchData({ name: '', address: '', phoneNumber: '', churchEmail: '' });
+        setSecretCode('');
       } else {
         const data = await response.json();
         setErrorMessage(data.error || 'Registration failed');
-        console.log('Sending user data:', userData);  // Log the user data before sending
-
       }
     } catch (error) {
       console.error('Error:', error);
       setErrorMessage('Error in registering');
     }
   };
-  
-  
+
   return (
     <div style={styles.container}>
       <h2 style={styles.heading}>Register</h2>
@@ -115,116 +88,23 @@ const Register = () => {
         <div style={styles.formGroup}>
           <label>Role:</label>
           <select value={role} onChange={(e) => setRole(e.target.value)} style={styles.select}>
-            <option value="Church CEO">Church Exucutive</option>
-            <option value="Member">church Member</option>
+            <option value="User">User</option>
+            <option value="CEO">CEO</option>
           </select>
         </div>
 
-        {role === 'Church CEO' && (
-          <div>
-            <h3>Church Information</h3>
-            <div style={styles.formGroup}>
-  <label>Church Name:</label>
-  <input
-    type="text"
-    value={churchData.name}
-    onChange={(e) =>
-      setChurchData({ ...churchData, name: e.target.value.toLowerCase() })  // Convert to lowercase
-    }
-    required
-    style={styles.input}
-  />
-</div>
-
-            <div style={styles.formGroup}>
-              <label>Church Address:</label>
-              <input
-                type="text"
-                value={churchData.address}
-                onChange={(e) => setChurchData({ ...churchData, address: e.target.value })}
-                required
-                style={styles.input}
-              />
-            </div>
-            <div style={styles.formGroup}>
-              <label>Church Phone Number:</label>
-              <input
-                type="text"
-                value={churchData.phoneNumber}
-                onChange={(e) => setChurchData({ ...churchData, phoneNumber: e.target.value })}
-                required
-                style={styles.input}
-              />
-            </div>
-            <div style={styles.formGroup}>
-              <label>Church Email:</label>
-              <input
-                type="email"
-                value={churchData.churchEmail}
-                onChange={(e) => setChurchData({ ...churchData, churchEmail: e.target.value })}
-                required
-                style={styles.input}
-              />
-            </div>
+        {role === 'CEO' && (
+          <div style={styles.formGroup}>
+            <label>Secret Code:</label>
+            <input
+              type="password"
+              value={secretCode}
+              onChange={(e) => setSecretCode(e.target.value)}
+              required
+              style={styles.input}
+            />
           </div>
         )}
-
-{role === 'Member' && (
-  <>
-    <div style={styles.formGroup}>
-      <label>Residence:</label>
-      <input
-        type="text"
-        value={residence}
-        onChange={(e) => setResidence(e.target.value)}
-        required
-        style={styles.input}
-      />
-    </div>
-    <div style={styles.formGroup}>
-      <label>Phone Number:</label>
-      <input
-        type="text"
-        value={phoneNumber}
-        onChange={(e) => setPhoneNumber(e.target.value)}
-        required
-        style={styles.input}
-      />
-    </div>
-    <div style={styles.formGroup}>
-      <label>Occupation:</label>
-      <input
-        type="text"
-        value={occupation}
-        onChange={(e) => setOccupation(e.target.value)}
-        required
-        style={styles.input}
-      />
-    </div>
-    <div style={styles.formGroup}>
-      <label>Member Number:</label>
-      <input
-        type="text"
-        value={memberNumber}
-        onChange={(e) => setMemberNumber(e.target.value)}
-        required
-        style={styles.input}
-      />
-    </div>
-    <div style={styles.formGroup}>
-  <label>Church Name:</label>
-  <input
-    type="text"
-    value={churchName}
-    onChange={(e) => setChurchName(e.target.value.toLowerCase())} 
-    required
-    style={styles.input}
-  />
-</div>
-
-  </>
-)}
-
 
         {errorMessage && <p style={styles.error}>{errorMessage}</p>}
         {successMessage && <p style={styles.success}>{successMessage}</p>}

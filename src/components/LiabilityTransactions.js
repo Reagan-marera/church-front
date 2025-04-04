@@ -20,7 +20,7 @@ const LiabilityTransactions = ({ startDate, endDate }) => {
         if (startDate) queryParams.append('start_date', startDate);
         if (endDate) queryParams.append('end_date', endDate);
 
-        const response = await fetch(`https://church.boogiecoin.com/liabilitytransactions?${queryParams.toString()}`, {
+        const response = await fetch(`https://yoming.boogiecoin.com/liabilitytransactions?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,

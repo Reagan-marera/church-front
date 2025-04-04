@@ -62,7 +62,7 @@ const InvoiceReceived = () => {
     }
 
     try {
-      const response = await fetch("https://church.boogiecoin.com/invoice-received", {
+      const response = await fetch("https://yoming.boogiecoin.com/invoice-received", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -92,7 +92,7 @@ const InvoiceReceived = () => {
     }
 
     try {
-      const response = await fetch("https://church.boogiecoin.com/payee", {
+      const response = await fetch("https://yoming.boogiecoin.com/payee", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -119,7 +119,7 @@ const InvoiceReceived = () => {
     }
 
     try {
-      const response = await fetch("https://church.boogiecoin.com/chart-of-accounts", {
+      const response = await fetch("https://yoming.boogiecoin.com/chart-of-accounts", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

@@ -18,7 +18,7 @@ const AccountsTransactions = () => {
       }
 
       try {
-        const response = await fetch('https://church.boogiecoin.com/transactions/accounts', {
+        const response = await fetch('https://yoming.boogiecoin.com/transactions/accounts', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -96,33 +96,42 @@ const AccountsTransactions = () => {
             </tr>
           </thead>
           <tbody>
-            {Object.entries(transactions).map(([parentAccount, { accounts, total }], index) => (
-              <React.Fragment key={index}>
-                <tr className="group-header">
-                  <td>{parentAccount}</td>
-                  <td></td>
-                  <td colSpan="2"></td>
-                </tr>
-                {accounts && accounts.length > 0 ? (
-                  accounts.map((account, idx) => (
-                    <tr key={idx}>
-                      <td></td>
-                      <td>{account.note_number || 'N/A'}</td>
-                      <td>{account.account}</td>
-                      <td>{formatCurrency(account.balance)}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4">No accounts available for this parent.</td>
+            {Object.entries(transactions).map(([parentAccount, { accounts, total }], index) => {
+              // Filter out accounts with "N/A" or missing note_number
+              const filteredAccounts = accounts.filter(
+                (account) => account.note_number && account.note_number !== 'N/A'
+              );
+
+              return (
+                <React.Fragment key={index}>
+                  <tr className="group-header">
+                    <td>{parentAccount}</td>
+                    <td></td>
+                    <td colSpan="2"></td>
                   </tr>
-                )}
-                <tr className="group-total">
-                  <td colSpan="3" style={{ color: 'orange' }}>Total for {parentAccount}</td>
-                 <i><td style={{ color: 'orange' }}>{formatCurrency(total)}</td></i> 
-                </tr>
-              </React.Fragment>
-            ))}
+                  {filteredAccounts.length > 0 ? (
+                    filteredAccounts.map((account, idx) => (
+                      <tr key={idx}>
+                        <td></td>
+                        <td>{account.note_number}</td>
+                        <td>{account.account}</td>
+                        <td>{formatCurrency(account.balance)}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4">No valid accounts available for this parent.</td>
+                    </tr>
+                  )}
+                  <tr className="group-total">
+                    <td colSpan="3" style={{ color: 'orange' }}>
+                      Total for {parentAccount}
+                    </td>
+                    <td style={{ color: 'orange' }}>{formatCurrency(total)}</td>
+                  </tr>
+                </React.Fragment>
+              );
+            })}
           </tbody>
         </table>
       )}

@@ -18,7 +18,27 @@
   height: 100vh;
   background-color: #141414; /* Netflix dark gray */
 }
+.company-name {
+  font-family: 'Arial', sans-serif; /* Set a clean, modern font */
+  font-size: 24px; /* Adjust the font size */
+  font-weight: bold; /* Make the text bold */
+  font-style: italic; /* Add italic styling */
+  color: #ffffff; /* Set the text color to white for contrast */
+  letter-spacing: 1px; /* Slightly increase the space between letters */
+  text-transform: uppercase; /* Make all text uppercase */
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3); /* Add a subtle text shadow */
+  padding: 5px 10px; /* Add padding around the text */
+  background-color: #be0808; /* Netflix-inspired red background */
+  border-radius: 8px; /* Round the corners */
+  display: inline-block; /* Ensure it behaves like a block element but stays inline */
+  transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transitions */
+  transform: skewX(-10deg); /* Add a subtle slant for a "kinda italic" effect */
+}
 
+.company-name:hover {
+  background-color: #9e0707; /* Darker red on hover */
+  color: #ffffff; /* Keep text white on hover */
+}
 .loader .spinner-icon {
   font-size: 3rem; /* Smaller size */
   animation: spin 1s linear infinite;
@@ -42,9 +62,9 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background-color: #141414;
+  background-color: #ecc7c7;
   border-bottom: 1px solid #e50914; /* Netflix red */
-  position: sticky;
+  position: relative;
   top: 0;
   z-index: 1000;
 }

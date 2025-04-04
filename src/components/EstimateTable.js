@@ -58,7 +58,7 @@ const EstimateTable = () => {
       if (!token) throw new Error("User is not authenticated");
 
       // Updated endpoint to match the backend route
-      const response = await fetch("https://church.boogiecoin.com/estimates", {
+      const response = await fetch("https://yoming.boogiecoin.com/estimates", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -79,7 +79,7 @@ const EstimateTable = () => {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
 
-      const response = await fetch("https://church.boogiecoin.com/chart-of-accounts", {
+      const response = await fetch("https://yoming.boogiecoin.com/chart-of-accounts", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -117,7 +117,7 @@ const EstimateTable = () => {
           parseFloat(formData.current_estimated_price),
       };
 
-      const response = await fetch("https://church.boogiecoin.com/estimates", {
+      const response = await fetch("https://yoming.boogiecoin.com/estimates", {
         method: isEditing ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
@@ -163,7 +163,7 @@ const EstimateTable = () => {
     }
 
     try {
-      const response = await fetch(`https://church.boogiecoin.com/estimates/${id}`, {
+      const response = await fetch(`https://yoming.boogiecoin.com/estimates/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -269,7 +269,7 @@ const EstimateTable = () => {
           adjustments.adjusted_price || estimate.adjusted_price || estimate.current_estimated_price,
       };
 
-      const response = await fetch(`https://church.boogiecoin.com/estimates/${id}`, {
+      const response = await fetch(`https://yoming.boogiecoin.com/estimates/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

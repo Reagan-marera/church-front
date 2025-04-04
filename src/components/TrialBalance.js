@@ -10,7 +10,7 @@ const TrialBalance = () => {
   const fetchTrialBalance = async () => {
     try {
       const token = localStorage.getItem('token'); // Retrieve auth token (if required)
-      const response = await fetch('https://church.boogiecoin.com/trial-balance', {
+      const response = await fetch('https://yoming.boogiecoin.com/trial-balance', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`, // Include token if authentication is required

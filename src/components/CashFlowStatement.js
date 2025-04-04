@@ -13,7 +13,7 @@ const CashFlowStatement = () => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('https://church.boogiecoin.com/cash-flow', {
+        const response = await fetch('https://yoming.boogiecoin.com/cash-flow', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

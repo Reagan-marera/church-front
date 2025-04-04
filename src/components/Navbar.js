@@ -11,6 +11,7 @@ import {
   FaUserPlus,
   FaSignInAlt,
   FaSignOutAlt,
+  FaTachometerAlt, // Icon for the dashboard
 } from "react-icons/fa"; // Icons for the navbar
 import "./Navbar.css"; // Importing the CSS file
 
@@ -42,6 +43,13 @@ const Navbar = () => {
         <li>
           <Link to="/" className="nav-link">
             <FaHome className="nav-icon" /> Home
+          </Link>
+        </li>
+
+        {/* Dashboard Link */}
+        <li>
+          <Link to="/dashboard" className="nav-link">
+            <FaTachometerAlt className="nav-icon" /> Dashboard
           </Link>
         </li>
 
@@ -86,11 +94,11 @@ const Navbar = () => {
           </span>
           {showTransactions && (
             <ul className="dropdown-menu">
-                 <li>
-                  <Link to="/general-journal" className="dropdown-link">
-                    <FaBook className="dropdown-icon" /> General Journal
-                  </Link>
-                </li>
+              <li>
+                <Link to="/general-journal" className="dropdown-link">
+                  <FaBook className="dropdown-icon" /> General Journal
+                </Link>
+              </li>
               <li>
                 <Link to="/cash-receipt-journal" className="dropdown-link">
                   <FaFileInvoice className="dropdown-icon" /> Cash Receipt Journal
@@ -106,13 +114,11 @@ const Navbar = () => {
                   <FaFileInvoice className="dropdown-icon" /> Invoice Issued
                 </Link>
               </li>
-            
-                <li>
-                  <Link to="/invoice-received" className="dropdown-link">
-                    <FaFileInvoice className="dropdown-icon" /> Invoice Received
-                  </Link>
-                </li>
-              
+              <li>
+                <Link to="/invoice-received" className="dropdown-link">
+                  <FaFileInvoice className="dropdown-icon" /> Invoice Received
+                </Link>
+              </li>
             </ul>
           )}
         </li>
@@ -145,7 +151,6 @@ const Navbar = () => {
             </span>
             {showMore && (
               <ul className="dropdown-menu">
-             
                 {storedUserId && (
                   <>
                     <li>

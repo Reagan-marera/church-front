@@ -7,7 +7,7 @@ const DepartmentalBudget = () => {
     const fetchBudgets = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('https://church.boogiecoin.com/departmental-budget', {
+        const response = await fetch('https://yoming.boogiecoin.com/departmental-budget', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,

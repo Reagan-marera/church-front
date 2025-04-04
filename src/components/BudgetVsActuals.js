@@ -13,7 +13,7 @@ const BudgetVsActuals = () => {
           throw new Error('No token found in local storage');
         }
 
-        const response = await fetch('https://church.boogiecoin.com/budget-vs-actuals', {
+        const response = await fetch('https://yoming.boogiecoin.com/budget-vs-actuals', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,

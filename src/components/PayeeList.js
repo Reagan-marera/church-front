@@ -86,8 +86,8 @@ const PayeeList = () => {
     }
 
     const url = editingAccountId
-      ? `https://church.boogiecoin.com/payee/${editingAccountId}`
-      : 'https://church.boogiecoin.com/payee';
+      ? `https://yoming.boogiecoin.com/payee/${editingAccountId}`
+      : 'https://yoming.boogiecoin.com/payee';
 
     const method = editingAccountId ? 'PUT' : 'POST';
 
@@ -131,7 +131,7 @@ const PayeeList = () => {
     }
 
     try {
-      const response = await fetch('https://church.boogiecoin.com/payee', {
+      const response = await fetch('https://yoming.boogiecoin.com/payee', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -177,7 +177,7 @@ const PayeeList = () => {
     }
 
     try {
-      const response = await fetch(`https://church.boogiecoin.com/payee/${accountId}`, {
+      const response = await fetch(`https://yoming.boogiecoin.com/payee/${accountId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

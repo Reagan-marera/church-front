@@ -52,7 +52,7 @@ const CashReceiptJournalTable = () => {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'ksh',
+      currency: 'KES',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount);
@@ -99,13 +99,19 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("z/invoices", {
+      const response = await fetch("https://yoming.boogiecoin.com/invoices", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error fetching invoices:", errorText);
+        setError(errorText);
+        return;
+      }
       const data = await response.json();
       setInvoices(data);
     } catch (err) {
+      console.error("Error in fetchInvoices:", err);
       setError(err.message);
     }
   };
@@ -114,10 +120,15 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("https://church.boogiecoin.com/cash-receipt-journals", {
+      const response = await fetch("https://yoming.boogiecoin.com/cash-receipt-journals", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error fetching journals:", errorText);
+        setError(errorText);
+        return;
+      }
       const data = await response.json();
       const enrichedJournals = data.map((journal) => ({
         ...journal,
@@ -127,6 +138,7 @@ const CashReceiptJournalTable = () => {
       }));
       setJournals(enrichedJournals);
     } catch (err) {
+      console.error("Error in fetchJournals:", err);
       setError(err.message);
     }
   };
@@ -135,13 +147,19 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("https://church.boogiecoin.com/chart-of-accounts", {
+      const response = await fetch("https://yoming.boogiecoin.com/chart-of-accounts", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error fetching COA:", errorText);
+        setError(errorText);
+        return;
+      }
       const data = await response.json();
       setCoa(data);
     } catch (err) {
+      console.error("Error in fetchCOA:", err);
       setError(err.message);
     }
   };
@@ -150,13 +168,19 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("https://church.boogiecoin.com/customer", {
+      const response = await fetch("https://yoming.boogiecoin.com/customer", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error fetching customers:", errorText);
+        setError(errorText);
+        return;
+      }
       const data = await response.json();
       setCustomers(data);
     } catch (err) {
+      console.error("Error in fetchCustomers:", err);
       setError(err.message);
     }
   };
@@ -318,7 +342,7 @@ const CashReceiptJournalTable = () => {
       };
 
       if (isEditing && editingData) {
-        const response = await fetch(`https://church.boogiecoin.com/cash-receipt-journals/${editingData.id}`, {
+        const response = await fetch(`https://yoming.boogiecoin.com/cash-receipt-journals/${editingData.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -329,7 +353,9 @@ const CashReceiptJournalTable = () => {
 
         if (!response.ok) {
           const errorText = await response.text();
-          throw new Error(errorText);
+          console.error("Error updating receipt:", errorText);
+          setError(errorText);
+          return;
         }
       } else {
         const payloads = allCustomersSubAccounts.map((subAccount, index) => {
@@ -342,7 +368,7 @@ const CashReceiptJournalTable = () => {
         });
 
         for (const payload of payloads) {
-          const response = await fetch("https://church.boogiecoin.com/cash-receipt-journals", {
+          const response = await fetch("https://yoming.boogiecoin.com/cash-receipt-journals", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -353,7 +379,9 @@ const CashReceiptJournalTable = () => {
 
           if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(errorText);
+            console.error("Error creating receipt:", errorText);
+            setError(errorText);
+            return;
           }
         }
       }
@@ -380,6 +408,7 @@ const CashReceiptJournalTable = () => {
       setShowForm(false);
       setAllCustomersSelected([]);
     } catch (err) {
+      console.error("Error in handleSubmit:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -394,7 +423,7 @@ const CashReceiptJournalTable = () => {
       return;
     }
     try {
-      const response = await fetch(`https://church.boogiecoin.com/cash-receipt-journals/${id}`, {
+      const response = await fetch(`https://yoming.boogiecoin.com/cash-receipt-journals/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -402,7 +431,9 @@ const CashReceiptJournalTable = () => {
       });
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(errorText);
+        console.error("Error deleting receipt:", errorText);
+        setError(errorText);
+        return;
       }
       refreshData();
 
@@ -415,6 +446,7 @@ const CashReceiptJournalTable = () => {
 
       localStorage.setItem("receipt_counter", highestReceiptNumber);
     } catch (err) {
+      console.error("Error in handleDelete:", err);
       setError(err.message);
     }
   };
@@ -499,12 +531,17 @@ const CashReceiptJournalTable = () => {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("User is not authenticated");
         const response = await fetch(
-          `z/invoices?name=${encodeURIComponent(customerName)}`,
+          `https://yoming.boogiecoin.com/invoices?name=${encodeURIComponent(customerName)}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        if (!response.ok) throw new Error(await response.text());
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error fetching invoices for customer:", errorText);
+          setError(errorText);
+          return;
+        }
         const invoicesData = await response.json();
         const filteredInvoices = invoicesData.filter(invoice => invoice.name === customerName);
         if (filteredInvoices.length > 0) {
@@ -899,7 +936,7 @@ const CashReceiptJournalTable = () => {
           </tr>
         </thead>
         <tbody>
-          {filteredJournals.map((journal) => (
+          {filteredJournals.map((journal)  => (
             <tr key={journal.id}>
               <td>{journal.receipt_date}</td>
               <td>{journal.receipt_no}</td>

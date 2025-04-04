@@ -1,14 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FaChartLine, FaFileInvoice, FaMoneyCheckAlt, FaCashRegister, FaBook, FaFileAlt } from "react-icons/fa"; // Icons for features
-import { FiLoader } from "react-icons/fi"; // Loader icon
-import "./Home.css"; // Ensure your CSS file is properly linked
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { FiLoader } from "react-icons/fi"; // Correct import for Feather Icons loader
 import {
-  faFileInvoiceDollar,
-  faMoneyBill,
-  faCreditCard,
-} from "@fortawesome/free-solid-svg-icons";
+  FaChartLine,
+  FaFileInvoice,
+  FaMoneyCheckAlt,
+  FaCashRegister,
+  FaBook,
+  FaFileAlt,
+  FaLaptopCode,
+} from "react-icons/fa"; // All other Font Awesome icons
+import "./Home.css"; // Ensure your CSS file is properly linked
+
+// Reusable Feature Card Component
+const FeatureCard = ({ icon, title, description }) => (
+  <div className="feature-card">
+    <div className="feature-icon">{icon}</div>
+    <h3>{title}</h3>
+    <p>{description}</p>
+  </div>
+);
 
 function Home() {
   const [loading, setLoading] = useState(true);
@@ -25,22 +36,20 @@ function Home() {
     <div className="App">
       {/* Loader */}
       {loading ? (
-        <div className="loader">
+        <div className="loader" aria-label="Loading">
           <FiLoader className="spinner-icon" />
           <div className="loader-text">Loading...</div>
         </div>
       ) : (
         <>
           {/* Navigation Bar */}
-          <nav className="navbarhome">
+          <nav className="navbar-home">
             <div className="navbar-brand">
-              <i className="fas fa-laptop-code"></i> {/* Technology icon */}
+              <FaLaptopCode className="brand-icon" />
               <span className="company-name">YOUMING TECHNOLOGIES</span>
             </div>
             <div className="navbar-links">
-              <Link to="/login" className="navbar-link">
-                Sign In
-              </Link>
+              
             </div>
           </nav>
 
@@ -101,7 +110,7 @@ function Home() {
             <div className="footer-content">
               <p>&copy; 2024 InstitutionFinance | All Rights Reserved</p>
               <p className="attractive-text">
-                <i className="fas fa-code"></i> Code Engineered and Maintained by{" "}
+                Code Engineered and Maintained by{" "}
                 <a href="mailto:marierareagan@gmail.com" className="highlight">
                   marierareagan@gmail.com
                 </a>
@@ -118,14 +127,5 @@ function Home() {
     </div>
   );
 }
-
-// Reusable Feature Card Component
-const FeatureCard = ({ icon, title, description }) => (
-  <div className="feature-card">
-    <div className="feature-icon">{icon}</div>
-    <h3>{title}</h3>
-    <p>{description}</p>
-  </div>
-);
 
 export default Home;
