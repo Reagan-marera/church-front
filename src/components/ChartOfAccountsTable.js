@@ -86,7 +86,7 @@ const ChartOfAccountsTable = () => {
     }
 
     const url = editingAccountId
-      ? `zz/chart-of-accounts/${editingAccountId}`
+      ? `https://yoming.boogiecoin.com/chart-of-accounts/${editingAccountId}`
       : 'https://yoming.boogiecoin.com/chart-of-accounts';
 
     const method = editingAccountId ? 'PUT' : 'POST';

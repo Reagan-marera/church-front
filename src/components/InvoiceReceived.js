@@ -4,6 +4,7 @@ import "./InvoicesTable.css";
 import { FaEdit, FaTrash } from "react-icons/fa";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCreditCard } from "@fortawesome/free-solid-svg-icons";
+import * as XLSX from 'xlsx';
 
 const InvoiceReceived = () => {
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -45,6 +46,8 @@ const InvoiceReceived = () => {
     }),
   };
 
+  const api = 'https://yoming.boogiecoin.com';
+
   useEffect(() => {
     fetchInvoices();
     fetchPayees();
@@ -62,7 +65,7 @@ const InvoiceReceived = () => {
     }
 
     try {
-      const response = await fetch("https://yoming.boogiecoin.com/invoice-received", {
+      const response = await fetch(`${api}/invoice-received`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -92,7 +95,7 @@ const InvoiceReceived = () => {
     }
 
     try {
-      const response = await fetch("https://yoming.boogiecoin.com/payee", {
+      const response = await fetch(`${api}/payee`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -119,7 +122,7 @@ const InvoiceReceived = () => {
     }
 
     try {
-      const response = await fetch("https://yoming.boogiecoin.com/chart-of-accounts", {
+      const response = await fetch(`${api}/chart-of-accounts`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -180,12 +183,12 @@ const InvoiceReceived = () => {
       account_credited: accountCredited,
       grn_number: grnNumber,
       name: payeeName,
-      parent_account: parentAccount, // Include parent account in the payload
+      parent_account: parentAccount,
     };
 
     try {
       const response = await fetch(
-        `https://church.boogiecoin.https://church.boogiecoin.com/invoice-received/${editingInvoice ? editingInvoice : ''}`,
+        `${api}/invoice-received/${editingInvoice ? editingInvoice : ''}`,
         {
           method: editingInvoice ? "PUT" : "POST",
           headers: {
@@ -218,7 +221,7 @@ const InvoiceReceived = () => {
     setAccountsDebited([]);
     setGrnNumber("");
     setPayeeName("");
-    setParentAccount(""); // Reset parent account
+    setParentAccount("");
   };
 
   const getSubAccountNames = () => {
@@ -247,7 +250,7 @@ const InvoiceReceived = () => {
     })));
     setGrnNumber(invoice.grn_number);
     setPayeeName(invoice.name);
-    setParentAccount(invoice.parent_account || ""); // Set parent account for editing
+    setParentAccount(invoice.parent_account || "");
     setEditingInvoice(invoice.id);
     setShowForm(true);
   };
@@ -260,7 +263,7 @@ const InvoiceReceived = () => {
     }
 
     try {
-      const response = await fetch(`https://church.boogiecoin.https://church.boogiecoin.com/invoice-received/${invoiceId}`, {
+      const response = await fetch(`${api}/invoice-received/${invoiceId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -312,6 +315,25 @@ const InvoiceReceived = () => {
     setTotalAmount(newTotalAmount);
   };
 
+  const handleExportToExcel = () => {
+    const dataForExcel = invoices.map(invoice => ({
+      'Invoice Number': invoice.invoice_number,
+      'Date Issued': invoice.date_issued,
+      'Payee Name': invoice.name,
+      'Description': invoice.description,
+      'Total Amount': invoice.amount,
+      'Parent Account': invoice.parent_account,
+      'Account Debited': invoice.account_debited.map(account => `${account.name}: ${account.amount}`).join(', '),
+      'Account Credited': invoice.account_credited,
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataForExcel);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Invoices');
+
+    XLSX.writeFile(wb, 'Invoices.xlsx');
+  };
+
   return (
     <div className="invoice-received">
       <h1 className="head">
@@ -330,6 +352,21 @@ const InvoiceReceived = () => {
         }}
       >
         Add New Invoice
+      </button>
+
+      <button
+        onClick={handleExportToExcel}
+        style={{
+          backgroundColor: "#4CAF50",
+          color: "white",
+          padding: "10px 20px",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+          marginLeft: "10px",
+        }}
+      >
+        Export to Excel
       </button>
 
       {showForm && (
@@ -428,7 +465,6 @@ const InvoiceReceived = () => {
                   Add Another Account
                 </button>
               </div>
-
               <div>
                 <label>Account Credited:</label>
                 <input

@@ -12,8 +12,12 @@ import {
   faWallet,
   faBook,
   faPrint,
+  faFileExcel,
 } from "@fortawesome/free-solid-svg-icons";
 import "./DisbursementForm.css";
+import * as XLSX from 'xlsx';
+
+const api = 'https://yoming.boogiecoin.com';
 
 const DisbursementForm = () => {
   const [formData, setFormData] = useState({
@@ -38,7 +42,7 @@ const DisbursementForm = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [balance, setBalance] = useState("$0.00");
+  const [balance, setBalance] = useState("0.00");
   const [disbursements, setDisbursements] = useState([]);
   const [totalDisbursed, setTotalDisbursed] = useState(0);
   const [editingDisbursement, setEditingDisbursement] = useState(null);
@@ -81,28 +85,28 @@ const DisbursementForm = () => {
         return;
       }
       try {
-        const coaResponse = await fetch("https://church.boogiecoin.com/chart-of-accounts", {
+        const coaResponse = await fetch(`${api}/chart-of-accounts`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!coaResponse.ok) throw new Error("Failed to fetch COA(token expired).");
         const coaData = await coaResponse.json();
         setCoaAccounts(coaData);
 
-        const payeesResponse = await fetch("https://church.boogiecoin.com/payee", {
+        const payeesResponse = await fetch(`${api}/payee`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!payeesResponse.ok) throw new Error("Failed to fetch payees.");
         const payeesData = await payeesResponse.json();
         setPayees(payeesData);
 
-        const invoicesResponse = await fetch("https://church.boogiecoin.com/invoice-received", {
+        const invoicesResponse = await fetch(`${api}/invoice-received`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!invoicesResponse.ok) throw new Error("Failed to fetch invoices.");
         const invoicesData = await invoicesResponse.json();
         setInvoices(invoicesData);
 
-        const disbursementsResponse = await fetch("https://yoming.boogiecoin.com/cash-disbursement-journals", {
+        const disbursementsResponse = await fetch(`${api}/cash-disbursement-journals`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
@@ -192,7 +196,7 @@ const DisbursementForm = () => {
       let response;
       if (editingDisbursement) {
         // Update existing entry using PUT method
-        response = await fetch(`https://yoming.boogiecoin.com/cash-disbursement-journals/${editingDisbursement.id}`, {
+        response = await fetch(`${api}/cash-disbursement-journals/${editingDisbursement.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -202,7 +206,7 @@ const DisbursementForm = () => {
         });
       } else {
         // Add new entry using POST method
-        response = await fetch("https://yoming.boogiecoin.com/cash-disbursement-journals", {
+        response = await fetch(`${api}/cash-disbursement-journals`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -218,7 +222,7 @@ const DisbursementForm = () => {
       }
 
       // Fetch updated disbursements data
-      const disbursementsResponse = await fetch("https://yoming.boogiecoin.com/cash-disbursement-journals", {
+      const disbursementsResponse = await fetch(`${api}/cash-disbursement-journals`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
@@ -259,7 +263,7 @@ const DisbursementForm = () => {
       return;
     }
     try {
-      const response = await fetch(`https://yoming.boogiecoin.com/cash-disbursement-journals/${id}`, {
+      const response = await fetch(`${api}/cash-disbursement-journals/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -269,7 +273,7 @@ const DisbursementForm = () => {
         const errorText = await response.text();
         throw new Error(errorText);
       }
-      const disbursementsResponse = await fetch("https://yoming.boogiecoin.com/cash-disbursement-journals", {
+      const disbursementsResponse = await fetch(`${api}/cash-disbursement-journals`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
@@ -371,6 +375,13 @@ const DisbursementForm = () => {
     setPrintableDisbursement(null);
   };
 
+  const handleExportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(disbursements);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Disbursements');
+    XLSX.writeFile(workbook, 'disbursements.xlsx');
+  };
+
   const payeeOptions = payees.flatMap((payee) =>
     payee.sub_account_details?.map((subAccount) => ({
       value: subAccount.name,
@@ -395,6 +406,9 @@ const DisbursementForm = () => {
       </h1>
       <button onClick={openFormPopup} className="add-button">
         <FontAwesomeIcon icon={faPlus} className="icon" /> Add New Disbursement
+      </button>
+      <button onClick={handleExportToExcel} className="export-button">
+        <FontAwesomeIcon icon={faFileExcel} className="icon" /> Export to Excel
       </button>
       {showForm && (
         <div className="form-popup">

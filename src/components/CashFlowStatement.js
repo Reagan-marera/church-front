@@ -8,12 +8,13 @@ const CashFlowStatement = () => {
   const [balanceData, setBalanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const api = 'https://yoming.boogiecoin.com';
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('https://yoming.boogiecoin.com/cash-flow', {
+        const response = await fetch(`${api}/cash-flow`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -191,7 +192,7 @@ const CashFlowStatement = () => {
                   );
                 })}
                 <tr>
-                  <td><strong>Net CashFlows From {category}</strong></td>
+                  <td><strong>Net Cash Flows From {category}</strong></td>
                   <td><strong>{formatNumber(categoryTotal)}</strong></td>
                 </tr>
               </tbody>
@@ -220,11 +221,11 @@ const CashFlowStatement = () => {
               <td><strong>{formatNumber(netCashFlow)}</strong></td>
             </tr>
             <tr>
-              <td><strong>Cash Closing</strong></td> {/* Renamed to "Cash Closing" */}
+              <td><strong>Cash Closing</strong></td>
               <td><strong>{formatNumber(balances.cashClosing)}</strong></td>
             </tr>
             <tr>
-              <td><strong>Passed Balance</strong></td> {/* Added "Passed Balance" */}
+              <td><strong>Passed Balance</strong></td>
               <td><strong>{formatNumber(balances.cashClosing)}</strong></td>
             </tr>
           </tbody>

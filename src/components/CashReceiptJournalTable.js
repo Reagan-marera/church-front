@@ -12,8 +12,12 @@ import {
   faDollarSign,
   faWallet,
   faBook,
+  faFileExcel,
 } from "@fortawesome/free-solid-svg-icons";
 import "./CashReceiptJournalTable.css";
+import * as XLSX from 'xlsx';
+
+const api = 'https://yoming.boogiecoin.com';
 
 const CashReceiptJournalTable = () => {
   const [journals, setJournals] = useState([]);
@@ -99,7 +103,7 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("https://yoming.boogiecoin.com/invoices", {
+      const response = await fetch(`${api}/invoices`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
@@ -120,7 +124,7 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("https://yoming.boogiecoin.com/cash-receipt-journals", {
+      const response = await fetch(`${api}/cash-receipt-journals`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
@@ -147,7 +151,7 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("https://yoming.boogiecoin.com/chart-of-accounts", {
+      const response = await fetch(`${api}/chart-of-accounts`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
@@ -168,7 +172,7 @@ const CashReceiptJournalTable = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("User is not authenticated");
-      const response = await fetch("https://yoming.boogiecoin.com/customer", {
+      const response = await fetch(`${api}/customer`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok) {
@@ -342,7 +346,7 @@ const CashReceiptJournalTable = () => {
       };
 
       if (isEditing && editingData) {
-        const response = await fetch(`https://yoming.boogiecoin.com/cash-receipt-journals/${editingData.id}`, {
+        const response = await fetch(`${api}/cash-receipt-journals/${editingData.id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -368,7 +372,7 @@ const CashReceiptJournalTable = () => {
         });
 
         for (const payload of payloads) {
-          const response = await fetch("https://yoming.boogiecoin.com/cash-receipt-journals", {
+          const response = await fetch(`${api}/cash-receipt-journals`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -423,7 +427,7 @@ const CashReceiptJournalTable = () => {
       return;
     }
     try {
-      const response = await fetch(`https://yoming.boogiecoin.com/cash-receipt-journals/${id}`, {
+      const response = await fetch(`${api}/cash-receipt-journals/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -531,7 +535,7 @@ const CashReceiptJournalTable = () => {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("User is not authenticated");
         const response = await fetch(
-          `https://yoming.boogiecoin.com/invoices?name=${encodeURIComponent(customerName)}`,
+          `${api}/invoices?name=${encodeURIComponent(customerName)}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -671,6 +675,13 @@ const CashReceiptJournalTable = () => {
     printWindow.print();
   };
 
+  const handleExportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(journals);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Receipts');
+    XLSX.writeFile(workbook, 'receipts.xlsx');
+  };
+
   const customerOptions = customers.flatMap((customer) =>
     customer.sub_account_details.map((subAccount) => ({
       value: subAccount.name,
@@ -716,6 +727,9 @@ const CashReceiptJournalTable = () => {
     <div>
       {error && <p style={{ color: "red" }}>{error}</p>}
       <button onClick={() => openFormPopup()}>Add New Receipt</button>
+      <button onClick={handleExportToExcel}>
+        <FontAwesomeIcon icon={faFileExcel} className="icon" /> Export to Excel
+      </button>
       <input
         type="text"
         placeholder="Search by Customer"
@@ -928,7 +942,7 @@ const CashReceiptJournalTable = () => {
             <th>From Whom Received</th>
             <th>Description</th>
             <th>Receipt Type</th>
-            <th>parent Account</th>
+            <th>Parent Account</th>
             <th>Credited Account</th>
             <th>Debited Account</th>
             <th>Total</th>

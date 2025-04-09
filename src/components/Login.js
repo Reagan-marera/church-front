@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode'; // Use named import
+import { jwtDecode } from 'jwt-decode';
 
 const Login = ({ setToken, setRole, setTransactions }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [email, setEmail] = useState(''); // For Forgot Password
-  const [otp, setOtp] = useState(''); // For OTP verification
-  const [newPassword, setNewPassword] = useState(''); // For resetting the password
-  const [showForgotPassword, setShowForgotPassword] = useState(false); // To toggle the Forgot Password form
-  const [showOtpVerification, setShowOtpVerification] = useState(false); // To toggle OTP verification
-  const navigate = useNavigate(); // Use navigate hook
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showOtpVerification, setShowOtpVerification] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const navigate = useNavigate();
+  const Api = 'https://yoming.boogiecoin.com';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,7 +25,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
     };
 
     try {
-      const response = await fetch('https://yoming.boogiecoin.com/login', {
+      const response = await fetch(`${Api}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -33,20 +35,18 @@ const Login = ({ setToken, setRole, setTransactions }) => {
 
       if (response.ok) {
         const data = await response.json();
-
-        // Decode the JWT token to get the username
-        const decodedToken = jwtDecode(data.token); // Use jwtDecode
+        const decodedToken = jwtDecode(data.token);
         const decodedUsername = decodedToken.username;
 
-        console.log('Decoded username:', decodedUsername); // Check the decoded username
+        console.log('Decoded username:', decodedUsername);
 
-        setToken(data.token);  // Set the token in the parent component
-        setRole(data.role);    // Set the role in the parent component
-        localStorage.setItem('token', data.token);  // Save token to localStorage
-        localStorage.setItem('userId', data.userId); // Save userId to localStorage
-        localStorage.setItem('username', decodedUsername); // Save decoded username to localStorage
+        setToken(data.token);
+        setRole(data.role);
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userId', data.userId);
+        localStorage.setItem('username', decodedUsername);
 
-        navigate('/'); // Redirect to home page after successful login
+        navigate('/');
       } else {
         const data = await response.json();
         setErrorMessage(data.message || 'Login failed');
@@ -67,7 +67,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
     }
 
     try {
-      const response = await fetch('https://yoming.boogiecoin.com/request_reset_password', {
+      const response = await fetch(`${Api}/request_reset_password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -75,8 +75,8 @@ const Login = ({ setToken, setRole, setTransactions }) => {
 
       if (response.ok) {
         alert('OTP sent to your email. Please check your inbox.');
-        setShowOtpVerification(true); // Show OTP form
-        setShowForgotPassword(false); // Hide forgot password form
+        setShowOtpVerification(true);
+        setShowForgotPassword(false);
       } else {
         const data = await response.json();
         setErrorMessage(data.error || 'Failed to send OTP');
@@ -97,7 +97,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
     }
 
     try {
-      const response = await fetch('https://yoming.boogiecoin.com/verify_otp', {
+      const response = await fetch(`${Api}/verify_otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),
@@ -106,8 +106,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
       if (response.ok) {
         alert('OTP verified successfully!');
         setShowOtpVerification(false);
-        setShowForgotPassword(false);
-        // Proceed to reset password form
+        setShowResetPassword(true);
       } else {
         const data = await response.json();
         setErrorMessage(data.error || 'Invalid OTP');
@@ -128,7 +127,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
     }
 
     try {
-      const response = await fetch('https://yoming.boogiecoin.com/reset_password', {
+      const response = await fetch(`${Api}/reset_password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp, new_password: newPassword }),
@@ -136,7 +135,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
 
       if (response.ok) {
         alert('Password reset successfully!');
-        navigate('/'); // Redirect to login or home page
+        navigate('/');
       } else {
         const data = await response.json();
         setErrorMessage(data.error || 'Failed to reset password');
@@ -175,10 +174,8 @@ const Login = ({ setToken, setRole, setTransactions }) => {
         <button type="submit" style={styles.button}>Login</button>
       </form>
 
-      {/* Forgot Password link */}
       <p style={styles.forgotPassword} onClick={() => setShowForgotPassword(true)}>Forgot Password?</p>
 
-      {/* Forgot Password form */}
       {showForgotPassword && (
         <div style={styles.forgotPasswordModal}>
           <h3>Forgot Password</h3>
@@ -194,7 +191,6 @@ const Login = ({ setToken, setRole, setTransactions }) => {
         </div>
       )}
 
-      {/* OTP Verification form */}
       {showOtpVerification && (
         <div style={styles.forgotPasswordModal}>
           <h3>Verify OTP</h3>
@@ -209,8 +205,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
         </div>
       )}
 
-      {/* Reset Password form */}
-      {showOtpVerification && (
+      {showResetPassword && (
         <div style={styles.forgotPasswordModal}>
           <h3>Reset Password</h3>
           <input
@@ -227,7 +222,6 @@ const Login = ({ setToken, setRole, setTransactions }) => {
   );
 };
 
-// Styles (same as previous, with additions for Forgot Password)
 const styles = {
   container: {
     maxWidth: '500px',

@@ -4,6 +4,7 @@ import "./InvoicesTable.css";
 import { FaEdit, FaTrash, FaPrint, FaSearch } from "react-icons/fa";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFileInvoiceDollar } from "@fortawesome/free-solid-svg-icons";
+import * as XLSX from 'xlsx';
 
 const InvoiceIssued = () => {
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -27,6 +28,8 @@ const InvoiceIssued = () => {
   const [allCustomers, setAllCustomers] = useState([]);
   const [chartOfAccounts, setChartOfAccounts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const api = 'https://yoming.boogiecoin.com';
 
   const customStyles = {
     option: (provided, state) => ({
@@ -64,7 +67,7 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch("https://yoming.boogiecoin.com/invoices", {
+      const response = await fetch(`${api}/invoices`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -94,7 +97,7 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch("https://yoming.boogiecoin.com/customer", {
+      const response = await fetch(`${api}/customer`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -124,7 +127,7 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch("https://yoming.boogiecoin.com/chart-of-accounts", {
+      const response = await fetch(`${api}/chart-of-accounts`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -216,13 +219,13 @@ const InvoiceIssued = () => {
         })),
         name: subAccount.name,
         manual_number: manualNumber || null,
-        parent_account: parentAccount, // Include parent account in the payload
+        parent_account: parentAccount,
       };
 
       try {
         const url = isEditing
-          ? `https://yoming.boogiecoin.com/invoices/${editingInvoiceId}`
-          : "https://yoming.boogiecoin.com/invoices";
+          ? `${api}/invoices/${editingInvoiceId}`
+          : `${api}/invoices`;
         const method = isEditing ? "PUT" : "POST";
 
         const response = await fetch(url, {
@@ -263,8 +266,8 @@ const InvoiceIssued = () => {
       amount: account.amount
     })));
     setSelectedCustomer(invoice.name);
-    setManualNumber(invoice.manual_number || ""); // Set manual_number for editing
-    setParentAccount(invoice.parent_account || ""); // Set parent account for editing
+    setManualNumber(invoice.manual_number || "");
+    setParentAccount(invoice.parent_account || "");
     setIsEditing(true);
     setEditingInvoiceId(invoice.id);
     setShowForm(true);
@@ -278,7 +281,7 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch(`https://yoming.boogiecoin.com/invoices/${id}`, {
+      const response = await fetch(`${api}/invoices/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -304,7 +307,7 @@ const InvoiceIssued = () => {
     }
 
     try {
-      const response = await fetch(`https://church.boogiecoin.com/invoices/${id}/post`, {
+      const response = await fetch(`${api}/invoices/${id}/post`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -331,7 +334,7 @@ const InvoiceIssued = () => {
     setAllCustomersSelected([]);
     setTotalAmount(0);
     setManualNumber("");
-    setParentAccount(""); // Reset parent account
+    setParentAccount("");
   };
 
   const getSubAccountNames = () => {
@@ -362,7 +365,7 @@ const InvoiceIssued = () => {
   }));
 
   const parentAccountOptions = chartOfAccounts.map((account) => ({
-    value: account.parent_account || account.name, // Use account name if parent_account is not available
+    value: account.parent_account || account.name,
     label: account.parent_account || account.name,
   }));
 
@@ -549,6 +552,25 @@ const InvoiceIssued = () => {
     setSearchQuery(e.target.value);
   };
 
+  const handleExportToExcel = () => {
+    const dataForExcel = invoices.map(invoice => ({
+      'Invoice Number': invoice.invoice_number,
+      'Date Issued': invoice.date_issued,
+      'Customer Name': invoice.name,
+      'Description': invoice.description,
+      'Total Amount': invoice.amount,
+      'Parent Account': invoice.parent_account,
+      'Account Debited': invoice.account_debited,
+      'Account Credited': invoice.account_credited.map(account => `${account.name}: ${account.amount}`).join(', '),
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataForExcel);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Invoices');
+
+    XLSX.writeFile(wb, 'Invoices.xlsx');
+  };
+
   const filteredInvoices = invoices.filter((invoice) =>
     invoice.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
     invoice.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -563,6 +585,10 @@ const InvoiceIssued = () => {
 
       <button className="invoice-issued button" onClick={() => setShowForm(true)}>
         Add New Invoice
+      </button>
+
+      <button className="invoice-issued button" onClick={handleExportToExcel}>
+        Export to Excel
       </button>
 
       <div className="search-bar">
@@ -748,7 +774,6 @@ const InvoiceIssued = () => {
         </thead>
         <tbody>
           {filteredInvoices.map((invoice) => {
-            // Calculate the total amount for the invoice
             const totalAmount = invoice.account_credited.reduce((sum, account) => sum + account.amount, 0);
 
             return (
