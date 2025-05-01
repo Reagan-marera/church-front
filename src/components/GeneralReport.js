@@ -34,33 +34,37 @@ const FinancialOverview = () => {
       case 'BudgetVsActuals':
         return <BudgetVsActuals />;
       default:
-        return <TrialBalance />; // Default fallback
+        return <TrialBalance />;
     }
   };
 
-  // Print function
   const printOut = () => {
-    window.print(); // Trigger the browser's print dialog
+    window.print();
   };
 
   return (
     <div className="financial-overview">
       <h1>Financial Overview</h1>
 
-      {/* Tabs for Navigation */}
-      <div className="tabs">
-        <button onClick={() => setActiveTab('TrialBalance')}>Trial Balance</button>
-        <button onClick={() => setActiveTab('Trial')}>Income Statement</button>
-        <button onClick={() => setActiveTab('IncomeStatement')}>Balance Sheet</button>
-        <button onClick={() => setActiveTab('AccountsTransactions')}>Notes</button>
-        <button onClick={() => setActiveTab('CashFlowStatement')}>Cash Flow</button>
-        <button onClick={() => setActiveTab('Estimate')}>Budget Estimates</button>
-        <button onClick={() => setActiveTab('DepartmentalBudget')}>Departmental Budget</button>
-        <button onClick={() => setActiveTab('ConsolidatedBudget')}>Consolidated Budget</button>
-        <button onClick={() => setActiveTab('BudgetVsActuals')}>Budget vs Actuals</button>
+      {/* Dropdown for navigation */}
+      <div className="dropdown-container">
+        <select
+          value={activeTab}
+          onChange={(e) => setActiveTab(e.target.value)}
+        >
+          <option value="TrialBalance">Trial Balance</option>
+          <option value="Trial">Income Statement</option>
+          <option value="IncomeStatement">Balance Sheet</option>
+          <option value="AccountsTransactions">Notes</option>
+          <option value="CashFlowStatement">Cash Flow</option>
+          <option value="Estimate">Budget Estimates</option>
+          <option value="DepartmentalBudget">Departmental Budget</option>
+          <option value="ConsolidatedBudget">Consolidated Budget</option>
+          <option value="BudgetVsActuals">Budget vs Actuals</option>
+        </select>
       </div>
 
-      {/* Component content based on active tab */}
+      {/* Render selected component */}
       <div className="tab-content">
         {renderComponent()}
       </div>

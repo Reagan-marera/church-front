@@ -11,30 +11,36 @@ import {
   FaUserPlus,
   FaSignInAlt,
   FaSignOutAlt,
-  FaTachometerAlt, // Icon for the dashboard
-} from "react-icons/fa"; // Icons for the navbar
-import "./Navbar.css"; // Importing the CSS file
+  FaTachometerAlt,
+  FaFacebook,
+  FaWhatsapp
+} from "react-icons/fa";
+import { FaTiktok } from "react-icons/fa6";
+import "./Navbar.css";
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const [showSetup, setShowSetup] = useState(false); // State to toggle "Setup" dropdown
-  const [showTransactions, setShowTransactions] = useState(false); // State to toggle "Transactions" dropdown
-  const [showMore, setShowMore] = useState(false); // State to toggle "More" dropdown
+  const [showSetup, setShowSetup] = useState(false);
+  const [showTransactions, setShowTransactions] = useState(false);
+  const [showMore, setShowMore] = useState(false);
+  const [showAccounts, setShowAccounts] = useState(false); // State for Accounts dropdown
 
-  // Handle logout
   const handleLogout = () => {
-    // Clear the token, role, and userId from localStorage
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("userId");
-
-    // Refresh the page to reflect the changes
     window.location.reload();
   };
 
-  // Retrieve token and userId from localStorage
   const storedToken = localStorage.getItem("token");
   const storedUserId = localStorage.getItem("userId");
+
+  // Update these with your actual social media links
+  const socialMediaLinks = [
+    { name: "Facebook", icon: <FaFacebook className="dropdown-icon" />, url: "https://www.facebook.com/profile.php?id=61575497248754" },
+    { name: "TikTok", icon: <FaTiktok className="dropdown-icon" />, url: "https://www.tiktok.com/@youmingtechnologies" },
+    { name: "WhatsApp", icon: <FaWhatsapp className="dropdown-icon" />, url: "https://wa.me/0783001125" }
+  ];
 
   return (
     <nav className="navbar">
@@ -135,8 +141,33 @@ const Navbar = () => {
         {/* General Ledger Accounts Link */}
         <li>
           <Link to="/general-report" className="nav-link">
-            <FaBook className="nav-icon" /> FinancialReport
+            <FaBook className="nav-icon" /> Financial Report
           </Link>
+        </li>
+
+        {/* Accounts Dropdown */}
+        <li
+          className="dropdown"
+          onMouseEnter={() => setShowAccounts(true)}
+          onMouseLeave={() => setShowAccounts(false)}
+        >
+          <span className="nav-link">
+            <FaBook className="nav-icon" /> Accounts
+          </span>
+          {showAccounts && (
+            <ul className="dropdown-menu">
+              <li>
+                <Link to="/debtors" className="dropdown-link">
+                  <FaBook className="dropdown-icon" /> Debtors
+                </Link>
+              </li>
+              <li>
+                <Link to="/creditors" className="dropdown-link">
+                  <FaBook className="dropdown-icon" /> Creditors
+                </Link>
+              </li>
+            </ul>
+          )}
         </li>
 
         {/* More Dropdown */}
@@ -153,23 +184,26 @@ const Navbar = () => {
               <ul className="dropdown-menu">
                 {storedUserId && (
                   <>
-                    <li>
-                      <Link to="/create-pledge" className="dropdown-link">
-                        <FaBook className="dropdown-icon" /> Create Pledge
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to={`/member/${storedUserId}`} className="dropdown-link">
-                        <FaBook className="dropdown-icon" /> Member Info
-                      </Link>
-                    </li>
+                   
+                    
                   </>
                 )}
-                <li>
-                  <Link to="/payment-form" className="dropdown-link">
-                    <FaFileInvoice className="dropdown-icon" /> Payment
-                  </Link>
-                </li>
+               
+
+                {/* Social Media Links Section */}
+                <li className="dropdown-section-header">Connect With Us</li>
+                {socialMediaLinks.map((social, index) => (
+                  <li key={index}>
+                    <a
+                      href={social.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="dropdown-link social-link"
+                    >
+                      {social.icon} {social.name}
+                    </a>
+                  </li>
+                ))}
               </ul>
             )}
           </li>

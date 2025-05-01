@@ -29,7 +29,8 @@ import Incomestatement from './components/Income';
 import CashFlowApp from './components/CashFlowApp';
 import AboutUs from './components/AboutUs';
 import { BalanceProvider } from './components/BalanceContext'; // Import BalanceProvider
-
+import Debtors from './components/Debtors';
+import Creditors from './components/Creditors';
 function App() {
   const [token, setToken] = useState(null);
   const [role, setRole] = useState(null);
@@ -73,6 +74,9 @@ function App() {
         <div className="container">
           <Routes>
             <Route path="/register" element={<Register />} />
+            <Route path="/debtors" element={<Debtors />} />
+            <Route path="/creditors" element={<Creditors />} />
+
             <Route path="/login" element={<Login setToken={setToken} setRole={setRole} />} />
             <Route path="/chart-of-accounts" element={<ProtectedRoute><ChartOfAccountsTable /></ProtectedRoute>} />
             <Route path="/invoices" element={<ProtectedRoute><InvoicesTable /></ProtectedRoute>} />

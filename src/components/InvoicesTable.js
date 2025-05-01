@@ -171,42 +171,52 @@ const InvoiceIssued = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const token = localStorage.getItem("token");
     if (!token) {
       setError("User is not authenticated");
       return;
     }
-
+  
+    // Validate date format
     const isValidDate = (date) => {
       return /^\d{4}-\d{2}-\d{2}$/.test(date);
     };
-
     if (!isValidDate(dateIssued)) {
       setError("Invalid date format. Please use YYYY-MM-DD.");
       return;
     }
-
-    const selectedCustomerData = customers.find((customer) =>
-      customer.sub_account_details.some(subAccount => subAccount.name === selectedCustomer)
-    );
-
-    const allCustomersData = customers.filter((customer) =>
-      allCustomersSelected.includes(customer.account_name)
-    );
-
-    if (!selectedCustomerData && allCustomersSelected.length === 0) {
-      setError("Selected customer not found.");
+  
+    // Determine which customers to process
+    let customersToProcess = [];
+  
+    if (selectedCustomer) {
+      // Single customer selected
+      const selectedCustomerData = customers.find((customer) =>
+        customer.sub_account_details.some(subAccount => subAccount.name === selectedCustomer)
+      );
+      if (!selectedCustomerData) {
+        setError("Selected customer not found.");
+        return;
+      }
+      customersToProcess = selectedCustomerData.sub_account_details.filter(subAccount => subAccount.name === selectedCustomer);
+    } else if (allCustomersSelected.length > 0) {
+      // Multiple customers selected
+      const allCustomersData = customers.filter((customer) =>
+        allCustomersSelected.includes(customer.account_name)
+      );
+      if (allCustomersData.length === 0) {
+        setError("No valid customers found in the selected list.");
+        return;
+      }
+      customersToProcess = allCustomersData.flatMap((customer) => customer.sub_account_details || []);
+    } else {
+      setError("Please select a customer or a list of customers.");
       return;
     }
-
-    const accountsToProcess = selectedCustomerData
-      ? selectedCustomerData.sub_account_details.filter(subAccount => subAccount.name === selectedCustomer)
-      : allCustomersData.flatMap((customer) => customer.sub_account_details || []);
-
-    for (const subAccount of accountsToProcess) {
+  
+    // Generate invoices for each customer
+    for (const subAccount of customersToProcess) {
       const uniqueInvoiceNumber = generateUniqueInvoiceNumber();
-
       const payload = {
         invoice_number: uniqueInvoiceNumber,
         date_issued: dateIssued,
@@ -221,13 +231,12 @@ const InvoiceIssued = () => {
         manual_number: manualNumber || null,
         parent_account: parentAccount,
       };
-
+  
       try {
         const url = isEditing
           ? `${api}/invoices/${editingInvoiceId}`
           : `${api}/invoices`;
         const method = isEditing ? "PUT" : "POST";
-
         const response = await fetch(url, {
           method: method,
           headers: {
@@ -236,7 +245,7 @@ const InvoiceIssued = () => {
           },
           body: JSON.stringify(payload),
         });
-
+  
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText);
@@ -246,17 +255,18 @@ const InvoiceIssued = () => {
         return;
       }
     }
-
+  
+    // Refresh invoices and reset form
     fetchInvoices();
     resetForm();
     setError("");
     setShowForm(false);
+  
     if (isEditing) {
       setIsEditing(false);
       setEditingInvoiceId(null);
     }
   };
-
   const handleUpdate = (invoice) => {
     setDateIssued(invoice.date_issued);
     setDescription(invoice.description);

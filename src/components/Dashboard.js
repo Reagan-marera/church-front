@@ -32,11 +32,13 @@ const Dashboard = () => {
     transactions: ''
   });
 
+  const api = 'https://yoming.boogiecoin.com';
+
   const getUsers = async () => {
     setLoading(prev => ({ ...prev, users: true }));
     setError(prev => ({ ...prev, users: '' }));
     try {
-      const response = await fetch('https://yoming.boogiecoin.com/users', {
+      const response = await fetch(`${api}/users`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -58,15 +60,25 @@ const Dashboard = () => {
     setLoading(prev => ({ ...prev, transactions: true }));
     setError(prev => ({ ...prev, transactions: '' }));
     try {
-      const response = await fetch('https://yoming.boogiecoin.com/transactions', {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('JWT token is missing');
+      }
+  
+      const response = await fetch(`${api}/transactions`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
       const data = await response.json();
+      console.log('Transactions Data:', data); // Log the data to check the structure
       setAllTransactions(data);
       setFilteredTransactions(data);
     } catch (error) {
@@ -76,10 +88,10 @@ const Dashboard = () => {
       setLoading(prev => ({ ...prev, transactions: false }));
     }
   };
-
+  
   const handleDeleteUser = async (id) => {
     try {
-      const response = await fetch(`https://yoming.boogiecoin.com/users/${id}`, {
+      const response = await fetch(`${api}/users/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -96,26 +108,20 @@ const Dashboard = () => {
   const handleUserChange = (e) => {
     const userId = e.target.value;
     setSelectedUserId(userId);
-    
+
     if (!userId) {
       setFilteredTransactions(allTransactions);
       return;
     }
 
-    // Convert userId to number if it's stored as number in the transactions
     const userIdNum = Number(userId);
 
     const filterByUser = (items) => {
       return items.filter(item => {
-        // Check if user exists and matches the selected user ID
         if (item.user) {
-          return item.user.id === userIdNum || 
-                 item.user.id === userId || 
-                 item.user_id === userIdNum || 
-                 item.user_id === userId;
+          return item.user.id === userIdNum || item.user.id === userId;
         }
-        // If no user object, check for user_id field
-        return item.user_id === userIdNum || item.user_id === userId;
+        return false;
       });
     };
 
@@ -139,7 +145,7 @@ const Dashboard = () => {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'KES'
     }).format(amount || 0);
   };
 
@@ -159,8 +165,8 @@ const Dashboard = () => {
               <thead className="bg-gray-50">
                 <tr>
                   {columns.map((column) => (
-                    <th 
-                      key={column.key} 
+                    <th
+                      key={column.key}
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                     >
                       {column.header}
@@ -172,11 +178,21 @@ const Dashboard = () => {
                 {data.map((item) => (
                   <tr key={item.id}>
                     {columns.map((column) => (
-                      <td 
-                        key={`${item.id}-${column.key}`} 
+                      <td
+                        key={`${item.id}-${column.key}`}
                         className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
                       >
-                        {column.render ? column.render(item) : item[column.key]}
+                        {column.render ? column.render(item) : (
+                          Array.isArray(item[column.key]) ? (
+                            item[column.key].map((subItem, index) => (
+                              <div key={index}>
+                                {subItem.name}: {subItem.amount}
+                              </div>
+                            ))
+                          ) : (
+                            String(item[column.key])
+                          )
+                        )}
                       </td>
                     ))}
                   </tr>
@@ -367,8 +383,6 @@ const Dashboard = () => {
               "Customers",
               filteredTransactions.customers,
               [
-                { key: 'name', header: 'Name' },
-                { key: 'balance', header: 'Balance', render: (item) => formatCurrency(item.balance) },
                 { key: 'account_name', header: 'Account Name' },
                 { key: 'account_type', header: 'Account Type' },
                 { key: 'user', header: 'User', render: (item) => item.user ? item.user.username : 'N/A' }

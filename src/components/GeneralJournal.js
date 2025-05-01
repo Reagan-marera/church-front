@@ -3,6 +3,9 @@ import Select from 'react-select';
 import * as XLSX from 'xlsx';
 import './AccountSelection.css';
 
+// Define the API base URL as a constant
+const API_BASE_URL = 'https://yoming.boogiecoin.com';
+
 const AccountSelection = () => {
   const [accounts, setAccounts] = useState([]);
   const [selectedCreditedAccount, setSelectedCreditedAccount] = useState(null);
@@ -47,9 +50,9 @@ const AccountSelection = () => {
 
       const headers = { Authorization: `Bearer ${token}` };
 
-      const chartOfAccountsResponse = await fetch('https://yoming.boogiecoin.com/chart-of-accounts', { headers });
-      const customersResponse = await fetch('https://yoming.boogiecoin.com/customer', { headers });
-      const payeesResponse = await fetch('https://yoming.boogiecoin.com/payee', { headers });
+      const chartOfAccountsResponse = await fetch(`${API_BASE_URL}/chart-of-accounts`, { headers });
+      const customersResponse = await fetch(`${API_BASE_URL}/customer`, { headers });
+      const payeesResponse = await fetch(`${API_BASE_URL}/payee`, { headers });
 
       if (!chartOfAccountsResponse.ok || !customersResponse.ok || !payeesResponse.ok) {
         throw new Error('Failed to fetch data');
@@ -88,7 +91,7 @@ const AccountSelection = () => {
       );
       setAccountOptions(options);
 
-      const transactionsResponse = await fetch('https://yoming.boogiecoin.com/get-transactions', { headers });
+      const transactionsResponse = await fetch(`${API_BASE_URL}/get-transactions`, { headers });
       const data = await transactionsResponse.json();
 
       const validTransactions = Array.isArray(data.transactions) ? data.transactions.filter(t => t) : [];
@@ -174,13 +177,17 @@ const AccountSelection = () => {
     }
 
     try {
+      const token = localStorage.getItem("token");
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      };
+
       const response = await fetch(isEditing
-        ? `https://yoming.boogiecoin.com/update-transaction/${currentTransactionId}`
-        : 'https://yoming.boogiecoin.com/submit-transaction', {
+        ? `${API_BASE_URL}/update-transaction/${currentTransactionId}`
+        : `${API_BASE_URL}/submit-transaction`, {
         method: isEditing ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(transactionData),
       });
 
@@ -192,7 +199,8 @@ const AccountSelection = () => {
 
         clearForm();
       } else {
-        throw new Error('Failed to submit or update transaction');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit or update transaction');
       }
     } catch (error) {
       console.error('Error:', error);
@@ -203,8 +211,14 @@ const AccountSelection = () => {
 
   const handleDelete = async (id) => {
     try {
-      const response = await fetch(`https://yoming.boogiecoin.com/delete-transaction/${id}`, {
+      const token = localStorage.getItem("token");
+      const headers = {
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await fetch(`${API_BASE_URL}/delete-transaction/${id}`, {
         method: 'DELETE',
+        headers,
       });
 
       if (response.ok) {
@@ -212,7 +226,8 @@ const AccountSelection = () => {
         setSuccessMessage(data.message);
         fetchData();
       } else {
-        throw new Error('Failed to delete transaction');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete transaction');
       }
     } catch (error) {
       console.error('Error:', error);

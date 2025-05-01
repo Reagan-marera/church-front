@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 
 const PayeeList = () => {
   const [accounts, setAccounts] = useState([]);
@@ -10,7 +11,7 @@ const PayeeList = () => {
     parent_account: '',
     account_name: '',
     account_type: '',
-    note_number: '', 
+    note_number: '',
     parent_account_id: null,
     sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
   });
@@ -112,7 +113,7 @@ const PayeeList = () => {
         parent_account: '',
         account_name: '',
         account_type: '',
-        note_number: '', 
+        note_number: '',
         parent_account_id: null,
         sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
       });
@@ -199,11 +200,65 @@ const PayeeList = () => {
   const printTable = () => {
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     printWindow.document.write('<html><head><title>Print Table</title></head><body>');
-    printWindow.document.write('<h2>Chart of Accounts</h2>');
+    printWindow.document.write('<h2>Payee List</h2>');
     printWindow.document.write(document.querySelector('table').outerHTML);
     printWindow.document.write('</body></html>');
     printWindow.document.close();
     printWindow.print();
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const binaryStr = event.target.result;
+        const workbook = XLSX.read(binaryStr, { type: 'binary' });
+
+        // Assuming the first sheet contains the data
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+        // Process the data as needed
+        const accountsFromExcel = data.slice(1).map((row) => ({
+          parent_account: row[0],
+          account_name: row[1],
+          account_type: row[2],
+          note_number: row[3],
+          sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
+        }));
+
+        // Post the data to the API
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Authentication token is missing.');
+          return;
+        }
+
+        try {
+          const response = await fetch('https://yoming.boogiecoin.com/payee', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(accountsFromExcel),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to upload data');
+          }
+
+          const result = await response.json();
+          fetchAccounts();
+          alert(result.message);
+        } catch (error) {
+          setError(error.message);
+        }
+      };
+      reader.readAsBinaryString(file);
+    }
   };
 
   useEffect(() => {
@@ -252,7 +307,6 @@ const PayeeList = () => {
             style={styles.input}
           />
         </div>
-     
 
         <div>
           <h3>Subaccounts</h3>
@@ -287,6 +341,8 @@ const PayeeList = () => {
         </button>
       </form>
 
+      <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} style={styles.fileInput} />
+
       <button onClick={printTable} style={styles.button}>
         Print PayeeList
       </button>
@@ -294,8 +350,8 @@ const PayeeList = () => {
       <table style={styles.table}>
         <thead>
           <tr>
-            <th style={styles.tableHeader}>PayeeType</th>
-            <th style={styles.tableHeader}>PayeeClass</th>
+            <th style={styles.tableHeader}>Payee Type</th>
+            <th style={styles.tableHeader}>Payee Class</th>
             <th style={styles.tableHeader}>General Ledger</th>
             <th style={styles.tableHeader}>Payee Details</th>
             <th style={styles.tableHeader}>Actions</th>
@@ -335,104 +391,22 @@ const PayeeList = () => {
     </div>
   );
 };
+
 const styles = {
-  container: {
-    padding: '20px',
-    fontFamily: 'Arial Black, Impact, sans-serif',
-  },
-  form: {
-    marginBottom: '20px',
-  },
-  formGroup: {
-    marginBottom: '10px',
-  },
-  label: {
-    fontWeight: 'bold',
-    color: 'blue',
-  },
-  input: {
-    width: '100%',
-    padding: '12px',
-    marginTop: '5px',
-    borderRadius: '6px',
-    border: '1px solid #333',
-    backgroundColor: '#f0f0f0',
-    fontFamily: 'Arial Black, Impact, sans-serif',
-    fontWeight: 'bold',
-    color: 'black',
-  },
-  addButton: {
-    backgroundColor: 'blue',
-    color: 'white',
-    padding: '10px 15px',
-    border: 'none',
-    cursor: 'pointer',
-    marginTop: '10px',
-    fontWeight: 'bold',
-  },
-  removeButton: {
-    backgroundColor: '#e53935',
-    color: 'white',
-    padding: '5px 10px',
-    border: 'none',
-    cursor: 'pointer',
-    marginTop: '10px',
-    fontWeight: 'bold',
-  },
-  button: {
-    backgroundColor: 'green',
-    color: 'white',
-    padding: '10px 15px',
-    border: 'none',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    marginBottom: '5px',
-  },
-  editButton: {
-    backgroundColor: 'orange',
-    color: 'white',
-    padding: '10px 15px',
-    border: 'none',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    marginBottom: '5px',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    marginTop: '20px',
-    fontFamily: 'Arial Black, Impact, sans-serif',
-  },
-  tableHeader: {
-    backgroundColor: '#003366',
-    padding: '12px',
-    textAlign: 'left',
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  tableCell: {
-    padding: '12px',
-    border: '1px solid #333',
-    color: 'WHITE',
-    borderRadius: '5px',
-  },
-  tableRow: {
-    backgroundColor: 'white',
-  },
-  deleteButton: {
-    backgroundColor: '#e53935',
-    color: 'white',
-    padding: '5px 10px',
-    border: 'none',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-  },
-  loader: {
-    textAlign: 'center',
-    fontSize: '20px',
-    padding: '20px',
-    color: '#333',
-  },
+  container: { padding: '20px', fontFamily: 'Arial Black' },
+  form: { marginBottom: '20px' },
+  formGroup: { marginBottom: '10px' },
+  label: { fontWeight: 'bold', color: 'blue' },
+  input: { width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #333', backgroundColor: '#f0f0f0' },
+  addButton: { backgroundColor: 'blue', color: 'white', padding: '10px', fontWeight: 'bold', border: 'none' },
+  removeButton: { backgroundColor: '#e53935', color: 'white', padding: '5px 10px', fontWeight: 'bold', border: 'none' },
+  button: { backgroundColor: 'green', color: 'white', padding: '10px 15px', fontWeight: 'bold', border: 'none', marginTop: '10px' },
+  editButton: { backgroundColor: 'orange', color: 'white', padding: '5px 10px', marginRight: '5px' },
+  deleteButton: { backgroundColor: '#e53935', color: 'white', padding: '5px 10px' },
+  table: { width: '100%', borderCollapse: 'collapse', marginTop: '20px' },
+  tableHeader: { backgroundColor: '#003366', color: 'white', padding: '10px' },
+  tableCell: { padding: '10px', border: '1px solid #333' },
+  fileInput: { marginTop: '20px', padding: '10px', borderRadius: '5px', border: '1px solid #333' },
 };
 
 // Changing colors animation

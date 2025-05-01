@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 
 const CustomerList = () => {
   const [accounts, setAccounts] = useState([]);
@@ -10,7 +11,7 @@ const CustomerList = () => {
     parent_account: '',
     account_name: '',
     account_type: '',
-    note_number: '', 
+    note_number: '',
     parent_account_id: null,
     sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
   });
@@ -112,7 +113,7 @@ const CustomerList = () => {
         parent_account: '',
         account_name: '',
         account_type: '',
-        note_number: '', 
+        note_number: '',
         parent_account_id: null,
         sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
       });
@@ -199,12 +200,87 @@ const CustomerList = () => {
   const printTable = () => {
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     printWindow.document.write('<html><head><title>Print Table</title></head><body>');
-    printWindow.document.write('<h2>Chart of Accounts</h2>');
+    printWindow.document.write('<h2>Customer List</h2>');
     printWindow.document.write(document.querySelector('table').outerHTML);
     printWindow.document.write('</body></html>');
     printWindow.document.close();
     printWindow.print();
   };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+  
+    reader.onload = async (event) => {
+      const data = new Uint8Array(event.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+  
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Authentication token is missing.');
+        return;
+      }
+  
+      for (const row of jsonData) {
+        const rawSubAccounts = row.sub_account_details || '';
+        let subAccounts = [];
+  
+        try {
+          if (rawSubAccounts.trim().startsWith('[')) {
+            // Try parsing if it's already valid JSON
+            subAccounts = JSON.parse(rawSubAccounts);
+          } else {
+            // Otherwise assume comma-separated and convert
+            subAccounts = rawSubAccounts.split(',')
+              .map(name => name.trim())
+              .filter(name => name.length > 0)
+              .map(name => ({ name }));
+          }
+        } catch (jsonErr) {
+          console.error("Invalid sub_account_details format:", rawSubAccounts);
+          continue;
+        }
+  
+        const accountPayload = {
+          parent_account: row.parent_account || '',
+          account_name: row.account_name || '',
+          account_type: row.account_type || '',
+          ...(row.note_number && { note_number: row.note_number }),
+          parent_account_id: row.parent_account_id || null,
+          sub_account_details: subAccounts,
+        };
+        
+  
+        try {
+          const response = await fetch('https://yoming.boogiecoin.com/customer', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(accountPayload),
+          });
+  
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Upload failed: ${errorText}`);
+          }
+        } catch (err) {
+          console.error("Upload error:", err.message, accountPayload);
+          alert(`Upload failed for: ${accountPayload.parent_account}`);
+        }
+      }
+  
+      alert('Upload complete');
+      fetchAccounts();
+    };
+  
+    reader.readAsArrayBuffer(file);
+  };
+  
 
   useEffect(() => {
     fetchAccounts();
@@ -220,7 +296,7 @@ const CustomerList = () => {
 
       <form onSubmit={handleFormSubmit} style={styles.form}>
         <div style={styles.formGroup}>
-          <label style={styles.label}>customer Type:</label>
+          <label style={styles.label}>Customer Type:</label>
           <input
             type="text"
             name="account_type"
@@ -231,7 +307,7 @@ const CustomerList = () => {
           />
         </div>
         <div style={styles.formGroup}>
-          <label style={styles.label}>customer Class:</label>
+          <label style={styles.label}>Customer Class:</label>
           <input
             type="text"
             name="account_name"
@@ -252,7 +328,6 @@ const CustomerList = () => {
             style={styles.input}
           />
         </div>
-
 
         <div>
           <h3>Subaccounts</h3>
@@ -287,6 +362,8 @@ const CustomerList = () => {
         </button>
       </form>
 
+      <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} style={styles.fileInput} />
+
       <button onClick={printTable} style={styles.button}>
         Print CustomerList
       </button>
@@ -294,10 +371,10 @@ const CustomerList = () => {
       <table style={styles.table}>
         <thead>
           <tr>
-            <th style={styles.tableHeader}>customer Type</th>
-            <th style={styles.tableHeader}>customer Class</th>
+            <th style={styles.tableHeader}>Customer Type</th>
+            <th style={styles.tableHeader}>Customer Class</th>
             <th style={styles.tableHeader}>General Ledger</th>
-            <th style={styles.tableHeader}>customer Details</th>
+            <th style={styles.tableHeader}>Customer Details</th>
             <th style={styles.tableHeader}>Actions</th>
           </tr>
         </thead>
@@ -335,106 +412,23 @@ const CustomerList = () => {
     </div>
   );
 };
-const styles = {
-  container: {
-    padding: '20px',
-    fontFamily: 'Arial Black, Impact, sans-serif',
-  },
-  form: {
-    marginBottom: '20px',
-  },
-  formGroup: {
-    marginBottom: '10px',
-  },
-  label: {
-    fontWeight: 'bold',
-    color: 'blue',
-  },
-  input: {
-    width: '100%',
-    padding: '12px',
-    marginTop: '5px',
-    borderRadius: '6px',
-    border: '1px solid #333',
-    backgroundColor: '#f0f0f0',
-    fontFamily: 'Arial Black, Impact, sans-serif',
-    fontWeight: 'bold',
-    color: 'black',
-  },
-  addButton: {
-    backgroundColor: 'blue',
-    color: 'white',
-    padding: '10px 15px',
-    border: 'none',
-    cursor: 'pointer',
-    marginTop: '10px',
-    fontWeight: 'bold',
-  },
-  removeButton: {
-    backgroundColor: '#e53935',
-    color: 'white',
-    padding: '5px 10px',
-    border: 'none',
-    cursor: 'pointer',
-    marginTop: '10px',
-    fontWeight: 'bold',
-  },
-  button: {
-    backgroundColor: 'green',
-    color: 'white',
-    padding: '10px 15px',
-    border: 'none',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    marginBottom: '5px',
-  },
-  editButton: {
-    backgroundColor: 'orange',
-    color: 'white',
-    padding: '10px 15px',
-    border: 'none',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    marginBottom: '5px',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    marginTop: '20px',
-    fontFamily: 'Arial Black, Impact, sans-serif',
-  },
-  tableHeader: {
-    backgroundColor: '#003366',
-    padding: '12px',
-    textAlign: 'left',
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  tableCell: {
-    padding: '12px',
-    border: '1px solid #333',
-    color: 'WHITE',
-    borderRadius: '5px',
-  },
-  tableRow: {
-    backgroundColor: 'white',
-  },
-  deleteButton: {
-    backgroundColor: '#e53935',
-    color: 'white',
-    padding: '5px 10px',
-    border: 'none',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-  },
-  loader: {
-    textAlign: 'center',
-    fontSize: '20px',
-    padding: '20px',
-    color: '#333',
-  },
-};
 
+const styles = {
+  container: { padding: '20px', fontFamily: 'Arial Black' },
+  form: { marginBottom: '20px' },
+  formGroup: { marginBottom: '10px' },
+  label: { fontWeight: 'bold', color: 'blue' },
+  input: { width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #333', backgroundColor: '#f0f0f0' },
+  addButton: { backgroundColor: 'blue', color: 'white', padding: '10px', fontWeight: 'bold', border: 'none' },
+  removeButton: { backgroundColor: '#e53935', color: 'white', padding: '5px 10px', fontWeight: 'bold', border: 'none' },
+  button: { backgroundColor: 'green', color: 'white', padding: '10px 15px', fontWeight: 'bold', border: 'none', marginTop: '10px' },
+  editButton: { backgroundColor: 'orange', color: 'white', padding: '5px 10px', marginRight: '5px' },
+  deleteButton: { backgroundColor: '#e53935', color: 'white', padding: '5px 10px' },
+  table: { width: '100%', borderCollapse: 'collapse', marginTop: '20px' },
+  tableHeader: { backgroundColor: '#003366', color: 'white', padding: '10px' },
+  tableCell: { padding: '10px', border: '1px solid #333' },
+  fileInput: { marginTop: '20px', padding: '10px', borderRadius: '5px', border: '1px solid #333' },
+};
 // Changing colors animation
 const style = document.createElement('style');
 style.innerHTML = `

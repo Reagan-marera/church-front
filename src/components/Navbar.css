@@ -1,9 +1,11 @@
 /* General Styles */
 .navbar {
   background-color: #000; /* Black background */
-  padding: 1rem;
+  padding: 0.5rem;
   border-bottom: 2px solid #ff8c42; /* Orange border */
   font-family: 'Arial', sans-serif; /* Modern font */
+  width: 1470px; /* or a specific width like 1200px */
+
 }
 
 .nav-list {
@@ -13,7 +15,9 @@
   align-items: center;
   margin: 0;
   padding: 0;
+  width: 1000px; /* or a specific width like 1200px */
 }
+
 
 .nav-list li {
   position: relative;

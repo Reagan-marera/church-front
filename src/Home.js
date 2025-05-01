@@ -108,7 +108,7 @@ function Home() {
           {/* Footer Section */}
           <footer className="footer">
             <div className="footer-content">
-              <p>&copy; 2024 InstitutionFinance | All Rights Reserved</p>
+              <p>&copy; 2024 youmingtechnologies | All Rights Reserved</p>
               <p className="attractive-text">
                 Code Engineered and Maintained by{" "}
                 <a href="mailto:marierareagan@gmail.com" className="highlight">
