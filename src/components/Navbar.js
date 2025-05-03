@@ -23,7 +23,7 @@ const Navbar = () => {
   const [showSetup, setShowSetup] = useState(false);
   const [showTransactions, setShowTransactions] = useState(false);
   const [showMore, setShowMore] = useState(false);
-  const [showAccounts, setShowAccounts] = useState(false); // State for Accounts dropdown
+  const [showAccounts, setShowAccounts] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -35,24 +35,35 @@ const Navbar = () => {
   const storedToken = localStorage.getItem("token");
   const storedUserId = localStorage.getItem("userId");
 
-  // Update these with your actual social media links
   const socialMediaLinks = [
-    { name: "Facebook", icon: <FaFacebook className="dropdown-icon" />, url: "https://www.facebook.com/profile.php?id=61575497248754" },
-    { name: "TikTok", icon: <FaTiktok className="dropdown-icon" />, url: "https://www.tiktok.com/@youmingtechnologies" },
-    { name: "WhatsApp", icon: <FaWhatsapp className="dropdown-icon" />, url: "https://wa.me/0783001125" }
+    {
+      name: "Facebook",
+      icon: <FaFacebook className="dropdown-icon" />,
+      url: "https://www.facebook.com/profile.php?id=61575497248754",
+    },
+    {
+      name: "TikTok",
+      icon: <FaTiktok className="dropdown-icon" />,
+      url: "https://www.tiktok.com/@youmingtechnologies",
+    },
+    {
+      name: "WhatsApp",
+      icon: <FaWhatsapp className="dropdown-icon" />,
+      url: "https://wa.me/0783001125",
+    },
   ];
 
   return (
     <nav className="navbar">
       <ul className="nav-list">
-        {/* Home Link */}
+        {/* Home */}
         <li>
           <Link to="/" className="nav-link">
             <FaHome className="nav-icon" /> Home
           </Link>
         </li>
 
-        {/* Dashboard Link */}
+        {/* Dashboard */}
         <li>
           <Link to="/dashboard" className="nav-link">
             <FaTachometerAlt className="nav-icon" /> Dashboard
@@ -83,6 +94,11 @@ const Navbar = () => {
               <li>
                 <Link to="/payee-list" className="dropdown-link">
                   <FaBook className="dropdown-icon" /> Payee List
+                </Link>
+              </li>
+              <li>
+                <Link to="/Estimate" className="dropdown-link">
+                  <FaBook className="dropdown-icon" /> Budget
                 </Link>
               </li>
             </ul>
@@ -129,7 +145,7 @@ const Navbar = () => {
           )}
         </li>
 
-        {/* Financial Report Link (protected) */}
+        {/* General Ledger (if logged in) */}
         {storedToken && (
           <li>
             <Link to="/financial-report" className="nav-link">
@@ -137,16 +153,8 @@ const Navbar = () => {
             </Link>
           </li>
         )}
-
-        {/* General Ledger Accounts Link */}
-        <li>
-          <Link to="/general-report" className="nav-link">
-            <FaBook className="nav-icon" /> Financial Report
-          </Link>
-        </li>
-
-        {/* Accounts Dropdown */}
-        <li
+ {/* Accounts Dropdown */}
+ <li
           className="dropdown"
           onMouseEnter={() => setShowAccounts(true)}
           onMouseLeave={() => setShowAccounts(false)}
@@ -169,6 +177,14 @@ const Navbar = () => {
             </ul>
           )}
         </li>
+        {/* Financial Report */}
+        <li>
+          <Link to="/general-report" className="nav-link">
+            <FaBook className="nav-icon" /> Financial Report
+          </Link>
+        </li>
+
+       
 
         {/* More Dropdown */}
         {storedToken && (
@@ -182,15 +198,6 @@ const Navbar = () => {
             </span>
             {showMore && (
               <ul className="dropdown-menu">
-                {storedUserId && (
-                  <>
-                   
-                    
-                  </>
-                )}
-               
-
-                {/* Social Media Links Section */}
                 <li className="dropdown-section-header">Connect With Us</li>
                 {socialMediaLinks.map((social, index) => (
                   <li key={index}>
@@ -209,7 +216,7 @@ const Navbar = () => {
           </li>
         )}
 
-        {/* Logout Link */}
+        {/* Logout */}
         {storedToken && (
           <li>
             <button onClick={handleLogout} className="nav-link logout-button">
@@ -218,7 +225,7 @@ const Navbar = () => {
           </li>
         )}
 
-        {/* Register and Login Links */}
+        {/* Register / Login */}
         {!storedToken && (
           <>
             <li>

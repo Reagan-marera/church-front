@@ -25,8 +25,7 @@ const FinancialOverview = () => {
         return <Trial />;
       case 'CashFlowStatement':
         return <CashFlowStatement />;
-      case 'Estimate':
-        return <EstimateTable />;
+     
       case 'DepartmentalBudget':
         return <DepartmentalBudget />;
       case 'ConsolidatedBudget':
@@ -57,7 +56,6 @@ const FinancialOverview = () => {
           <option value="IncomeStatement">Balance Sheet</option>
           <option value="AccountsTransactions">Notes</option>
           <option value="CashFlowStatement">Cash Flow</option>
-          <option value="Estimate">Budget Estimates</option>
           <option value="DepartmentalBudget">Departmental Budget</option>
           <option value="ConsolidatedBudget">Consolidated Budget</option>
           <option value="BudgetVsActuals">Budget vs Actuals</option>

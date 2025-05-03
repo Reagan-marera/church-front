@@ -31,6 +31,7 @@ import AboutUs from './components/AboutUs';
 import { BalanceProvider } from './components/BalanceContext'; // Import BalanceProvider
 import Debtors from './components/Debtors';
 import Creditors from './components/Creditors';
+import EstimateTable from './components/EstimateTable';
 function App() {
   const [token, setToken] = useState(null);
   const [role, setRole] = useState(null);
@@ -76,6 +77,8 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/debtors" element={<Debtors />} />
             <Route path="/creditors" element={<Creditors />} />
+            <Route path="/Estimate" element={<EstimateTable/>} />
+
 
             <Route path="/login" element={<Login setToken={setToken} setRole={setRole} />} />
             <Route path="/chart-of-accounts" element={<ProtectedRoute><ChartOfAccountsTable /></ProtectedRoute>} />

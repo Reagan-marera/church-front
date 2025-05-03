@@ -8,12 +8,13 @@ const ChartOfAccountsTable = () => {
   const [editingAccountId, setEditingAccountId] = useState(null);
 
   const [formData, setFormData] = useState({
-    parent_account: '',
     account_name: '',
     account_type: '',
+    id: '',
     note_number: '',
+    parent_account: '',
     parent_account_id: null,
-    sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
+    sub_account_details: [{ name: '' }],
   });
 
   const handleInputChange = (e) => {
@@ -26,9 +27,6 @@ const ChartOfAccountsTable = () => {
 
   const handleSubAccountChange = (index, field, value) => {
     const newSubAccounts = [...formData.sub_account_details];
-    if (field === 'debit' || field === 'credit') {
-      value = value === '' ? '' : parseFloat(value) || 0;
-    }
     newSubAccounts[index][field] = value;
     setFormData({
       ...formData,
@@ -41,7 +39,7 @@ const ChartOfAccountsTable = () => {
       ...formData,
       sub_account_details: [
         ...formData.sub_account_details,
-        { id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' },
+        { name: '' },
       ],
     });
   };
@@ -66,10 +64,6 @@ const ChartOfAccountsTable = () => {
       generateSubAccountId(subAccount);
       return {
         ...subAccount,
-        opening_balance: subAccount.opening_balance || '',
-        description: subAccount.description || '',
-        debit: subAccount.debit || 0,
-        credit: subAccount.credit || 0,
       };
     });
 
@@ -108,12 +102,13 @@ const ChartOfAccountsTable = () => {
       fetchAccounts();
       setEditingAccountId(null);
       setFormData({
-        parent_account: '',
         account_name: '',
         account_type: '',
+        id: '',
         note_number: '',
+        parent_account: '',
         parent_account_id: null,
-        sub_account_details: [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
+        sub_account_details: [{ name: '' }],
       });
       alert(result.message);
     } catch (error) {
@@ -155,12 +150,13 @@ const ChartOfAccountsTable = () => {
   const handleEdit = (account) => {
     setEditingAccountId(account.id);
     setFormData({
-      parent_account: account.parent_account,
       account_name: account.account_name,
       account_type: account.account_type,
+      id: account.id || '',
       note_number: account.note_number || '',
+      parent_account: account.parent_account,
       parent_account_id: account.parent_account_id || null,
-      sub_account_details: account.sub_account_details || [{ id: '', name: '', opening_balance: '', description: '', debit: '', credit: '' }],
+      sub_account_details: account.sub_account_details || [{ name: '' }],
     });
   };
 
@@ -201,59 +197,118 @@ const ChartOfAccountsTable = () => {
     printWindow.print();
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+const handleFileUpload = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const bstr = evt.target.result;
-      const workbook = XLSX.read(bstr, { type: 'binary' });
-      const firstSheet = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[firstSheet];
-      const data = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      
+      // Get all data as array of arrays
+      const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+      
+      console.log('Complete file structure:', rawData); // Debug output
+
+      // Process all rows looking for account data pattern
+      const accountsToUpload = [];
+      const parentAccountMap = {};
+
+      for (let i = 0; i < rawData.length; i++) {
+        const row = rawData[i];
+        if (!row || row.length < 5) continue;
+
+        // Extract values from specific columns based on your data structure
+        const accountType = String(row[1] || '').trim(); // Second column
+        const accountClass = String(row[2] || '').trim(); // Third column
+        const parentAccount = String(row[3] || '').trim(); // Fourth column
+        const subAccount = String(row[4] || '').trim(); // Fifth column
+
+        // Skip empty rows or non-account rows
+        if (!accountType || !accountClass || !parentAccount || !subAccount) {
+          console.log('Skipping row:', row);
+          continue;
+        }
+
+        // Skip header-like rows
+        if (accountType.toLowerCase().includes('account') || 
+            accountClass.toLowerCase().includes('account')) {
+          continue;
+        }
+
+        // Group by parent account
+        if (!parentAccountMap[parentAccount]) {
+          parentAccountMap[parentAccount] = {
+            account_type: accountType,
+            account_name: accountClass,
+            parent_account: parentAccount,
+            note_number: '',
+            sub_account_details: []
+          };
+          accountsToUpload.push(parentAccountMap[parentAccount]);
+        }
+
+        parentAccountMap[parentAccount].sub_account_details.push({
+          name: subAccount,
+          id: `subacc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
+        });
+      }
+
+      if (accountsToUpload.length === 0) {
+        throw new Error(
+          'No valid accounts found. Based on your file structure:\n' +
+          '1. Account data should be in columns 2-5\n' +
+          '2. Expected pattern: [empty, Type, Class, Parent, SubAccount]\n' +
+          '3. Check console for complete file structure'
+        );
+      }
 
       const token = localStorage.getItem('token');
       if (!token) {
-        setError('Authentication token is missing.');
+        setError('Authentication token missing');
         return;
       }
 
-      try {
-        for (const item of data) {
-          const formattedData = {
-            parent_account: item.parent_account || '',
-            account_name: item.account_name || '',
-            account_type: item.account_type || '',
-            note_number: item.note_number || '',
-            parent_account_id: item.parent_account_id || null,
-            sub_account_details: JSON.parse(item.sub_account_details || '[]'),
-          };
-
+      // Upload accounts
+      let successCount = 0;
+      for (const account of accountsToUpload) {
+        try {
           const response = await fetch('https://yoming.boogiecoin.com/chart-of-accounts', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify(formattedData),
+            body: JSON.stringify(account),
           });
 
           if (!response.ok) {
-            console.error('Upload failed for:', formattedData);
+            const error = await response.json();
+            console.error('Upload failed:', account.parent_account, error);
             continue;
           }
+          successCount++;
+        } catch (err) {
+          console.error('Error uploading:', account.parent_account, err);
         }
-
-        fetchAccounts();
-        alert('Excel file uploaded successfully!');
-      } catch (err) {
-        setError(`Upload error: ${err.message}`);
       }
-    };
 
-    reader.readAsBinaryString(file);
+      if (successCount > 0) {
+        fetchAccounts();
+        alert(`${successCount} accounts uploaded successfully!`);
+      } else {
+        throw new Error('All uploads failed. Check console for details.');
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      setError(err.message);
+    }
   };
+  reader.readAsArrayBuffer(file);
+};
 
   useEffect(() => {
     fetchAccounts();
@@ -275,13 +330,14 @@ const ChartOfAccountsTable = () => {
           <label style={styles.label}>Account Class:</label>
           <input type="text" name="account_name" value={formData.account_name} onChange={handleInputChange} required style={styles.input} />
         </div>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>General Ledger:</label>
-          <input type="text" name="parent_account" value={formData.parent_account} onChange={handleInputChange} required style={styles.input} />
-        </div>
+      
         <div style={styles.formGroup}>
           <label style={styles.label}>Note Number:</label>
           <input type="text" name="note_number" value={formData.note_number} onChange={handleInputChange} style={styles.input} />
+        </div>
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Parent Account:</label>
+          <input type="text" name="parent_account" value={formData.parent_account} onChange={handleInputChange} required style={styles.input} />
         </div>
 
         <div>
@@ -305,7 +361,10 @@ const ChartOfAccountsTable = () => {
         <button type="submit" style={styles.button}>{editingAccountId ? 'Update Account' : 'Add Account'}</button>
       </form>
 
-      <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} style={styles.fileInput} />
+      <div style={{ margin: '20px 0' }}>
+        <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} style={styles.fileInput} />
+        <p>Upload Excel file with Chart of Accounts (must match the required format)</p>
+      </div>
       <button onClick={printTable} style={styles.button}>Print ChartOfAccounts</button>
 
       <table style={styles.table}>
@@ -313,25 +372,27 @@ const ChartOfAccountsTable = () => {
           <tr>
             <th style={styles.tableHeader}>Account Type</th>
             <th style={styles.tableHeader}>Account Class</th>
-            <th style={styles.tableHeader}>General Ledger</th>
             <th style={styles.tableHeader}>Note Number</th>
+            <th style={styles.tableHeader}>Parent Account</th>
             <th style={styles.tableHeader}>Sub Account Details</th>
             <th style={styles.tableHeader}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {accounts.length === 0 ? (
-            <tr><td colSpan="6" style={styles.tableCell}>No accounts available.</td></tr>
+            <tr><td colSpan="7" style={styles.tableCell}>No accounts available.</td></tr>
           ) : (
             accounts.map((account) => (
               <tr key={account.id}>
                 <td style={styles.tableCell}>{account.account_type}</td>
                 <td style={styles.tableCell}>{account.account_name}</td>
-                <td style={styles.tableCell}>{account.parent_account}</td>
                 <td style={styles.tableCell}>{account.note_number || 'N/A'}</td>
+                <td style={styles.tableCell}>{account.parent_account}</td>
                 <td style={styles.tableCell}>
                   {account.sub_account_details?.map((sub, idx) => (
-                    <div key={idx}><strong>{sub.name}</strong></div>
+                    <div key={idx}>
+                      <strong>{sub.name}</strong>
+                    </div>
                   )) || 'No subaccounts'}
                 </td>
                 <td style={styles.tableCell}>
@@ -351,11 +412,11 @@ const styles = {
   container: { padding: '20px', fontFamily: 'Arial Black' },
   form: { marginBottom: '20px' },
   formGroup: { marginBottom: '10px' },
-  label: { fontWeight: 'bold', color: 'blue' },
-  input: { width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #333', backgroundColor: '#f0f0f0' },
-  addButton: { backgroundColor: 'blue', color: 'white', padding: '10px', fontWeight: 'bold', border: 'none' },
+  label: { fontWeight: 'bold', color: 'blue', display: 'block', marginBottom: '5px' },
+  input: { width: '100%', padding: '10px', borderRadius: '5px', border: '1px solid #333', backgroundColor: '#f0f0f0', marginBottom: '10px' },
+  addButton: { backgroundColor: 'blue', color: 'white', padding: '10px', fontWeight: 'bold', border: 'none', marginRight: '10px' },
   removeButton: { backgroundColor: '#e53935', color: 'white', padding: '5px 10px', fontWeight: 'bold', border: 'none' },
-  button: { backgroundColor: 'green', color: 'white', padding: '10px 15px', fontWeight: 'bold', border: 'none', marginTop: '10px' },
+  button: { backgroundColor: 'green', color: 'white', padding: '10px 15px', fontWeight: 'bold', border: 'none', marginTop: '10px', marginRight: '10px' },
   editButton: { backgroundColor: 'orange', color: 'white', padding: '5px 10px', marginRight: '5px' },
   deleteButton: { backgroundColor: '#e53935', color: 'white', padding: '5px 10px' },
   table: { width: '100%', borderCollapse: 'collapse', marginTop: '20px' },
