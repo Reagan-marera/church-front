@@ -46,7 +46,7 @@ const InvoiceReceived = () => {
     }),
   };
 
-  const api = 'https://yoming.boogiecoin.com';
+  const api = 'https://backend.youmingtechnologies.co.ke';
 
   useEffect(() => {
     fetchInvoices();

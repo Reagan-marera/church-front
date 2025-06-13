@@ -29,7 +29,7 @@ const InvoiceIssued = () => {
   const [chartOfAccounts, setChartOfAccounts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const api = 'https://yoming.boogiecoin.com';
+  const api = 'https://backend.youmingtechnologies.co.ke';
 
   const customStyles = {
     option: (provided, state) => ({

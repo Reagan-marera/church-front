@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useBalance } from './BalanceContext';
+import * as XLSX from 'xlsx';
 
 const CashTransactions = ({ startDate, endDate }) => {
   const { updateBalances } = useBalance();
@@ -18,7 +19,7 @@ const CashTransactions = ({ startDate, endDate }) => {
         if (startDate) queryParams.append('start_date', startDate);
         if (endDate) queryParams.append('end_date', endDate);
 
-        const response = await fetch(`https://yoming.boogiecoin.com/api/transactions?${queryParams.toString()}`, {
+        const response = await fetch(`https://backend.youmingtechnologies.co.ke/api/transactions?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -48,6 +49,43 @@ const CashTransactions = ({ startDate, endDate }) => {
   const handleSearch = (e) => {
     setSearchAccount(e.target.value);
   };
+
+  const exportToExcel = () => {
+    if (!Array.isArray(filteredTransactions)) {
+      console.error("No transactions to export.");
+      return;
+    }
+  
+    const data = filteredTransactions.map(item => ({
+      Type: item.transaction_type,
+      Date: item.date,
+      "Ref Number": item.ref_no,
+      Reference: item.receipt_no || item.id || "",
+      "From/To": item.from_whom_received || item.to_whom_paid || item.name || "",
+      Description: item.description || "",
+      "Account Debited": item.account_debited || "",
+      "Account Credited": Array.isArray(item.account_credited)
+        ? item.account_credited.map(acct => acct.name).join(', ')
+        : item.account_credited || "",
+      "Amount Debited": (item.transaction_type === "Cash Receipt")
+        ? (item.total || 0)
+        : (item.transaction_type === "Transaction")
+        ? (item.amount_debited || 0)
+        : 0,
+      "Amount Credited": (item.transaction_type === "Cash Disbursement")
+        ? (item.total || 0)
+        : (["Transaction", "Invoice Issued"].includes(item.transaction_type))
+        ? (item.amount_credited || 0)
+        : 0,
+    }));
+  
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Transactions");
+  
+    XLSX.writeFile(workbook, "CashTransactions.xlsx");
+  };
+  
 
   const filteredTransactions = transactions.filter((item) => {
     const accountDebited = item.account_debited ? item.account_debited.toString() : '';
@@ -137,6 +175,9 @@ const CashTransactions = ({ startDate, endDate }) => {
           style={styles.searchInput}
         />
       </div>
+      <button onClick={exportToExcel} style={styles.exportButton}>
+        Export to Excel
+      </button>
       <h2 style={styles.subHeader}>Cash & Cash Transactions</h2>
       <table style={styles.table}>
         <thead>
@@ -144,6 +185,7 @@ const CashTransactions = ({ startDate, endDate }) => {
             <th>Type</th>
             <th>Date</th>
             <th>Reference</th>
+            <th>Receipt No.</th>
             <th>From/To</th>
             <th>Description</th>
             <th>Account Debited</th>
@@ -157,7 +199,8 @@ const CashTransactions = ({ startDate, endDate }) => {
             <tr key={index} style={index % 2 === 0 ? styles.evenRow : styles.oddRow}>
               <td>{item.transaction_type}</td>
               <td>{item.date}</td>
-              <td>{item.receipt_no || item.ref_no || item.id}</td>
+              <td>{item.ref_no }</td>
+              <td>{item.receipt_no || item.id}</td>
               <td>{item.from_whom_received || item.to_whom_paid || item.name}</td>
               <td>{item.description}</td>
               <td>{item.account_debited}</td>
@@ -244,6 +287,16 @@ const styles = {
     fontSize: '1rem',
     outline: 'none',
     transition: 'border-color 0.3s ease',
+  },
+  exportButton: {
+    padding: '10px 15px',
+    backgroundColor: '#003366',
+    color: 'white',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    marginBottom: '20px',
   },
   table: {
     width: '100%',

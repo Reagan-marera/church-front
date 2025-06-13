@@ -1,374 +1,312 @@
 import React, { useState, useEffect } from 'react';
-import Select from 'react-select';
 import * as XLSX from 'xlsx';
-import './AccountSelection.css';
 
-// Define the API base URL as a constant
-const API_BASE_URL = 'https://yoming.boogiecoin.com';
+const API_BASE_URL = 'https://backend.youmingtechnologies.co.ke';
 
-const AccountSelection = () => {
-  const [accounts, setAccounts] = useState([]);
-  const [selectedCreditedAccount, setSelectedCreditedAccount] = useState(null);
-  const [selectedDebitedAccount, setSelectedDebitedAccount] = useState(null);
-  const [amountCredited, setAmountCredited] = useState('');
-  const [amountDebited, setAmountDebited] = useState('');
-  const [description, setDescription] = useState('');
-  const [dateIssued, setDateIssued] = useState('');
+const GeneralJournal = () => {
   const [transactions, setTransactions] = useState([]);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentTransactionId, setCurrentTransactionId] = useState(null);
-  const [accountOptions, setAccountOptions] = useState([]);
-  const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('');
+  const [file, setFile] = useState(null);
+  const [excelData, setExcelData] = useState(null);
 
-  const customStyles = {
-    option: (provided, state) => ({
-      ...provided,
-      backgroundColor: state.isFocused ? '#e2e8f0' : 'white',
-      color: state.isSelected ? '#4a5568' : 'black',
-      padding: '10px',
-      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? 'bold' : 'normal',
-    }),
-    control: (provided) => ({
-      ...provided,
-      border: '1px solid #cbd5e0',
-      borderRadius: '4px',
-      boxShadow: 'none',
-      '&:hover': {
-        borderColor: '#a0aec0',
-      },
-    }),
-  };
-
-  const fetchData = async () => {
+  // Fetch transactions from API
+  const fetchTransactions = async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("User is not authenticated");
-      }
+      if (!token) throw new Error("User is not authenticated");
 
-      const headers = { Authorization: `Bearer ${token}` };
+      const response = await fetch(`${API_BASE_URL}/get-transactions`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
-      const chartOfAccountsResponse = await fetch(`${API_BASE_URL}/chart-of-accounts`, { headers });
-      const customersResponse = await fetch(`${API_BASE_URL}/customer`, { headers });
-      const payeesResponse = await fetch(`${API_BASE_URL}/payee`, { headers });
+      if (!response.ok) throw new Error('Failed to fetch transactions');
 
-      if (!chartOfAccountsResponse.ok || !customersResponse.ok || !payeesResponse.ok) {
-        throw new Error('Failed to fetch data');
-      }
-
-      const chartOfAccounts = await chartOfAccountsResponse.json();
-      const customers = await customersResponse.json();
-      const payees = await payeesResponse.json();
-
-      const allAccounts = [
-        ...chartOfAccounts.map(account => ({
-          ...account,
-          type: 'chart_of_accounts',
-          subaccounts: account.sub_account_details || []
-        })),
-        ...payees.map(account => ({
-          ...account,
-          type: 'payee',
-          subaccounts: account.sub_account_details || []
-        })),
-        ...customers.map(account => ({
-          ...account,
-          type: 'customer',
-          subaccounts: account.sub_account_details || []
-        }))
-      ];
-
-      setAccounts(allAccounts);
-
-      const options = allAccounts.flatMap(account =>
-        account.subaccounts.map(subaccount => ({
-          value: subaccount.name,
-          label: subaccount.name,
-          type: account.type,
-        }))
-      );
-      setAccountOptions(options);
-
-      const transactionsResponse = await fetch(`${API_BASE_URL}/get-transactions`, { headers });
-      const data = await transactionsResponse.json();
-
-      const validTransactions = Array.isArray(data.transactions) ? data.transactions.filter(t => t) : [];
-      setTransactions(validTransactions);
+      const data = await response.json();
+      setTransactions(Array.isArray(data.transactions) ? data.transactions : []);
     } catch (error) {
-      console.error('Error fetching data:', error.message);
+      console.error('Fetch error:', error);
+      setMessage(error.message);
+      setMessageType('error');
     }
   };
 
   useEffect(() => {
-    fetchData();
+    fetchTransactions();
   }, []);
 
-  const handleEdit = (transaction) => {
-    if (transaction) {
-      setSelectedCreditedAccount({ value: transaction.credited_account_name, label: transaction.credited_account_name });
-      setSelectedDebitedAccount({ value: transaction.debited_account_name, label: transaction.debited_account_name });
-      setAmountCredited(transaction.amount_credited.toString());
-      setAmountDebited(transaction.amount_debited.toString());
-      setDescription(transaction.description || '');
-      setDateIssued(transaction.date_issued || '');
-      setCurrentTransactionId(transaction.id);
-      setIsEditing(true);
-      setIsPopupOpen(true);
+  const processExcelFile = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        try {
+          console.log('File read successfully');
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          console.log('Workbook SheetNames:', workbook.SheetNames);
+          
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          // Get the range of the worksheet
+          const range = XLSX.utils.decode_range(worksheet['!ref']);
+          
+          // Extract headers from the first row
+          const headers = [];
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cell = worksheet[XLSX.utils.encode_cell({r: range.s.r, c: C})];
+            headers.push(cell ? cell.v : `__EMPTY_${C}`);
+          }
+          
+          console.log('Extracted headers:', headers);
+          
+          // Convert to JSON with custom headers
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: headers });
+          
+          console.log('Processed Excel data:', jsonData);
+          
+          if (jsonData.length === 0) {
+            throw new Error('Excel sheet is empty');
+          }
+          
+          resolve(jsonData);
+        } catch (error) {
+          console.error('Processing error:', error);
+          reject(error);
+        }
+      };
+      
+      reader.onerror = (error) => {
+        console.error('File reading error:', error);
+        reject(new Error('Failed to read file'));
+      };
+      
+      reader.readAsArrayBuffer(file);
+    });
+  };
+  
+  const transformToTransactions = (excelData) => {
+    console.log('Transforming Excel data to transactions...');
+    
+    // Skip the first row (headers)
+    const dataRows = excelData.slice(1);
+    
+    const transactions = dataRows.map((row, index) => {
+      // Debug: Log the entire row
+      console.log(`Row ${index + 1}:`, row);
+      
+      // Find the correct property names (they might be in different columns)
+      const accountDebited = row['ACCOUNT DEBITED'] || 
+                           row['Account Debited'] || 
+                           row['account debited'] ||
+                           row[Object.keys(row).find(k => k.toLowerCase().includes('debit'))];
+      
+      const accountCredited = row['ACCOUNT CREDITED'] || 
+                            row['Account Credited'] || 
+                            row['account credited'] ||
+                            row[Object.keys(row).find(k => k.toLowerCase().includes('credit'))];
+      
+      const description = row['DESRIPTION'] || 
+                         row['DESCRIPTION'] || 
+                         row['description'] || 
+                         '';
+      
+      // Debug: Log extracted values
+      console.log(`Row ${index + 1} values:`, {
+        accountDebited,
+        accountCredited,
+        description,
+        amountDebited: row['AMOUNT DEBITED'],
+        amountCredited: row['AMOUNT CREDITED']
+      });
+      
+      // Skip if required fields are missing
+      if (!accountDebited || !accountCredited) {
+        console.warn(`Skipping row ${index + 1} - missing account fields`);
+        return null;
+      }
+      
+      // Parse amounts (handle both string with commas and numbers)
+      let amountDebited = 0;
+      let amountCredited = 0;
+      
+      try {
+        amountDebited = typeof row['AMOUNT DEBITED'] === 'string' 
+          ? parseFloat(row['AMOUNT DEBITED'].replace(/,/g, '')) 
+          : Number(row['AMOUNT DEBITED']) || 0;
+          
+        amountCredited = typeof row['AMOUNT CREDITED'] === 'string' 
+          ? parseFloat(row['AMOUNT CREDITED'].replace(/,/g, '')) 
+          : Number(row['AMOUNT CREDITED']) || 0;
+      } catch (e) {
+        console.error(`Error parsing amounts in row ${index + 1}:`, e);
+      }
+      
+      return {
+        debitedAccount: accountDebited.toString().trim(),
+        creditedAccount: accountCredited.toString().trim(),
+        description: description.toString().trim(),
+        amountDebited,
+        amountCredited,
+        dateIssued: new Date().toISOString().split('T')[0] // Default to today
+      };
+    }).filter(transaction => transaction !== null);
+    
+    console.log('Transformed transactions:', transactions);
+    return transactions;
+  };
+  // Upload transactions to API
+  const uploadTransactions = async (transactions) => {
+    setIsLoading(true);
+    setMessage('');
+    setMessageType('');
+    
+    try {
+      console.log('Preparing to upload transactions:', transactions);
+      
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("User is not authenticated");
+
+      const response = await fetch(`${API_BASE_URL}/bulk-upload-transactions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ transactions })
+      });
+      
+      console.log('Upload response status:', response.status);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Upload error response:', errorData);
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const data = await response.json();
+      console.log('Upload success response:', data);
+      
+      setMessage(`${transactions.length} transactions uploaded successfully`);
+      setMessageType('success');
+      fetchTransactions(); // Refresh the list
+    } catch (error) {
+      console.error('Upload error:', error);
+      setMessage(error.message || 'Failed to upload transactions');
+      setMessageType('error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const isDuplicateTransaction = () => {
-    return transactions.some(transaction =>
-      transaction.credited_account_name === selectedCreditedAccount?.value &&
-      transaction.debited_account_name === selectedDebitedAccount?.value &&
-      transaction.amount_credited === parseFloat(amountCredited) &&
-      transaction.amount_debited === parseFloat(amountDebited) &&
-      transaction.date_issued === dateIssued
-    );
-  };
-
-  const clearForm = () => {
-    setSelectedCreditedAccount(null);
-    setSelectedDebitedAccount(null);
-    setAmountCredited('');
-    setAmountDebited('');
-    setDescription('');
-    setDateIssued('');
-    setIsEditing(false);
-    setCurrentTransactionId(null);
-    setIsPopupOpen(false);
-  };
-
+  // Handle file submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!amountCredited || !amountDebited || isNaN(amountCredited) || isNaN(amountDebited)) {
-      setSuccessMessage("Please enter valid amounts for credited and debited accounts.");
-      setTimeout(() => setSuccessMessage(''), 3000);
+    
+    if (!file) {
+      setMessage('Please select a file first');
+      setMessageType('error');
       return;
     }
-
-    if (!dateIssued) {
-      setSuccessMessage("Please enter a valid date.");
-      setTimeout(() => setSuccessMessage(''), 3000);
-      return;
-    }
-
-    if (isDuplicateTransaction()) {
-      setSuccessMessage("This transaction already exists.");
-      setTimeout(() => setSuccessMessage(''), 3000);
-      return;
-    }
-
-    const transactionData = {
-      creditedAccount: selectedCreditedAccount?.value,
-      debitedAccount: selectedDebitedAccount?.value,
-      amountCredited: parseFloat(amountCredited.replace(/,/g, '')),
-      amountDebited: parseFloat(amountDebited.replace(/,/g, '')),
-      description,
-      dateIssued,
-    };
-
-    if (isEditing && !currentTransactionId) {
-      console.error("Transaction ID is missing");
-      return;
-    }
-
+    
     try {
-      const token = localStorage.getItem("token");
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      };
-
-      const response = await fetch(isEditing
-        ? `${API_BASE_URL}/update-transaction/${currentTransactionId}`
-        : `${API_BASE_URL}/submit-transaction`, {
-        method: isEditing ? 'PUT' : 'POST',
-        headers,
-        body: JSON.stringify(transactionData),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSuccessMessage(data.message);
-
-        fetchData();
-
-        clearForm();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit or update transaction');
+      console.log('Starting file processing...');
+      const excelData = await processExcelFile(file);
+      setExcelData(excelData); // Store for debugging
+      
+      const transactions = transformToTransactions(excelData);
+      console.log('Final transactions to upload:', transactions);
+      
+      if (transactions.length === 0) {
+        throw new Error('No valid transactions found in the file. Please check the format.');
       }
+      
+      await uploadTransactions(transactions);
     } catch (error) {
-      console.error('Error:', error);
-      setSuccessMessage("Failed to submit or update transaction. Please try again.");
-      setTimeout(() => setSuccessMessage(''), 3000);
+      console.error('Submission error:', error);
+      setMessage(error.message);
+      setMessageType('error');
     }
   };
-
-  const handleDelete = async (id) => {
-    try {
-      const token = localStorage.getItem("token");
-      const headers = {
-        'Authorization': `Bearer ${token}`
-      };
-
-      const response = await fetch(`${API_BASE_URL}/delete-transaction/${id}`, {
-        method: 'DELETE',
-        headers,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setSuccessMessage(data.message);
-        fetchData();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete transaction');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
-  const formatAmount = (amount) => {
-    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-  };
-
-  const handleAmountChange = (e, setAmount) => {
-    const value = e.target.value.replace(/,/g, '');
-    setAmount(value);
-    if (setAmount === setAmountCredited) {
-      setAmountDebited(value);
-    } else {
-      setAmountCredited(value);
-    }
-  };
-
-  const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(transactions);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
-    XLSX.writeFile(wb, 'transactions.xlsx');
-  };
-
-  const filteredTransactions = transactions.filter(transaction =>
-    transaction.credited_account_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    transaction.debited_account_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
-    <div>
-      <button onClick={() => setIsPopupOpen(true)}>Add Transaction</button>
-      <button onClick={exportToExcel}>Export to Excel</button>
-      <input
-        type="text"
-        placeholder="Search by account..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="input-field"
-      />
-      {successMessage && <p>{successMessage}</p>}
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Debited Account</th>
-            <th>Credited Account</th>
-            <th>Description</th>
-            <th>Amount Credited</th>
-            <th>Amount Debited</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredTransactions.map((transaction) => (
-            <tr key={transaction.id}>
-              <td>{transaction.date_issued}</td>
-              <td>{transaction.debited_account_name}</td>
-              <td>{transaction.credited_account_name}</td>
-              <td>{transaction.description}</td>
-              <td>{formatAmount(transaction.amount_credited)}</td>
-              <td>{formatAmount(transaction.amount_debited)}</td>
-              <td>
-                <button onClick={() => handleEdit(transaction)}>Edit</button>
-                <button onClick={() => handleDelete(transaction.id)}>Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {isPopupOpen && (
-        <div className="popup">
-          <div className="popup-content">
-            <span className="close" onClick={clearForm}>&times;</span>
-            <form onSubmit={handleSubmit}>
-              <div>
-                <label>Date:</label>
-                <input
-                  type="date"
-                  value={dateIssued}
-                  onChange={(e) => setDateIssued(e.target.value)}
-                  className="input-field"
-                />
-              </div>
-              <div>
-                <label>Debited Account:</label>
-                <Select
-                  value={selectedDebitedAccount}
-                  onChange={(option) => setSelectedDebitedAccount(option)}
-                  options={accountOptions}
-                  styles={customStyles}
-                />
-              </div>
-              <div>
-                <label>Credited Account:</label>
-                <Select
-                  value={selectedCreditedAccount}
-                  onChange={(option) => setSelectedCreditedAccount(option)}
-                  options={accountOptions}
-                  styles={customStyles}
-                />
-              </div>
-              <div>
-                <label>Description:</label>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="input-field"
-                />
-              </div>
-              <div>
-                <label>Amount Credited:</label>
-                <input
-                  type="text"
-                  value={formatAmount(amountCredited)}
-                  onChange={(e) => handleAmountChange(e, setAmountCredited)}
-                  className="input-field"
-                />
-              </div>
-              <div>
-                <label>Amount Debited:</label>
-                <input
-                  type="text"
-                  value={formatAmount(amountDebited)}
-                  onChange={(e) => handleAmountChange(e, setAmountDebited)}
-                  className="input-field"
-                  readOnly
-                />
-              </div>
-              <button type="submit">{isEditing ? 'Update' : 'Submit'}</button>
-            </form>
-          </div>
+    <div className="general-journal-container">
+      <h2>General Journal Upload</h2>
+      
+      <div className="upload-instructions">
+        <p>Upload an Excel file with these exact column headers:</p>
+        <ul>
+          <li>ACCOUNT DEBITED</li>
+          <li>ACCOUNT CREDITED</li>
+          <li>DESRIPTION (or DESCRIPTION)</li>
+          <li>AMOUNT DEBITED</li>
+          <li>AMOUNT CREDITED</li>
+        </ul>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="upload-form">
+        <div className="form-group">
+          <label htmlFor="file-upload">Select Excel File:</label>
+          <input
+            id="file-upload"
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={(e) => setFile(e.target.files[0])}
+            disabled={isLoading}
+          />
+        </div>
+        
+        <button type="submit" disabled={!file || isLoading}>
+          {isLoading ? 'Processing...' : 'Upload Transactions'}
+        </button>
+      </form>
+      
+      {message && (
+        <div className={`message ${messageType}`}>
+          {message}
+          {messageType === 'error' && file && (
+            <button 
+              onClick={() => console.log('Debug data:', { file, excelData })}
+              className="debug-button"
+            >
+              Show Debug Info
+            </button>
+          )}
         </div>
       )}
+      
+      <div className="transactions-list">
+        <h3>Existing Transactions</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Debit Account</th>
+              <th>Credit Account</th>
+              <th>Description</th>
+              <th>Debit Amount</th>
+              <th>Credit Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {transactions.map((t, i) => (
+              <tr key={i}>
+                <td>{t.date_issued}</td>
+                <td>{t.debited_account_name}</td>
+                <td>{t.credited_account_name}</td>
+                <td>{t.description}</td>
+                <td>{t.amount_debited?.toLocaleString()}</td>
+                <td>{t.amount_credited?.toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
 
-export default AccountSelection;
+export default GeneralJournal;

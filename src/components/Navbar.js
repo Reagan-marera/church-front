@@ -13,7 +13,9 @@ import {
   FaSignOutAlt,
   FaTachometerAlt,
   FaFacebook,
-  FaWhatsapp
+  FaWhatsapp,
+  FaEnvelope,
+  FaPhone
 } from "react-icons/fa";
 import { FaTiktok } from "react-icons/fa6";
 import "./Navbar.css";
@@ -53,6 +55,19 @@ const Navbar = () => {
     },
   ];
 
+  const contactInfo = [
+    {
+      name: "Email",
+      icon: <FaEnvelope className="dropdown-icon" />,
+      url: "mailto:youmingtechnologies@gmail.com",
+    },
+    {
+      name: "Phone",
+      icon: <FaPhone className="dropdown-icon" />,
+      url: "tel:+254783001125",
+    },
+  ];
+
   return (
     <nav className="navbar">
       <ul className="nav-list">
@@ -60,6 +75,11 @@ const Navbar = () => {
         <li>
           <Link to="/" className="nav-link">
             <FaHome className="nav-icon" /> Home
+          </Link>
+        </li>
+        <li>
+          <Link to="/about-us" className="nav-link">
+            <FaEllipsisH className="nav-icon" /> About us
           </Link>
         </li>
 
@@ -153,8 +173,9 @@ const Navbar = () => {
             </Link>
           </li>
         )}
- {/* Accounts Dropdown */}
- <li
+
+        {/* Accounts Dropdown */}
+        <li
           className="dropdown"
           onMouseEnter={() => setShowAccounts(true)}
           onMouseLeave={() => setShowAccounts(false)}
@@ -177,14 +198,13 @@ const Navbar = () => {
             </ul>
           )}
         </li>
+
         {/* Financial Report */}
         <li>
           <Link to="/general-report" className="nav-link">
             <FaBook className="nav-icon" /> Financial Report
           </Link>
         </li>
-
-       
 
         {/* More Dropdown */}
         {storedToken && (
@@ -211,6 +231,17 @@ const Navbar = () => {
                     </a>
                   </li>
                 ))}
+                <li className="dropdown-section-header">Contact Us</li>
+                {contactInfo.map((contact, index) => (
+                  <li key={index}>
+                    <a
+                      href={contact.url}
+                      className="dropdown-link contact-link"
+                    >
+                      {contact.icon} {contact.name}
+                    </a>
+                  </li>
+                ))}
               </ul>
             )}
           </li>
@@ -228,11 +259,7 @@ const Navbar = () => {
         {/* Register / Login */}
         {!storedToken && (
           <>
-            <li>
-              <Link to="/register" className="nav-link">
-                <FaUserPlus className="nav-icon" /> Register
-              </Link>
-            </li>
+          
             <li>
               <Link to="/login" className="nav-link">
                 <FaSignInAlt className="nav-icon" /> Login

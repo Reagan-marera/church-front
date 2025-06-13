@@ -32,7 +32,7 @@ const Dashboard = () => {
     transactions: ''
   });
 
-  const api = 'https://yoming.boogiecoin.com';
+  const api = 'https://backend.youmingtechnologies.co.ke';
 
   const getUsers = async () => {
     setLoading(prev => ({ ...prev, users: true }));

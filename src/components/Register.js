@@ -1,31 +1,40 @@
 import React, { useState } from 'react';
 
+const USER_SECRET_PASSWORD = '@youming1234#,'; // Hardcoded secret password for users
+
 const Register = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('User');
   const [secretCode, setSecretCode] = useState('');
+  const [userSecretPassword, setUserSecretPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
 
-  const handleSubmit = async (e) => { 
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
+
+    if (role === 'User' && userSecretPassword !== USER_SECRET_PASSWORD) {
+      setErrorMessage('Invalid user secret password');
+      return;
+    }
 
     const userData = {
       username,
       email,
       password,
       role,
-      ...(role === 'CEO' && { secret_code: secretCode })
+      ...(role === 'CEO' && { secret_code: secretCode }),
     };
 
     console.log('Sending user data:', userData);  // Log the data for debugging
 
     try {
-      const response = await fetch('https://yoming.boogiecoin.com/register', {
+      const response = await fetch('https://backend.youmingtechnologies.co.ke/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -41,6 +50,7 @@ const Register = () => {
         setPassword('');
         setRole('User');
         setSecretCode('');
+        setUserSecretPassword('');
       } else {
         const data = await response.json();
         setErrorMessage(data.error || 'Registration failed');
@@ -49,6 +59,10 @@ const Register = () => {
       console.error('Error:', error);
       setErrorMessage('Error in registering');
     }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
   return (
@@ -77,13 +91,18 @@ const Register = () => {
         </div>
         <div style={styles.formGroup}>
           <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={styles.input}
-          />
+          <div style={styles.passwordInputContainer}>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={styles.input}
+            />
+            <button type="button" onClick={togglePasswordVisibility} style={styles.toggleButton}>
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
         </div>
         <div style={styles.formGroup}>
           <label>Role:</label>
@@ -96,13 +115,36 @@ const Register = () => {
         {role === 'CEO' && (
           <div style={styles.formGroup}>
             <label>Secret Code:</label>
-            <input
-              type="password"
-              value={secretCode}
-              onChange={(e) => setSecretCode(e.target.value)}
-              required
-              style={styles.input}
-            />
+            <div style={styles.passwordInputContainer}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={secretCode}
+                onChange={(e) => setSecretCode(e.target.value)}
+                required
+                style={styles.input}
+              />
+              <button type="button" onClick={togglePasswordVisibility} style={styles.toggleButton}>
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {role === 'User' && (
+          <div style={styles.formGroup}>
+            <label>Secret Password:</label>
+            <div style={styles.passwordInputContainer}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={userSecretPassword}
+                onChange={(e) => setUserSecretPassword(e.target.value)}
+                required
+                style={styles.input}
+              />
+              <button type="button" onClick={togglePasswordVisibility} style={styles.toggleButton}>
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </div>
         )}
 
@@ -114,7 +156,7 @@ const Register = () => {
   );
 };
 
-// Styles (unchanged)
+// Styles (updated)
 const styles = {
   container: {
     maxWidth: '500px',
@@ -152,6 +194,7 @@ const styles = {
     border: '1px solid #ced4da',
     outline: 'none',
     transition: 'border-color 0.3s',
+    flex: 1,
   },
   select: {
     padding: '12px',
@@ -180,6 +223,19 @@ const styles = {
     color: '#2ecc71',
     fontSize: '1rem',
     marginTop: '10px',
+  },
+  passwordInputContainer: {
+    display: 'flex',
+    alignItems: 'center',
+  },
+  toggleButton: {
+    marginLeft: '10px',
+    padding: '8px',
+    backgroundColor: '#6c757d',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
   },
 };
 

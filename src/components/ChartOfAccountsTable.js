@@ -6,6 +6,7 @@ const ChartOfAccountsTable = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingAccountId, setEditingAccountId] = useState(null);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   const [formData, setFormData] = useState({
     account_name: '',
@@ -79,8 +80,8 @@ const ChartOfAccountsTable = () => {
     }
 
     const url = editingAccountId
-      ? `https://yoming.boogiecoin.com/chart-of-accounts/${editingAccountId}`
-      : 'https://yoming.boogiecoin.com/chart-of-accounts';
+      ? `https://backend.youmingtechnologies.co.ke/chart-of-accounts/${editingAccountId}`
+      : 'https://backend.youmingtechnologies.co.ke/chart-of-accounts';
 
     const method = editingAccountId ? 'PUT' : 'POST';
 
@@ -125,7 +126,7 @@ const ChartOfAccountsTable = () => {
     }
 
     try {
-      const response = await fetch('https://yoming.boogiecoin.com/chart-of-accounts', {
+      const response = await fetch('https://backend.youmingtechnologies.co.ke/chart-of-accounts', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -168,7 +169,7 @@ const ChartOfAccountsTable = () => {
     }
 
     try {
-      const response = await fetch(`https://yoming.boogiecoin.com/chart-of-accounts/${accountId}`, {
+      const response = await fetch(`https://backend.youmingtechnologies.co.ke/chart-of-accounts/${accountId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -187,6 +188,38 @@ const ChartOfAccountsTable = () => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    const confirmDelete = window.confirm('Are you sure you want to delete ALL accounts? This action cannot be undone.');
+    if (!confirmDelete) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Authentication token is missing.');
+      return;
+    }
+
+    setDeletingAll(true);
+    try {
+      for (const account of accounts) {
+        await fetch(`https://backend.youmingtechnologies.co.ke/chart-of-accounts/${account.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+
+      setAccounts([]);
+      alert('All accounts deleted successfully.');
+    } catch (err) {
+      setError('Failed to delete all accounts.');
+      console.error(err);
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   const printTable = () => {
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     printWindow.document.write('<html><head><title>Print Table</title></head><body>');
@@ -197,118 +230,113 @@ const ChartOfAccountsTable = () => {
     printWindow.print();
   };
 
-const handleFileUpload = (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-      
-      // Get all data as array of arrays
-      const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-      
-      console.log('Complete file structure:', rawData); // Debug output
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
 
-      // Process all rows looking for account data pattern
-      const accountsToUpload = [];
-      const parentAccountMap = {};
+        // Get all data as array of arrays
+        const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
-      for (let i = 0; i < rawData.length; i++) {
-        const row = rawData[i];
-        if (!row || row.length < 5) continue;
+        console.log('Complete file structure:', rawData); // Debug output
 
-        // Extract values from specific columns based on your data structure
-        const accountType = String(row[1] || '').trim(); // Second column
-        const accountClass = String(row[2] || '').trim(); // Third column
-        const parentAccount = String(row[3] || '').trim(); // Fourth column
-        const subAccount = String(row[4] || '').trim(); // Fifth column
+        // Process all rows looking for account data pattern
+        const accountsToUpload = [];
+        const parentAccountMap = {};
 
-        // Skip empty rows or non-account rows
-        if (!accountType || !accountClass || !parentAccount || !subAccount) {
-          console.log('Skipping row:', row);
-          continue;
-        }
+        for (let i = 0; i < rawData.length; i++) {
+          const row = rawData[i];
+          if (!row || row.length < 6) continue;
 
-        // Skip header-like rows
-        if (accountType.toLowerCase().includes('account') || 
-            accountClass.toLowerCase().includes('account')) {
-          continue;
-        }
+          // Extract values from specific columns based on your data structure
+          const accountType = String(row[1] || '').trim(); // Second column
+          const accountName = String(row[2] || '').trim(); // Third column
+          const parentAccount = String(row[4] || '').trim(); // Fifth column
+          const subAccount = String(row[5] || '').trim(); // Sixth column
 
-        // Group by parent account
-        if (!parentAccountMap[parentAccount]) {
-          parentAccountMap[parentAccount] = {
-            account_type: accountType,
-            account_name: accountClass,
-            parent_account: parentAccount,
-            note_number: '',
-            sub_account_details: []
-          };
-          accountsToUpload.push(parentAccountMap[parentAccount]);
-        }
-
-        parentAccountMap[parentAccount].sub_account_details.push({
-          name: subAccount,
-          id: `subacc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
-        });
-      }
-
-      if (accountsToUpload.length === 0) {
-        throw new Error(
-          'No valid accounts found. Based on your file structure:\n' +
-          '1. Account data should be in columns 2-5\n' +
-          '2. Expected pattern: [empty, Type, Class, Parent, SubAccount]\n' +
-          '3. Check console for complete file structure'
-        );
-      }
-
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('Authentication token missing');
-        return;
-      }
-
-      // Upload accounts
-      let successCount = 0;
-      for (const account of accountsToUpload) {
-        try {
-          const response = await fetch('https://yoming.boogiecoin.com/chart-of-accounts', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(account),
-          });
-
-          if (!response.ok) {
-            const error = await response.json();
-            console.error('Upload failed:', account.parent_account, error);
+          // Log skipped rows with more detail
+          if (!accountType || !accountName || !parentAccount || !subAccount) {
+            console.log('Skipping row due to missing essential data:', row);
             continue;
           }
-          successCount++;
-        } catch (err) {
-          console.error('Error uploading:', account.parent_account, err);
-        }
-      }
 
-      if (successCount > 0) {
-        fetchAccounts();
-        alert(`${successCount} accounts uploaded successfully!`);
-      } else {
-        throw new Error('All uploads failed. Check console for details.');
+          // Group by parent account
+          if (!parentAccountMap[parentAccount]) {
+            parentAccountMap[parentAccount] = {
+              account_type: accountType,
+              account_name: accountName,
+              parent_account: parentAccount,
+              note_number: '',
+              sub_account_details: []
+            };
+            accountsToUpload.push(parentAccountMap[parentAccount]);
+          }
+
+          // Add sub-account details
+          parentAccountMap[parentAccount].sub_account_details.push({
+            name: subAccount,
+            id: `subacc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
+          });
+        }
+
+        if (accountsToUpload.length === 0) {
+          throw new Error(
+            'No valid accounts found. Based on your file structure:\n' +
+            '1. Account data should be in columns 2, 3, 5, and 6\n' +
+            '2. Expected pattern: [empty, Type, Name, empty, Parent, SubAccount]\n' +
+            '3. Check console for complete file structure'
+          );
+        }
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Authentication token missing');
+          return;
+        }
+
+        // Upload accounts
+        let successCount = 0;
+        for (const account of accountsToUpload) {
+          try {
+            const response = await fetch('https://backend.youmingtechnologies.co.ke/chart-of-accounts', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(account),
+            });
+
+            if (!response.ok) {
+              const error = await response.json();
+              console.error('Upload failed:', account.parent_account, error);
+              continue;
+            }
+            successCount++;
+          } catch (err) {
+            console.error('Error uploading:', account.parent_account, err);
+          }
+        }
+
+        if (successCount > 0) {
+          fetchAccounts();
+          alert(`${successCount} accounts uploaded successfully!`);
+        } else {
+          throw new Error('All uploads failed. Check console for details.');
+        }
+      } catch (err) {
+        console.error('Upload error:', err);
+        setError(err.message);
       }
-    } catch (err) {
-      console.error('Upload error:', err);
-      setError(err.message);
-    }
+    };
+    reader.readAsArrayBuffer(file);
   };
-  reader.readAsArrayBuffer(file);
-};
 
   useEffect(() => {
     fetchAccounts();
@@ -330,7 +358,7 @@ const handleFileUpload = (e) => {
           <label style={styles.label}>Account Class:</label>
           <input type="text" name="account_name" value={formData.account_name} onChange={handleInputChange} required style={styles.input} />
         </div>
-      
+
         <div style={styles.formGroup}>
           <label style={styles.label}>Note Number:</label>
           <input type="text" name="note_number" value={formData.note_number} onChange={handleInputChange} style={styles.input} />
@@ -366,6 +394,13 @@ const handleFileUpload = (e) => {
         <p>Upload Excel file with Chart of Accounts (must match the required format)</p>
       </div>
       <button onClick={printTable} style={styles.button}>Print ChartOfAccounts</button>
+      <button
+        onClick={handleDeleteAll}
+        style={{ ...styles.deleteButton, marginBottom: '10px' }}
+        disabled={deletingAll}
+      >
+        {deletingAll ? 'Deleting...' : 'Delete All Accounts'}
+      </button>
 
       <table style={styles.table}>
         <thead>

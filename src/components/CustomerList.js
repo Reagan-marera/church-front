@@ -6,6 +6,7 @@ const CustomerList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingAccountId, setEditingAccountId] = useState(null);
+  const [deletingAll, setDeletingAll] = useState(false);
 
   const [formData, setFormData] = useState({
     parent_account: '',
@@ -87,8 +88,8 @@ const CustomerList = () => {
     }
 
     const url = editingAccountId
-      ? `https://yoming.boogiecoin.com/customer/${editingAccountId}`
-      : 'https://yoming.boogiecoin.com/customer';
+      ? `https://backend.youmingtechnologies.co.ke/customer/${editingAccountId}`
+      : 'https://backend.youmingtechnologies.co.ke/customer';
 
     const method = editingAccountId ? 'PUT' : 'POST';
 
@@ -132,7 +133,7 @@ const CustomerList = () => {
     }
 
     try {
-      const response = await fetch('https://yoming.boogiecoin.com/customer', {
+      const response = await fetch('https://backend.youmingtechnologies.co.ke/customer', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -178,7 +179,7 @@ const CustomerList = () => {
     }
 
     try {
-      const response = await fetch(`https://yoming.boogiecoin.com/customer/${accountId}`, {
+      const response = await fetch(`https://backend.youmingtechnologies.co.ke/customer/${accountId}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -197,6 +198,38 @@ const CustomerList = () => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    const confirmDelete = window.confirm('Are you sure you want to delete ALL accounts? This action cannot be undone.');
+    if (!confirmDelete) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Authentication token is missing.');
+      return;
+    }
+
+    setDeletingAll(true);
+    try {
+      for (const account of accounts) {
+        await fetch(`https://backend.youmingtechnologies.co.ke/customer/${account.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+
+      setAccounts([]);
+      alert('All accounts deleted successfully.');
+    } catch (err) {
+      setError('Failed to delete all accounts.');
+      console.error(err);
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   const printTable = () => {
     const printWindow = window.open('', '_blank', 'width=800,height=600');
     printWindow.document.write('<html><head><title>Print Table</title></head><body>');
@@ -207,80 +240,116 @@ const CustomerList = () => {
     printWindow.print();
   };
 
-  const handleFileUpload = async (e) => {
+  const handleFileUpload = (e) => {
     const file = e.target.files[0];
+    if (!file) return;
+
     const reader = new FileReader();
-  
-    reader.onload = async (event) => {
-      const data = new Uint8Array(event.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
-  
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('Authentication token is missing.');
-        return;
-      }
-  
-      for (const row of jsonData) {
-        const rawSubAccounts = row.sub_account_details || '';
-        let subAccounts = [];
-  
-        try {
-          if (rawSubAccounts.trim().startsWith('[')) {
-            // Try parsing if it's already valid JSON
-            subAccounts = JSON.parse(rawSubAccounts);
-          } else {
-            // Otherwise assume comma-separated and convert
-            subAccounts = rawSubAccounts.split(',')
-              .map(name => name.trim())
-              .filter(name => name.length > 0)
-              .map(name => ({ name }));
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+
+        // Get all data as array of arrays
+        const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+        console.log('Complete file structure:', rawData); // Debug output
+
+        // Process all rows looking for account data pattern
+        const accountsToUpload = [];
+        const parentAccountMap = {};
+
+        for (let i = 0; i < rawData.length; i++) {
+          const row = rawData[i];
+          if (!row || row.length < 5) continue;
+
+          // Extract values from specific columns based on your data structure
+          const accountType = String(row[1] || '').trim(); // Second column
+          const accountName = String(row[2] || '').trim(); // Third column
+          const parentAccount = String(row[3] || '').trim(); // Fourth column
+          const subAccountName = String(row[4] || '').trim(); // Fifth column
+
+          // Log skipped rows with more detail
+          if (!accountType || !accountName || !parentAccount) {
+            console.log('Skipping row due to missing essential data:', row);
+            continue;
           }
-        } catch (jsonErr) {
-          console.error("Invalid sub_account_details format:", rawSubAccounts);
-          continue;
-        }
-  
-        const accountPayload = {
-          parent_account: row.parent_account || '',
-          account_name: row.account_name || '',
-          account_type: row.account_type || '',
-          ...(row.note_number && { note_number: row.note_number }),
-          parent_account_id: row.parent_account_id || null,
-          sub_account_details: subAccounts,
-        };
-        
-  
-        try {
-          const response = await fetch('https://yoming.boogiecoin.com/customer', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify(accountPayload),
-          });
-  
-          if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Upload failed: ${errorText}`);
+
+          // Group by parent account
+          if (!parentAccountMap[parentAccount]) {
+            parentAccountMap[parentAccount] = {
+              account_type: accountType,
+              account_name: accountName,
+              parent_account: parentAccount,
+              note_number: '',
+              sub_account_details: []
+            };
+            accountsToUpload.push(parentAccountMap[parentAccount]);
           }
-        } catch (err) {
-          console.error("Upload error:", err.message, accountPayload);
-          alert(`Upload failed for: ${accountPayload.parent_account}`);
+
+          // Only add sub-account if the name is not empty
+          if (subAccountName) {
+            parentAccountMap[parentAccount].sub_account_details.push({
+              name: subAccountName,
+              id: `subacc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
+            });
+          }
         }
+
+        if (accountsToUpload.length === 0) {
+          throw new Error(
+            'No valid accounts found. Based on your file structure:\n' +
+            '1. Account data should be in columns 2-5\n' +
+            '2. Expected pattern: [empty, Type, Name, Parent, SubAccount]\n' +
+            '3. Check console for complete file structure'
+          );
+        }
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Authentication token missing');
+          return;
+        }
+
+        // Upload accounts
+        let successCount = 0;
+        for (const account of accountsToUpload) {
+          try {
+            const response = await fetch('https://backend.youmingtechnologies.co.ke/customer', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify(account),
+            });
+
+            if (!response.ok) {
+              const error = await response.json();
+              console.error('Upload failed:', account.parent_account, error);
+              continue;
+            }
+            successCount++;
+            console.log('Successfully uploaded:', account); // Log successful uploads
+          } catch (err) {
+            console.error('Error uploading:', account.parent_account, err);
+          }
+        }
+
+        if (successCount > 0) {
+          fetchAccounts();
+          alert(`${successCount} accounts uploaded successfully!`);
+        } else {
+          throw new Error('All uploads failed. Check console for details.');
+        }
+      } catch (err) {
+        console.error('Upload error:', err);
+        setError(err.message);
       }
-  
-      alert('Upload complete');
-      fetchAccounts();
     };
-  
     reader.readAsArrayBuffer(file);
   };
-  
 
   useEffect(() => {
     fetchAccounts();
@@ -368,6 +437,14 @@ const CustomerList = () => {
         Print CustomerList
       </button>
 
+      <button
+        onClick={handleDeleteAll}
+        style={{ ...styles.deleteButton, marginBottom: '10px' }}
+        disabled={deletingAll}
+      >
+        {deletingAll ? 'Deleting...' : 'Delete All Accounts'}
+      </button>
+
       <table style={styles.table}>
         <thead>
           <tr>
@@ -429,6 +506,7 @@ const styles = {
   tableCell: { padding: '10px', border: '1px solid #333' },
   fileInput: { marginTop: '20px', padding: '10px', borderRadius: '5px', border: '1px solid #333' },
 };
+
 // Changing colors animation
 const style = document.createElement('style');
 style.innerHTML = `

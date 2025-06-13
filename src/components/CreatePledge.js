@@ -77,7 +77,7 @@ const CreatePledge = () => {
     }
   
     const token = localStorage.getItem('token');
-    const response = await fetch('https://yoming.boogiecoin.com/create-pledge', {
+    const response = await fetch('https://backend.youmingtechnologies.co.ke/create-pledge', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ const CreatePledge = () => {
     }
 
     try {
-      const response = await fetch(`https://yoming.boogiecoin.com/delete-pledge/${pledgeId}`, {
+      const response = await fetch(`https://backend.youmingtechnologies.co.ke/delete-pledge/${pledgeId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -144,7 +144,7 @@ const CreatePledge = () => {
   
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch('z/make-payment', {
+      const response = await fetch('https://backend.youmingtechnologies.co.ke/make-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

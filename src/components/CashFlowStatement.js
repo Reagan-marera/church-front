@@ -8,7 +8,7 @@ const CashFlowStatement = () => {
   const [balanceData, setBalanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const api = 'https://yoming.boogiecoin.com';
+  const api = 'https://backend.youmingtechnologies.co.ke';
 
   useEffect(() => {
     const fetchData = async () => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API = 'https://yoming.boogiecoin.com';
+const API = 'https://backend.youmingtechnologies.co.ke';
 
 const Creditors = () => {
   const [customerName, setCustomerName] = useState(null);

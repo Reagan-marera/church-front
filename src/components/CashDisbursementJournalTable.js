@@ -17,7 +17,7 @@ import {
 import "./DisbursementForm.css";
 import * as XLSX from 'xlsx';
 
-const api = 'https://yoming.boogiecoin.com';
+const api = 'https://backend.youmingtechnologies.co.ke';
 
 const DisbursementForm = () => {
   const [formData, setFormData] = useState({
@@ -47,6 +47,7 @@ const DisbursementForm = () => {
   const [totalDisbursed, setTotalDisbursed] = useState(0);
   const [editingDisbursement, setEditingDisbursement] = useState(null);
   const [printableDisbursement, setPrintableDisbursement] = useState(null);
+  const [error, setError] = useState("");
   const printRef = useRef();
 
   const formatCurrency = (amount) => {
@@ -120,6 +121,24 @@ const DisbursementForm = () => {
     };
     fetchData();
   }, []);
+
+  const fetchJournals = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setErrorMessage("Unauthorized: Missing token.");
+      return;
+    }
+    try {
+      const disbursementsResponse = await fetch(`${api}/cash-disbursement-journals`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
+      const disbursementsData = await disbursementsResponse.json();
+      setDisbursements(disbursementsData);
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -382,6 +401,164 @@ const DisbursementForm = () => {
     XLSX.writeFile(workbook, 'disbursements.xlsx');
   };
 
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+  
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        
+        // Get raw data with header: 1 to skip Excel header row
+        const rawData = XLSX.utils.sheet_to_json(firstSheet, { 
+          header: 1, 
+          defval: '',
+          raw: false // Get formatted strings
+        });
+  
+        console.log('First 5 rows:', rawData.slice(0, 5));
+  
+        const journalsToUpload = [];
+        const skippedReasons = [];
+  
+        // Column indices based on your actual data structure
+        const COLS = {
+          DATE: 1,          // Column B: Date (string or Excel serial)
+          CHEQUE_NO: 2,     // Column C: Cheque No
+          VOUCHER_NO: 3,    // Column D: Voucher No
+          TO_WHOM_PAID: 4,  // Column E: To Whom Paid
+          DESCRIPTION: 5,   // Column F: Description
+          PAYMENT_TYPE: 6,  // Column G: Payment Type
+          PARENT_ACCOUNT: 7, // Column H: Parent Account
+          ACCOUNT_DEBITED: 8, // Column I: Account Debited
+          ACCOUNT_CREDITED: 9, // Column J: Account Credited
+          CASH: 10,        // Column K: Cash
+          BANK: 11,        // Column L: Bank
+          AMOUNT: 12       // Column M: Amount
+        };
+  
+        // Process rows starting from row 1 (index 0 is header)
+        for (let i = 1; i < rawData.length; i++) {
+          const row = rawData[i];
+          if (!row || row.length < 13) {
+            skippedReasons.push(`Row ${i+1}: Insufficient columns (${row?.length || 0})`);
+            continue;
+          }
+  
+          // Parse each field with proper checks
+          const dateValue = row[COLS.DATE];
+          const cheque_no = String(row[COLS.CHEQUE_NO] || '').trim();
+          const voucher_no = String(row[COLS.VOUCHER_NO] || '').trim();
+          const to_whom_paid = String(row[COLS.TO_WHOM_PAID] || '').trim();
+          const description = String(row[COLS.DESCRIPTION] || '').trim();
+          const payment_type = String(row[COLS.PAYMENT_TYPE] || '').trim();
+          const parent_account = String(row[COLS.PARENT_ACCOUNT] || '').trim();
+          const account_debited = String(row[COLS.ACCOUNT_DEBITED] || '').trim();
+          const account_credited = String(row[COLS.ACCOUNT_CREDITED] || '').trim();
+          const cash = parseFloat(String(row[COLS.CASH] || '0').replace(/,/g, '')) || 0;
+          const bank = parseFloat(String(row[COLS.BANK] || '0').replace(/,/g, '')) || 0;
+          const amount = parseFloat(String(row[COLS.AMOUNT] || '0').replace(/,/g, '')) || 0;
+  
+          // Validate required fields
+          if (!dateValue || !cheque_no || !to_whom_paid || !account_credited) {
+            skippedReasons.push(`Row ${i+1}: Missing required fields`);
+            continue;
+          }
+  
+          // Convert date to YYYY-MM-DD format
+          let payment_date;
+          try {
+            if (typeof dateValue === 'number') {
+              // Handle Excel numeric date
+              const dateObj = XLSX.SSF.parse_date_code(dateValue);
+              payment_date = new Date(dateObj.y, dateObj.m - 1, dateObj.d).toISOString().split('T')[0];
+            } else if (typeof dateValue === 'string') {
+              // Handle string date (DD/MM/YYYY)
+              const [day, month, year] = dateValue.split('/').map(Number);
+              payment_date = new Date(year, month - 1, day).toISOString().split('T')[0];
+            } else {
+              throw new Error('Unrecognized date format');
+            }
+          } catch (err) {
+            skippedReasons.push(`Row ${i+1}: Date parsing error (${dateValue})`);
+            continue;
+          }
+  
+          // Calculate total amount
+          const total = cash + bank > 0 ? cash + bank : amount;
+  
+          journalsToUpload.push({
+            disbursement_date: payment_date,
+            cheque_no: cheque_no,
+            p_voucher_no: voucher_no,
+            name: to_whom_paid,
+            to_whom_paid: to_whom_paid,
+            description: description,
+            payment_type: payment_type,
+            parent_account: parent_account,
+            account_debited: account_debited || null,
+            account_credited: account_credited,
+            cashbook: 'Main Cashbook',
+            cash: cash,
+            bank: bank,
+            total: total
+          });
+        }
+  
+        console.log(`Found ${journalsToUpload.length} valid journals to upload`);
+        console.log('Sample journal:', journalsToUpload[0]);
+        console.log('Skipped reasons (first 10):', skippedReasons.slice(0, 10));
+  
+        if (journalsToUpload.length === 0) {
+          throw new Error(`No valid journals found. First reasons:\n${
+            skippedReasons.slice(0, 10).join('\n')
+          }${skippedReasons.length > 10 ? '\n...and more' : ''}`);
+        }
+  
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('Authentication token missing');
+        }
+  
+        // Upload each journal
+        const results = await Promise.allSettled(
+          journalsToUpload.map(journal => 
+            fetch(`${api}/cash-disbursement-journals`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify(journal)
+            }).then(res => res.json())
+          )
+        );
+  
+        const successfulUploads = results.filter(r => r.status === 'fulfilled');
+        const failedUploads = results.filter(r => r.status === 'rejected');
+  
+        if (successfulUploads.length > 0) {
+          fetchJournals(); // Refresh the journal list
+          alert(`${successfulUploads.length} journals uploaded successfully!`);
+        }
+  
+        if (failedUploads.length > 0) {
+          console.error('Failed uploads:', failedUploads);
+          alert(`${failedUploads.length} journals failed to upload. Check console for details.`);
+        }
+  
+      } catch (err) {
+        console.error('Upload error:', err);
+        setError(err.message);
+        alert(`Upload failed: ${err.message}`);
+      }
+    };
+  
+    reader.readAsArrayBuffer(file);
+  };
   const payeeOptions = payees.flatMap((payee) =>
     payee.sub_account_details?.map((subAccount) => ({
       value: subAccount.name,
@@ -410,6 +587,7 @@ const DisbursementForm = () => {
       <button onClick={handleExportToExcel} className="export-button">
         <FontAwesomeIcon icon={faFileExcel} className="icon" /> Export to Excel
       </button>
+      <input type="file" onChange={handleFileUpload} accept=".xlsx, .xls" />
       {showForm && (
         <div className="form-popup">
           <div className="form-container">

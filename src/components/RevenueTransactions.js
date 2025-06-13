@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
 
 const RevenueTransactions = ({ startDate, endDate }) => {
   const [combinedData, setCombinedData] = useState([]);
@@ -19,7 +20,7 @@ const RevenueTransactions = ({ startDate, endDate }) => {
         if (startDate) queryParams.append('start_date', startDate);
         if (endDate) queryParams.append('end_date', endDate);
 
-        const response = await fetch(`https://yoming.boogiecoin.com/revenuetransactions?${queryParams.toString()}`, {
+        const response = await fetch(`https://backend.youmingtechnologies.co.ke/revenuetransactions?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -93,6 +94,24 @@ const RevenueTransactions = ({ startDate, endDate }) => {
     setSearchAccount(e.target.value);
   };
 
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => ({
+      Type: item.type,
+      Date: item.date,
+      Reference: item.reference,
+      From: item.from,
+      Description: item.description,
+      Account: item.credited_account,
+      'Parent Account': item.parent_account,
+      'DR Amount': item.dr_amount || 0,
+      'CR Amount': item.cr_amount || 0,
+    })));
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "RevenueTransactions");
+    XLSX.writeFile(workbook, "RevenueTransactions.xlsx");
+  };
+
   const filteredData = combinedData.filter((item) => {
     const creditedAccount = item.credited_account ? item.credited_account.toString() : '';
     const parentAccount = item.parent_account ? item.parent_account.toString() : '';
@@ -132,6 +151,9 @@ const RevenueTransactions = ({ startDate, endDate }) => {
           style={styles.searchInput}
         />
       </div>
+      <button onClick={exportToExcel} style={styles.exportButton}>
+        Export to Excel
+      </button>
       <table style={styles.table}>
         <thead>
           <tr style={styles.tableHeader}>
@@ -203,6 +225,16 @@ const styles = {
     fontSize: '1rem',
     outline: 'none',
     transition: 'border-color 0.3s ease',
+  },
+  exportButton: {
+    padding: '10px 15px',
+    backgroundColor: '#003366',
+    color: 'white',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    marginBottom: '20px',
   },
   table: {
     width: '100%',

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
 
 const LiabilityTransactions = ({ startDate, endDate }) => {
   const [combinedData, setCombinedData] = useState([]);
@@ -7,7 +8,6 @@ const LiabilityTransactions = ({ startDate, endDate }) => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch data from the API
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -20,7 +20,7 @@ const LiabilityTransactions = ({ startDate, endDate }) => {
         if (startDate) queryParams.append('start_date', startDate);
         if (endDate) queryParams.append('end_date', endDate);
 
-        const response = await fetch(`https://yoming.boogiecoin.com/liabilitytransactions?${queryParams.toString()}`, {
+        const response = await fetch(`https://backend.youmingtechnologies.co.ke/liabilitytransactions?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -34,7 +34,6 @@ const LiabilityTransactions = ({ startDate, endDate }) => {
 
         const data = await response.json();
 
-        // Normalize and combine data
         const normalizedData = [
           ...data.cash_disbursements.map((cd) => {
             const accountNameWithCode = cd.account_debited?.trim() || 'N/A';
@@ -83,7 +82,7 @@ const LiabilityTransactions = ({ startDate, endDate }) => {
         ];
 
         setCombinedData(normalizedData);
-        setFilteredData(normalizedData); // Initialize filtered data with all data
+        setFilteredData(normalizedData);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -92,17 +91,16 @@ const LiabilityTransactions = ({ startDate, endDate }) => {
     };
 
     fetchData();
-  }, [startDate, endDate]); // Re-fetch data when start or end date changes
+  }, [startDate, endDate]);
 
-  // Handle search by account, reference, or description
   const handleSearch = (e) => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
-  
+
     if (term) {
       const filtered = combinedData.filter((item) =>
         item.type.toLowerCase().includes(term) ||
-        String(item.reference).toLowerCase().includes(term) || // Ensure reference is a string
+        String(item.reference).toLowerCase().includes(term) ||
         item.from.toLowerCase().includes(term) ||
         item.description.toLowerCase().includes(term) ||
         item.parent_account.toLowerCase().includes(term) ||
@@ -110,16 +108,32 @@ const LiabilityTransactions = ({ startDate, endDate }) => {
       );
       setFilteredData(filtered);
     } else {
-      setFilteredData(combinedData); // Reset to all data if search is empty
+      setFilteredData(combinedData);
     }
   };
-  
-  // Calculate total DR and CR amounts
+
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => ({
+      Type: item.type,
+      Date: item.date,
+      Reference: item.reference,
+      From: item.from,
+      Description: item.description,
+      'DR Amount': item.debited_amount,
+      'CR Amount': item.credited_amount,
+      'Parent Account': item.parent_account,
+      'Account Name': item.account_name,
+    })));
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "LiabilityTransactions");
+    XLSX.writeFile(workbook, "LiabilityTransactions.xlsx");
+  };
+
   const totalDR = filteredData.reduce((sum, item) => sum + (Number(item.debited_amount) || 0), 0);
   const totalCR = filteredData.reduce((sum, item) => sum + (Number(item.credited_amount) || 0), 0);
   const closingBalance = totalCR - totalDR;
 
-  // Format numbers with two decimal places
   const formatNumber = (num) => {
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
@@ -144,6 +158,9 @@ const LiabilityTransactions = ({ startDate, endDate }) => {
           style={styles.searchInput}
         />
       </div>
+      <button onClick={exportToExcel} style={styles.exportButton}>
+        Export to Excel
+      </button>
       <table style={styles.table}>
         <thead>
           <tr style={styles.tableHeader}>
@@ -213,9 +230,16 @@ const styles = {
     fontSize: '1rem',
     outline: 'none',
     transition: 'border-color 0.3s ease',
-    '&:focus': {
-      borderColor: '#007BFF',
-    },
+  },
+  exportButton: {
+    padding: '10px 15px',
+    backgroundColor: '#003366',
+    color: 'white',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    marginBottom: '20px',
   },
   table: {
     width: '100%',
@@ -235,17 +259,9 @@ const styles = {
   },
   evenRow: {
     backgroundColor: '#f7f7f7',
-    transition: 'background-color 0.3s ease',
-    '&:hover': {
-      backgroundColor: '#e6f2ff',
-    },
   },
   oddRow: {
     backgroundColor: '#ffffff',
-    transition: 'background-color 0.3s ease',
-    '&:hover': {
-      backgroundColor: '#e6f2ff',
-    },
   },
   totalAmount: {
     marginTop: '20px',

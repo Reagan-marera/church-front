@@ -13,7 +13,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
   const [showOtpVerification, setShowOtpVerification] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const navigate = useNavigate();
-  const Api = 'https://yoming.boogiecoin.com';
+  const Api = 'https://backend.youmingtechnologies.co.ke';
 
   const handleSubmit = async (e) => {
     e.preventDefault();

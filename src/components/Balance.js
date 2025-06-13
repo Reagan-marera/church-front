@@ -85,7 +85,7 @@ const BalanceStatementAccounts = () => {
         const token = localStorage.getItem('token');
 
         // Fetch balance statement data
-        const balanceResponse = await fetch('https://yoming.boogiecoin.com/balance-statement/accounts', {
+        const balanceResponse = await fetch('https://backend.youmingtechnologies.co.ke/balance-statement/accounts', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -101,7 +101,7 @@ const BalanceStatementAccounts = () => {
         setAccountData(balanceData);
 
         // Fetch income statement data
-        const incomeResponse = await fetch('https://yoming.boogiecoin.com/income-statement/accounts', {
+        const incomeResponse = await fetch('https://backend.youmingtechnologies.co.ke/income-statement/accounts', {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,

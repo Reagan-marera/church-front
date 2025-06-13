@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
 
 const ExpenseTransactions = ({ startDate, endDate }) => {
   const [combinedData, setCombinedData] = useState([]);
@@ -7,7 +8,6 @@ const ExpenseTransactions = ({ startDate, endDate }) => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch data from the API
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -20,7 +20,7 @@ const ExpenseTransactions = ({ startDate, endDate }) => {
         if (startDate) queryParams.append('start_date', startDate);
         if (endDate) queryParams.append('end_date', endDate);
 
-        const response = await fetch(`https://yoming.boogiecoin.com/expensetransactions?${queryParams.toString()}`, {
+        const response = await fetch(`https://backend.youmingtechnologies.co.ke/expensetransactions?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             Authorization: `Bearer ${token}`,
@@ -33,19 +33,14 @@ const ExpenseTransactions = ({ startDate, endDate }) => {
         }
 
         const data = await response.json();
-
-        // Log the data for debugging
         console.log('API Response:', data);
 
-        // Validate the response
         if (!data || Object.keys(data).length === 0) {
           throw new Error('No data available.');
         }
 
-        // Normalize and combine data
         const normalizedData = [
           ...(data.transactions ?? []).map((txn) => {
-            // Handle account_name, which can be a string or an array of objects
             const accountName =
               typeof txn.account_name === 'string'
                 ? txn.account_name.trim()
@@ -53,7 +48,6 @@ const ExpenseTransactions = ({ startDate, endDate }) => {
                 ? txn.account_name[0].name.trim()
                 : 'N/A';
 
-            // Determine DR and CR amounts based on transaction type
             const debitedAmount = txn.type === 'Cash Disbursement' || txn.type === 'Invoice Received'
               ? Number(txn.dr_amount) || 0
               : 0;
@@ -76,7 +70,7 @@ const ExpenseTransactions = ({ startDate, endDate }) => {
         ];
 
         setCombinedData(normalizedData);
-        setFilteredData(normalizedData); // Initialize filtered data with all data
+        setFilteredData(normalizedData);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -85,9 +79,8 @@ const ExpenseTransactions = ({ startDate, endDate }) => {
     };
 
     fetchData();
-  }, [startDate, endDate]); // Re-fetch data when start or end date changes
+  }, [startDate, endDate]);
 
-  // Handle search by account, reference, or description
   const handleSearch = (e) => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
@@ -103,16 +96,32 @@ const ExpenseTransactions = ({ startDate, endDate }) => {
       );
       setFilteredData(filtered);
     } else {
-      setFilteredData(combinedData); // Reset to all data if search is empty
+      setFilteredData(combinedData);
     }
   };
 
-  // Calculate total DR and CR amounts
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => ({
+      Type: item.type,
+      Date: item.date,
+      Reference: item.reference,
+      From: item.from,
+      Description: item.description,
+      'DR Amount': item.debited_amount,
+      'CR Amount': item.credited_amount,
+      'Parent Account': item.parent_account,
+      'Account Name': item.account_name,
+    })));
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "ExpenseTransactions");
+    XLSX.writeFile(workbook, "ExpenseTransactions.xlsx");
+  };
+
   const totalDR = filteredData.reduce((sum, item) => sum + (Number(item.debited_amount) || 0), 0);
   const totalCR = filteredData.reduce((sum, item) => sum + (Number(item.credited_amount) || 0), 0);
   const closingBalance = totalDR - totalCR;
 
-  // Format numbers with two decimal places
   const formatNumber = (num) => {
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
@@ -137,6 +146,9 @@ const ExpenseTransactions = ({ startDate, endDate }) => {
           style={styles.searchInput}
         />
       </div>
+      <button onClick={exportToExcel} style={styles.exportButton}>
+        Export to Excel
+      </button>
       <table style={styles.table}>
         <thead>
           <tr style={styles.tableHeader}>
@@ -206,9 +218,16 @@ const styles = {
     fontSize: '1rem',
     outline: 'none',
     transition: 'border-color 0.3s ease',
-    '&:focus': {
-      borderColor: '#007BFF',
-    },
+  },
+  exportButton: {
+    padding: '10px 15px',
+    backgroundColor: '#003366',
+    color: 'white',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    marginBottom: '20px',
   },
   table: {
     width: '100%',
@@ -228,17 +247,9 @@ const styles = {
   },
   evenRow: {
     backgroundColor: '#f7f7f7',
-    transition: 'background-color 0.3s ease',
-    '&:hover': {
-      backgroundColor: '#e6f2ff',
-    },
   },
   oddRow: {
     backgroundColor: '#ffffff',
-    transition: 'background-color 0.3s ease',
-    '&:hover': {
-      backgroundColor: '#e6f2ff',
-    },
   },
   totalAmount: {
     marginTop: '20px',

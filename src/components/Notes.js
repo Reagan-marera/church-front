@@ -18,7 +18,7 @@ const AccountsTransactions = () => {
       }
 
       try {
-        const response = await fetch('https://yoming.boogiecoin.com/transactions/accounts', {
+        const response = await fetch('https://backend.youmingtechnologies.co.ke/transactions/accounts', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

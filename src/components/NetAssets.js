@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 
 const NetAssets = ({ startDate, endDate }) => {
   const [netAssetsData, setNetAssetsData] = useState(null);
@@ -15,7 +16,7 @@ const NetAssets = ({ startDate, endDate }) => {
         if (startDate) queryParams.append('start_date', startDate);
         if (endDate) queryParams.append('end_date', endDate);
 
-        const response = await fetch(`https://yoming.boogiecoin.com/net-assets?${queryParams.toString()}`, {
+        const response = await fetch(`https://backend.youmingtechnologies.co.ke/net-assets?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -61,6 +62,21 @@ const NetAssets = ({ startDate, endDate }) => {
     }
   }, [searchTerm, netAssetsData]);
 
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(filteredTransactions.map(txn => ({
+      'Credited Account': Array.isArray(txn.credited_account_name) ? txn.credited_account_name.join(', ') : txn.credited_account_name,
+      'Debited Account': Array.isArray(txn.debited_account_name) ? txn.debited_account_name.join(', ') : txn.debited_account_name,
+      'Amount Credited': txn.amount_credited,
+      'Amount Debited': txn.amount_debited,
+      'Description': txn.description,
+      'Date Issued': txn.date_issued || 'N/A',
+    })));
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "NetAssets");
+    XLSX.writeFile(workbook, "NetAssets.xlsx");
+  };
+
   const totalCredits = useMemo(() =>
     filteredTransactions.reduce((sum, txn) => sum + txn.amount_credited, 0),
     [filteredTransactions]
@@ -93,6 +109,9 @@ const NetAssets = ({ startDate, endDate }) => {
           style={styles.searchInput}
         />
       </div>
+      <button onClick={exportToExcel} style={styles.exportButton}>
+        Export to Excel
+      </button>
       <div style={styles.totals}>
         <p>Total Credits: {totalCredits.toFixed(2)}</p>
         <p>Total Debits: {totalDebits.toFixed(2)}</p>
@@ -150,6 +169,16 @@ const styles = {
     width: '60%',
     borderRadius: '5px',
     border: '1px solid #ddd',
+  },
+  exportButton: {
+    padding: '10px 15px',
+    backgroundColor: '#003366',
+    color: 'white',
+    border: 'none',
+    borderRadius: '5px',
+    cursor: 'pointer',
+    fontSize: '1rem',
+    marginBottom: '20px',
   },
   totals: {
     marginBottom: '20px',
