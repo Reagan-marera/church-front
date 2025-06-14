@@ -30,7 +30,9 @@ import CashFlowApp from './components/CashFlowApp';
 import AboutUs from './components/AboutUs';
 import { BalanceProvider } from './components/BalanceContext'; // Import BalanceProvider
 import Debtors from './components/Debtors';
+import CashbookReconciliationTable from './components/CashbookReconciliationTable';
 import Creditors from './components/Creditors';
+import CashbookReconciliationForm from './components/CashbookReconciliationForm';
 import EstimateTable from './components/EstimateTable';
 function App() {
   const [token, setToken] = useState(null);
@@ -78,6 +80,10 @@ function App() {
             <Route path="/debtors" element={<Debtors />} />
             <Route path="/creditors" element={<Creditors />} />
             <Route path="/Estimate" element={<EstimateTable/>} />
+            <Route path="/cashreco" element={<CashbookReconciliationTable/>} />
+            <Route path="/cashrecoform" element={<CashbookReconciliationForm/>} />
+
+
 
 
             <Route path="/login" element={<Login setToken={setToken} setRole={setRole} />} />

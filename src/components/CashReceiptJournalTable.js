@@ -17,7 +17,7 @@ import {
 import "./CashReceiptJournalTable.css";
 import * as XLSX from 'xlsx';
 
-const api = 'https://backend.youmingtechnologies.co.ke';
+const api = 'http://127.0.0.1:5000';
 
 const CashReceiptJournalTable = () => {
   const [journals, setJournals] = useState([]);

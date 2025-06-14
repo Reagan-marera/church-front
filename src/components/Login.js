@@ -13,7 +13,7 @@ const Login = ({ setToken, setRole, setTransactions }) => {
   const [showOtpVerification, setShowOtpVerification] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const navigate = useNavigate();
-  const Api = 'https://backend.youmingtechnologies.co.ke';
+  const Api = 'http://127.0.0.1:5000';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
