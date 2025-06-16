@@ -5,7 +5,6 @@ import AssetTransactions from './AssetTransactions'; // Import the Asset Transac
 import LiabilityTransactions from './LiabilityTransactions'; // Import the Liability Transactions component
 import NetAssets from './NetAssets'; // Import the Net Assets component
 import RevenueTransactions from './RevenueTransactions'; // Import the Revenue Transactions component
-import CashTransactions from './CashandCash';
 
 const FinancialStatements = () => {
   // State for start and end dates
@@ -51,11 +50,7 @@ const FinancialStatements = () => {
         <ExpenseTransactions startDate={startDate} endDate={endDate} />
       </div>
 
-      <div className="statement-section">
-        <h2>Cash and Cash Equivalents</h2>
-        <CashTransactions startDate={startDate} endDate={endDate} />
-      </div>
-
+    
       <div className="statement-section">
         <h2>Asset Transactions</h2>
         <AssetTransactions startDate={startDate} endDate={endDate} />

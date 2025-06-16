@@ -195,6 +195,11 @@ const Navbar = () => {
                   <FaBook className="dropdown-icon" /> Creditors
                 </Link>
               </li>
+              <li>
+                <Link to="/reconsilations" className="dropdown-link">
+                  <FaBook className="dropdown-icon" /> Reconciliations
+                </Link>
+              </li>
             </ul>
           )}
         </li>

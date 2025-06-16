@@ -34,6 +34,7 @@ import CashbookReconciliationTable from './components/CashbookReconciliationTabl
 import Creditors from './components/Creditors';
 import CashbookReconciliationForm from './components/CashbookReconciliationForm';
 import EstimateTable from './components/EstimateTable';
+import CashTransactions from './components/CashandCash';
 function App() {
   const [token, setToken] = useState(null);
   const [role, setRole] = useState(null);
@@ -80,6 +81,8 @@ function App() {
             <Route path="/debtors" element={<Debtors />} />
             <Route path="/creditors" element={<Creditors />} />
             <Route path="/Estimate" element={<EstimateTable/>} />
+            <Route path="/reconsilations" element={<CashTransactions/>} />
+
             <Route path="/cashreco" element={<CashbookReconciliationTable/>} />
             <Route path="/cashrecoform" element={<CashbookReconciliationForm/>} />
 

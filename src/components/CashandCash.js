@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useBalance } from './BalanceContext';
 import * as XLSX from 'xlsx';
 
-const CashTransactions = ({ startDate, endDate }) => {
+const CashTransactions = () => {
   const { updateBalances } = useBalance();
   const [transactions, setTransactions] = useState([]);
   const [groupedAccounts, setGroupedAccounts] = useState([]);
@@ -13,6 +13,9 @@ const CashTransactions = ({ startDate, endDate }) => {
     const saved = localStorage.getItem('markedTransactions');
     return saved ? JSON.parse(saved) : [];
   });
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [bankStatementBalance, setBankStatementBalance] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -105,12 +108,255 @@ const CashTransactions = ({ startDate, endDate }) => {
     return dr - cr;
   };
 
+  const calculateUnpresentedDeposits = () => {
+    return filteredTransactions
+      .filter(t => t.transaction_type === "Cash Receipt")
+      .reduce((sum, t) => sum + (t.total || 0), 0);
+  };
+
+  const calculateUnpresentedPayments = () => {
+    return filteredTransactions
+      .filter(t => t.transaction_type === "Cash Disbursement")
+      .reduce((sum, t) => sum + (t.total || 0), 0);
+  };
+
+  const calculateUnReceiptedDirectBankings = () => {
+    return filteredTransactions
+      .filter(t => t.transaction_type === "Transaction" && t.description === "Direct Banking")
+      .reduce((sum, t) => sum + (t.amount_debited || 0), 0);
+  };
+
+  const calculatePaymentsInBankNotInCashBook = () => {
+    return filteredTransactions
+      .filter(t => t.transaction_type === "Invoice Issued")
+      .reduce((sum, t) => sum + (t.amount_credited || 0), 0);
+  };
+
+  const calculateBalanceAsPerCashBook = () => {
+    const balance = parseFloat(bankStatementBalance) || 0;
+    const unpresentedDeposits = calculateUnpresentedDeposits();
+    const unpresentedPayments = calculateUnpresentedPayments();
+    const unReceiptedDirectBankings = calculateUnReceiptedDirectBankings();
+    const paymentsInBankNotInCashBook = calculatePaymentsInBankNotInCashBook();
+
+    return balance + unpresentedDeposits - unpresentedPayments + unReceiptedDirectBankings - paymentsInBankNotInCashBook;
+  };
+  const printReport = () => {
+    // Prompt user for all dynamic values
+    const institutionName = prompt("Enter institution name:", "THOGOTO TRAINING TEACHERS COLLEGE");
+    if (!institutionName) return; // User cancelled
+    
+    const reportTitle = prompt("Enter report title:", "BANK RECONCILIATION STATEMENT");
+    if (!reportTitle) return;
+    
+    const reportDate = prompt("Enter the report date (e.g., 31st July 2022):", "31st July 2022");
+    if (!reportDate) return;
+    
+    const accountName = prompt("Enter account name:", "");
+    if (!accountName) return;
+    
+    const accountNumber = prompt("Enter account number:", "1107134544");
+    if (!accountNumber) return;
+    
+    const branch = prompt("Enter branch name:", "");
+    if (!branch) return;
+    
+    const statementDate = prompt("Enter bank statement date:", "31-Jul-2022");
+    if (!statementDate) return;
+  
+    // Open a new window directly from the user action
+    const printWindow = window.open('', '_blank');
+  
+    // Check if the window was successfully opened
+    if (!printWindow) {
+      alert('Popup blocked! Please allow popups for this site.');
+      return;
+    }
+  
+    // HTML content for the printout with enhanced styling
+    const reportContent = `
+      <html>
+        <head>
+          <title>Bank Reconciliation Report</title>
+          <style>
+            body { 
+              font-family: 'Arial', sans-serif;
+              margin: 0;
+              padding: 20px;
+              color: #333;
+              line-height: 1.6;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 30px;
+              padding-bottom: 20px;
+              border-bottom: 2px solid #0066cc;
+            }
+            h1 {
+              color: #0066cc;
+              margin-bottom: 5px;
+              font-size: 28px;
+            }
+            h2 {
+              color: #333;
+              margin-top: 0;
+              margin-bottom: 5px;
+              font-size: 20px;
+            }
+            h3 {
+              color: #0066cc;
+              margin: 15px 0;
+              font-size: 18px;
+            }
+            .report-container {
+              margin: 30px auto;
+              max-width: 800px;
+            }
+            .reconciliation-item {
+              display: flex;
+              justify-content: space-between;
+              padding: 10px 0;
+              border-bottom: 1px solid #eee;
+            }
+            .reconciliation-item:last-child {
+              border-bottom: 2px solid #0066cc;
+              margin-bottom: 20px;
+            }
+            .item-label {
+              font-weight: bold;
+              color: #0066cc;
+              width: 60%;
+            }
+            .item-value {
+              width: 40%;
+              text-align: right;
+              font-family: 'Courier New', monospace;
+            }
+            .final-balance {
+              font-weight: bold;
+              font-size: 18px;
+              color: #0066cc;
+              margin-top: 20px;
+            }
+            .account-info {
+              margin: 15px 0;
+              display: flex;
+              justify-content: center;
+              gap: 30px;
+              flex-wrap: wrap;
+            }
+            .account-info p {
+              margin: 5px 0;
+              min-width: 200px;
+            }
+            .date-info {
+              font-style: italic;
+              margin-bottom: 15px;
+              text-align: center;
+            }
+            @media print {
+              body {
+                padding: 0;
+              }
+              .header {
+                page-break-after: avoid;
+              }
+              .report-container {
+                page-break-inside: avoid;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${institutionName}</h1>
+            <h2>${reportTitle}</h2>
+            <h3>AS AT ${reportDate}</h3>
+            <div class="account-info">
+              <p><strong>ACC NAME:</strong> ${accountName}</p>
+              <p><strong>ACC NO.:</strong> ${accountNumber}</p>
+              <p><strong>BRANCH:</strong> ${branch}</p>
+            </div>
+            <div class="date-info">
+              Bank statement date: ${statementDate}
+            </div>
+          </div>
+          <div class="report-container">
+            <div class="reconciliation-item">
+              <span class="item-label">Balance as per bank statement:</span>
+              <span class="item-value">${bankStatementBalance}</span>
+            </div>
+            <div class="reconciliation-item">
+              <span class="item-label">Add: Unpresented Deposits (Deposits in Transit)</span>
+              <span class="item-value">${calculateUnpresentedDeposits()}</span>
+            </div>
+            <div class="reconciliation-item">
+              <span class="item-label">Less: Unpresented Payments</span>
+              <span class="item-value">${calculateUnpresentedPayments()}</span>
+            </div>
+            <div class="reconciliation-item">
+              <span class="item-label">Add: Un-Receipted Direct Bankings</span>
+              <span class="item-value">${calculateUnReceiptedDirectBankings()}</span>
+            </div>
+            <div class="reconciliation-item">
+              <span class="item-label">Less: Payments in the Bank, not in the Cash book</span>
+              <span class="item-value">${calculatePaymentsInBankNotInCashBook()}</span>
+            </div>
+            <div class="reconciliation-item final-balance">
+              <span class="item-label">Balance as per Cash book:</span>
+              <span class="item-value">${calculateBalanceAsPerCashBook()}</span>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  
+    // Write to the new window's document
+    printWindow.document.open();
+    printWindow.document.write(reportContent);
+    printWindow.document.close();
+  
+    // Trigger print after a short delay to ensure content is loaded
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
+  };
+
   if (loading) return <div style={styles.loading}>Loading...</div>;
   if (error) return <div style={styles.error}>Error: {error}</div>;
 
   return (
     <div style={styles.container}>
       <h1 style={styles.header}>Cash & Cash Equivalents</h1>
+      <div style={styles.dateRangeSelector}>
+        <label htmlFor="startDate">Start Date:</label>
+        <input
+          type="date"
+          id="startDate"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          style={styles.dateInput}
+        />
+        <label htmlFor="endDate">End Date:</label>
+        <input
+          type="date"
+          id="endDate"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          style={styles.dateInput}
+        />
+      </div>
+      <div style={styles.balanceInputContainer}>
+        <label htmlFor="bankStatementBalance">Balance as per Bank Statement:</label>
+        <input
+          type="number"
+          id="bankStatementBalance"
+          value={bankStatementBalance}
+          onChange={(e) => setBankStatementBalance(e.target.value)}
+          style={styles.balanceInput}
+          placeholder="Enter balance"
+        />
+      </div>
       <div style={styles.searchContainer}>
         <input
           type="text"
@@ -125,6 +371,25 @@ const CashTransactions = ({ startDate, endDate }) => {
         <button onClick={unmarkAll} style={styles.exportButton}>Unmark All</button>
         <button onClick={() => exportToExcel(markedList, "MarkedTransactions")} style={styles.exportButton}>Export Marked</button>
         <button onClick={() => exportToExcel(unmarkedList, "UnmarkedTransactions")} style={styles.exportButton}>Export Unmarked</button>
+      </div>
+
+      <div style={styles.reportContainer}>
+        <h3>Bank Reconciliation Report</h3>
+        <p>Balance as per bank statement: {bankStatementBalance}</p>
+        <p>Add Unpresented Deposits (Deposits in Transit): {calculateUnpresentedDeposits()}</p>
+        <p>Less Unpresented Payments: {calculateUnpresentedPayments()}</p>
+        <p>Add Un-Receipted Direct Bankings: {calculateUnReceiptedDirectBankings()}</p>
+        <p>Less Payments in the Bank, not in the Cash book: {calculatePaymentsInBankNotInCashBook()}</p>
+        <p>Balance as per Cash book: {calculateBalanceAsPerCashBook()}</p>
+        <button onClick={() => {
+          const branch = prompt("Enter the branch name:");
+          const accountName = prompt("Enter the account name:");
+          if (branch && accountName) {
+            printReport(branch, accountName);
+          }
+        }} style={styles.exportButton}>
+          Print Report
+        </button>
       </div>
 
       <TransactionTable
@@ -237,8 +502,8 @@ const UnmarkedTransactionTable = ({ transactions }) => {
           ))}
         </tbody>
         <tfoot>
-          <tr style={styles.tableFooter}><td colSpan="8" style={styles.totalText}>Total DR</td><td colSpan="2" style={styles.totalAmount}>{formatNumber(totalDebited)}</td></tr>
-          <tr style={styles.tableFooter}><td colSpan="8" style={styles.totalText}>Total CR</td><td colSpan="2" style={styles.totalAmount}>{formatNumber(totalCredited)}</td></tr>
+          <tr style={styles.tableFooter}><td colSpan="8" style={styles.totalText}>Unpresented Deposits (Deposit in Transit)</td><td colSpan="2" style={styles.totalAmount}>{formatNumber(totalDebited)}</td></tr>
+          <tr style={styles.tableFooter}><td colSpan="8" style={styles.totalText}>Unpresented Payments</td><td colSpan="2" style={styles.totalAmount}>{formatNumber(totalCredited)}</td></tr>
           <tr style={styles.tableFooter}><td colSpan="8" style={styles.totalText}>Cash Closing Balance</td><td colSpan="2" style={styles.totalAmount}>{formatNumber(closingBalance)}</td></tr>
         </tfoot>
       </table>
@@ -333,12 +598,12 @@ const CashbookReconciliationTable = () => {
         </tbody>
         <tfoot>
           <tr style={styles.tableFooter}>
-            <td colSpan="5" style={styles.totalText}>Unpresented Deposits</td>
+            <td colSpan="5" style={styles.totalText}>Unreceipted Direct Bankings</td>
             <td style={styles.totalAmount}>{formatNumber(totalReceipts)}</td>
             <td></td>
           </tr>
           <tr style={styles.tableFooter}>
-            <td colSpan="5" style={styles.totalText}>Unpresented Payments</td>
+            <td colSpan="5" style={styles.totalText}>Unrecorded Payments</td>
             <td style={styles.totalAmount}>{formatNumber(totalPayments)}</td>
             <td></td>
           </tr>
@@ -356,10 +621,37 @@ const CashbookReconciliationTable = () => {
 const styles = {
   container: { padding: '20px', fontFamily: 'Arial' },
   header: { fontSize: '28px', marginBottom: '20px' },
-  subHeader: { fontSize: '22px', marginTop: '30px', marginBottom: '10px' },
+  dateRangeSelector: {
+    marginBottom: '20px',
+    display: 'flex',
+    gap: '10px',
+    alignItems: 'center'
+  },
+  dateInput: {
+    padding: '8px',
+    borderRadius: '4px',
+    border: '1px solid #ccc'
+  },
+  balanceInputContainer: {
+    marginBottom: '20px',
+  },
+  balanceInput: {
+    padding: '8px',
+    borderRadius: '4px',
+    border: '1px solid #ccc',
+    width: '200px'
+  },
+  reportContainer: {
+    margin: '20px 0',
+    padding: '10px',
+    border: '1px solid #ddd',
+    borderRadius: '5px',
+    backgroundColor: 'black'
+  },
   searchContainer: { marginBottom: '10px' },
   searchInput: { padding: '8px', fontSize: '14px', width: '250px' },
   table: { width: '100%', borderCollapse: 'collapse', marginBottom: '20px' },
+  unmarkedTable: { width: '100%', borderCollapse: 'collapse', marginBottom: '20px' },
   tableHeader: { backgroundColor: '#ddd', fontWeight: 'bold' },
   tableFooter: { backgroundColor: '#eee', fontWeight: 'bold' },
   totalText: { textAlign: 'right', paddingRight: '10px' },
@@ -367,10 +659,10 @@ const styles = {
   row: { textAlign: 'left' },
   evenRow: { backgroundColor: '#f9f9f9' },
   oddRow: { backgroundColor: '#ffffff' },
-  unmarkedTable: { width: '100%', borderCollapse: 'collapse', marginBottom: '20px' },
   exportButton: { padding: '8px 12px', margin: '5px', cursor: 'pointer', backgroundColor: '#007BFF', color: 'white', border: 'none', borderRadius: '4px' },
   loading: { padding: '20px', fontSize: '18px' },
   error: { padding: '20px', fontSize: '18px', color: 'red' },
+  subHeader: { fontSize: '22px', marginTop: '30px', marginBottom: '10px' },
 };
 
 export default CashTransactions;
