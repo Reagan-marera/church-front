@@ -141,185 +141,132 @@ const CashTransactions = () => {
 
     return balance + unpresentedDeposits - unpresentedPayments + unReceiptedDirectBankings - paymentsInBankNotInCashBook;
   };
+
   const printReport = () => {
-    // Prompt user for all dynamic values
-    const institutionName = prompt("Enter institution name:", "THOGOTO TRAINING TEACHERS COLLEGE");
-    if (!institutionName) return; // User cancelled
-    
-    const reportTitle = prompt("Enter report title:", "BANK RECONCILIATION STATEMENT");
-    if (!reportTitle) return;
-    
-    const reportDate = prompt("Enter the report date (e.g., 31st July 2022):", "31st July 2022");
-    if (!reportDate) return;
-    
-    const accountName = prompt("Enter account name:", "");
-    if (!accountName) return;
-    
-    const accountNumber = prompt("Enter account number:", "1107134544");
-    if (!accountNumber) return;
-    
-    const branch = prompt("Enter branch name:", "");
-    if (!branch) return;
-    
-    const statementDate = prompt("Enter bank statement date:", "31-Jul-2022");
-    if (!statementDate) return;
+    // Collect all required data first
+    const collectReportData = () => {
+      const data = {};
+      
+      // Required fields with validation
+      data.institutionName = prompt("Enter institution name:", "THOGOTO TRAINING TEACHERS COLLEGE");
+      if (!data.institutionName) return null;
+      
+      data.reportTitle = prompt("Enter report title:", "BANK RECONCILIATION STATEMENT");
+      if (!data.reportTitle) return null;
+      
+      data.reportDate = prompt("Enter the report date (e.g., 31st July 2022):", "31st July 2022");
+      if (!data.reportDate) return null;
+      
+      data.accountName = prompt("Enter account name:", "");
+      if (!data.accountName) return null;
+      
+      data.accountNumber = prompt("Enter account number:", "1107134544");
+      if (!data.accountNumber) return null;
+      
+      data.branch = prompt("Enter branch name:", "");
+      if (!data.branch) return null;
+      
+      data.statementDate = prompt("Enter bank statement date:", "31-Jul-2022");
+      if (!data.statementDate) return null;
+      
+      return data;
+    };
   
-    // Open a new window directly from the user action
-    const printWindow = window.open('', '_blank');
+    // Generate the report window
+    const generateReportWindow = (data) => {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Popup blocked! Please allow popups for this site.');
+        return false;
+      }
   
-    // Check if the window was successfully opened
-    if (!printWindow) {
-      alert('Popup blocked! Please allow popups for this site.');
-      return;
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Bank Reconciliation Report</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #0066cc; padding-bottom: 20px; }
+              h1 { color: #0066cc; margin-bottom: 5px; }
+              h2 { color: #333; margin-top: 0; }
+              h3 { color: #0066cc; margin: 15px 0; }
+              .account-info { display: flex; justify-content: center; gap: 30px; margin: 20px 0; flex-wrap: wrap; }
+              .account-info p { margin: 5px 0; min-width: 200px; }
+              .report-container { margin: 30px auto; max-width: 800px; }
+              .reconciliation-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+              .item-label { font-weight: bold; color: #0066cc; width: 70%; }
+              .item-value { width: 30%; text-align: right; font-family: 'Courier New', monospace; }
+              .final-balance { font-weight: bold; font-size: 18px; color: #0066cc; margin-top: 20px; }
+              @media print { body { padding: 10px; } }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>${data.institutionName}</h1>
+              <h2>${data.reportTitle}</h2>
+              <h3>AS AT ${data.reportDate}</h3>
+              <div class="account-info">
+                <p><strong>ACC NAME:</strong> ${data.accountName}</p>
+                <p><strong>ACC NO.:</strong> ${data.accountNumber}</p>
+                <p><strong>BRANCH:</strong> ${data.branch}</p>
+              </div>
+              <p style="text-align: center; font-style: italic;">
+                Bank statement date: ${data.statementDate}
+              </p>
+            </div>
+            <div class="report-container">
+              <div class="reconciliation-item">
+                <span class="item-label">Balance as per bank statement:</span>
+                <span class="item-value">${bankStatementBalance}</span>
+              </div>
+              <div class="reconciliation-item">
+                <span class="item-label">Add: Unpresented Deposits (Deposits in Transit)</span>
+                <span class="item-value">${calculateUnpresentedDeposits()}</span>
+              </div>
+              <div class="reconciliation-item">
+                <span class="item-label">Less: Unpresented Payments</span>
+                <span class="item-value">${calculateUnpresentedPayments()}</span>
+              </div>
+              <div class="reconciliation-item">
+                <span class="item-label">Add: Un-Receipted Direct Bankings</span>
+                <span class="item-value">${calculateUnReceiptedDirectBankings()}</span>
+              </div>
+              <div class="reconciliation-item">
+                <span class="item-label">Less: Payments in the Bank, not in the Cash book</span>
+                <span class="item-value">${calculatePaymentsInBankNotInCashBook()}</span>
+              </div>
+              <div class="reconciliation-item final-balance">
+                <span class="item-label">Balance as per Cash book:</span>
+                <span class="item-value">${calculateBalanceAsPerCashBook()}</span>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+  
+      return true;
+    };
+  
+    // Main execution flow
+    try {
+      const reportData = collectReportData();
+      if (!reportData) {
+        alert('Report generation cancelled');
+        return;
+      }
+  
+      const windowCreated = generateReportWindow(reportData);
+      if (windowCreated) {
+        setTimeout(() => {
+          const printWindow = window.open('', '_blank');
+          printWindow.print();
+          printWindow.close();
+        }, 10000);
+      }
+    } catch (error) {
+      console.error('Error generating report:', error);
+      alert('An error occurred while generating the report');
     }
-  
-    // HTML content for the printout with enhanced styling
-    const reportContent = `
-      <html>
-        <head>
-          <title>Bank Reconciliation Report</title>
-          <style>
-            body { 
-              font-family: 'Arial', sans-serif;
-              margin: 0;
-              padding: 20px;
-              color: #333;
-              line-height: 1.6;
-            }
-            .header { 
-              text-align: center; 
-              margin-bottom: 30px;
-              padding-bottom: 20px;
-              border-bottom: 2px solid #0066cc;
-            }
-            h1 {
-              color: #0066cc;
-              margin-bottom: 5px;
-              font-size: 28px;
-            }
-            h2 {
-              color: #333;
-              margin-top: 0;
-              margin-bottom: 5px;
-              font-size: 20px;
-            }
-            h3 {
-              color: #0066cc;
-              margin: 15px 0;
-              font-size: 18px;
-            }
-            .report-container {
-              margin: 30px auto;
-              max-width: 800px;
-            }
-            .reconciliation-item {
-              display: flex;
-              justify-content: space-between;
-              padding: 10px 0;
-              border-bottom: 1px solid #eee;
-            }
-            .reconciliation-item:last-child {
-              border-bottom: 2px solid #0066cc;
-              margin-bottom: 20px;
-            }
-            .item-label {
-              font-weight: bold;
-              color: #0066cc;
-              width: 60%;
-            }
-            .item-value {
-              width: 40%;
-              text-align: right;
-              font-family: 'Courier New', monospace;
-            }
-            .final-balance {
-              font-weight: bold;
-              font-size: 18px;
-              color: #0066cc;
-              margin-top: 20px;
-            }
-            .account-info {
-              margin: 15px 0;
-              display: flex;
-              justify-content: center;
-              gap: 30px;
-              flex-wrap: wrap;
-            }
-            .account-info p {
-              margin: 5px 0;
-              min-width: 200px;
-            }
-            .date-info {
-              font-style: italic;
-              margin-bottom: 15px;
-              text-align: center;
-            }
-            @media print {
-              body {
-                padding: 0;
-              }
-              .header {
-                page-break-after: avoid;
-              }
-              .report-container {
-                page-break-inside: avoid;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>${institutionName}</h1>
-            <h2>${reportTitle}</h2>
-            <h3>AS AT ${reportDate}</h3>
-            <div class="account-info">
-              <p><strong>ACC NAME:</strong> ${accountName}</p>
-              <p><strong>ACC NO.:</strong> ${accountNumber}</p>
-              <p><strong>BRANCH:</strong> ${branch}</p>
-            </div>
-            <div class="date-info">
-              Bank statement date: ${statementDate}
-            </div>
-          </div>
-          <div class="report-container">
-            <div class="reconciliation-item">
-              <span class="item-label">Balance as per bank statement:</span>
-              <span class="item-value">${bankStatementBalance}</span>
-            </div>
-            <div class="reconciliation-item">
-              <span class="item-label">Add: Unpresented Deposits (Deposits in Transit)</span>
-              <span class="item-value">${calculateUnpresentedDeposits()}</span>
-            </div>
-            <div class="reconciliation-item">
-              <span class="item-label">Less: Unpresented Payments</span>
-              <span class="item-value">${calculateUnpresentedPayments()}</span>
-            </div>
-            <div class="reconciliation-item">
-              <span class="item-label">Add: Un-Receipted Direct Bankings</span>
-              <span class="item-value">${calculateUnReceiptedDirectBankings()}</span>
-            </div>
-            <div class="reconciliation-item">
-              <span class="item-label">Less: Payments in the Bank, not in the Cash book</span>
-              <span class="item-value">${calculatePaymentsInBankNotInCashBook()}</span>
-            </div>
-            <div class="reconciliation-item final-balance">
-              <span class="item-label">Balance as per Cash book:</span>
-              <span class="item-value">${calculateBalanceAsPerCashBook()}</span>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
-  
-    // Write to the new window's document
-    printWindow.document.open();
-    printWindow.document.write(reportContent);
-    printWindow.document.close();
-  
-    // Trigger print after a short delay to ensure content is loaded
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
   };
 
   if (loading) return <div style={styles.loading}>Loading...</div>;
