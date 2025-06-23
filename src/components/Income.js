@@ -52,10 +52,15 @@ const IncomeStatement = () => {
         groupedData[accountType] = [];
       }
 
+      // Calculate total amount for each account
+      const totalAmount = Object.values(accountGroup.parent_accounts).reduce(
+        (sum, parentData) => sum + parentData.amount, 0
+      );
+
       groupedData[accountType].push({
         accountName,
         parentAccounts: accountGroup.parent_accounts,
-        totalAmount: accountGroup.total_amount,
+        totalAmount, // Include totalAmount in the account object
       });
     });
 
@@ -72,7 +77,7 @@ const IncomeStatement = () => {
 
   // Calculate net surplus/deficit
   const totalIncome = categoryTotals['40-Revenue'] || 0;
-  const totalExpenses = categoryTotals['50-Expenses'] || 0;
+  const totalExpenses = categoryTotals['50-Operating Expenses'] || 0;
   const netSurplusDeficit = totalIncome - totalExpenses;
 
   return (
@@ -82,8 +87,6 @@ const IncomeStatement = () => {
         <thead>
           <tr>
             <th>Account Type</th>
-            
-
             <th>Account Name</th>
             <th>Note Number</th>
             <th>Parent Account</th>
@@ -93,22 +96,19 @@ const IncomeStatement = () => {
         <tbody>
           {Object.entries(groupedData).map(([accountType, accounts]) => (
             <React.Fragment key={accountType}>
-              {/* Render account type as a header row */}
               <tr>
                 <td colSpan={5} style={{ fontWeight: 'bold', color: 'black', backgroundColor: '#f0f0f0' }}>
                   {accountType}
                 </td>
               </tr>
-              {/* Render each account under the account type */}
               {accounts.map((account, index) => (
                 Object.entries(account.parentAccounts)
-                  .filter(([_, parentData]) => parentData.amount > 0) // Filter out accounts with amount 0
+                  .filter(([_, parentData]) => parentData.amount > 0)
                   .map(([parentAccount, parentData], idx) => (
                     <tr key={`${accountType}-${index}-${idx}`}>
-                      <td></td> {/* Empty cell for account type column */}
+                      <td></td>
                       <td>{account.accountName}</td>
                       <td>{parentData.note_number}</td>
-
                       <td>{parentAccount}</td>
                       <td>{parentData.amount.toLocaleString()}</td>
                     </tr>
@@ -116,11 +116,9 @@ const IncomeStatement = () => {
               ))}
             </React.Fragment>
           ))}
-          {/* Net Surplus/Deficit Row */}
-          <tr style={{ fontWeight: 'bold', color: 'orange', backgroundColor: 'orange' }}>
+          <tr style={{ fontWeight: 'bold', color: 'orange', backgroundColor: '#fff8e1' }}>
             <td colSpan={4}>Net Surplus/Deficit</td>
             <td>{netSurplusDeficit.toLocaleString()}</td>
-            <td></td>
           </tr>
         </tbody>
       </table>

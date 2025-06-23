@@ -17,7 +17,7 @@ const InvoiceIssued = () => {
   const [allCustomersSelected, setAllCustomersSelected] = useState([]);
   const [manualNumber, setManualNumber] = useState("");
   const [parentAccount, setParentAccount] = useState("");
-
+  const [isDeleting, setIsDeleting] = useState(false);
   const [invoices, setInvoices] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
@@ -176,8 +176,7 @@ const InvoiceIssued = () => {
       setError("User is not authenticated");
       return;
     }
-  
-    // Validate date format
+
     const isValidDate = (date) => {
       return /^\d{4}-\d{2}-\d{2}$/.test(date);
     };
@@ -185,12 +184,9 @@ const InvoiceIssued = () => {
       setError("Invalid date format. Please use YYYY-MM-DD.");
       return;
     }
-  
-    // Determine which customers to process
+
     let customersToProcess = [];
-  
     if (selectedCustomer) {
-      // Single customer selected
       const selectedCustomerData = customers.find((customer) =>
         customer.sub_account_details.some(subAccount => subAccount.name === selectedCustomer)
       );
@@ -200,7 +196,6 @@ const InvoiceIssued = () => {
       }
       customersToProcess = selectedCustomerData.sub_account_details.filter(subAccount => subAccount.name === selectedCustomer);
     } else if (allCustomersSelected.length > 0) {
-      // Multiple customers selected
       const allCustomersData = customers.filter((customer) =>
         allCustomersSelected.includes(customer.account_name)
       );
@@ -213,8 +208,13 @@ const InvoiceIssued = () => {
       setError("Please select a customer or a list of customers.");
       return;
     }
-  
-    // Generate invoices for each customer
+
+    const sumOfCreditedAmounts = accountsCredited.reduce((sum, account) => sum + account.amount, 0);
+    if (sumOfCreditedAmounts !== totalAmount) {
+      setError("The sum of credited amounts must equal the total amount.");
+      return;
+    }
+
     for (const subAccount of customersToProcess) {
       const uniqueInvoiceNumber = generateUniqueInvoiceNumber();
       const payload = {
@@ -225,13 +225,12 @@ const InvoiceIssued = () => {
         account_debited: accountDebited,
         account_credited: accountsCredited.map(account => ({
           name: account.value,
-          amount: account.amount
+          amount: account.amount,
         })),
         name: subAccount.name,
         manual_number: manualNumber || null,
         parent_account: parentAccount,
       };
-  
       try {
         const url = isEditing
           ? `${api}/invoices/${editingInvoiceId}`
@@ -245,7 +244,6 @@ const InvoiceIssued = () => {
           },
           body: JSON.stringify(payload),
         });
-  
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText);
@@ -255,33 +253,33 @@ const InvoiceIssued = () => {
         return;
       }
     }
-  
-    // Refresh invoices and reset form
+
     fetchInvoices();
     resetForm();
     setError("");
     setShowForm(false);
-  
     if (isEditing) {
       setIsEditing(false);
       setEditingInvoiceId(null);
     }
   };
+
   const handleUpdate = (invoice) => {
     setDateIssued(invoice.date_issued);
     setDescription(invoice.description);
     setAccountsCredited(invoice.account_credited.map(account => ({
       value: account.name,
       label: account.name,
-      amount: account.amount
+      amount: account.amount || 0,
     })));
     setSelectedCustomer(invoice.name);
     setManualNumber(invoice.manual_number || "");
     setParentAccount(invoice.parent_account || "");
+    setTotalAmount(invoice.amount || 0);
     setIsEditing(true);
     setEditingInvoiceId(invoice.id);
     setShowForm(true);
-  }
+  };
 
   const handleDelete = async (id) => {
     const token = localStorage.getItem("token");
@@ -309,6 +307,42 @@ const InvoiceIssued = () => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("User is not authenticated");
+      return;
+    }
+  
+    setIsDeleting(true); // Set deleting state to true
+    setError(""); // Clear any previous errors
+  
+    try {
+      // Use Promise.all to delete invoices in parallel
+      await Promise.all(
+        invoices.map(invoice =>
+          fetch(`${api}/invoices/${invoice.id}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }).then(response => {
+            if (!response.ok) {
+              throw new Error(`Error deleting invoice with ID ${invoice.id}`);
+            }
+            return response.json();
+          })
+        )
+      );
+  
+      fetchInvoices(); // Refresh the list of invoices
+    } catch (error) {
+      setError("Error deleting invoices: " + error.message);
+    } finally {
+      setIsDeleting(false); // Reset deleting state
+    }
+  };
+  
   const handlePost = async (id) => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -389,11 +423,10 @@ const InvoiceIssued = () => {
 
   const handleCreditedAccountChange = (index, value, amount) => {
     const updatedAccounts = [...accountsCredited];
-    updatedAccounts[index] = { value, label: value, amount: parseFloat(amount) };
+    updatedAccounts[index] = { value, label: value, amount };
     setAccountsCredited(updatedAccounts);
-
-    const newTotalAmount = updatedAccounts.reduce((sum, account) => sum + account.amount, 0);
-    setTotalAmount(newTotalAmount);
+    const sumOfCreditedAmounts = updatedAccounts.reduce((sum, account) => sum + account.amount, 0);
+    setTotalAmount(sumOfCreditedAmounts);
   };
 
   const handlePrint = (invoice) => {
@@ -518,7 +551,7 @@ const InvoiceIssued = () => {
             ${invoice.account_credited.map(account => `
               <tr>
                 <td>${account.name}</td>
-                <td class="number">${formatFinancialValue(account.amount)}</td>
+                <td>${formatFinancialValue(account.amount)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -555,7 +588,8 @@ const InvoiceIssued = () => {
   };
 
   const formatFinancialValue = (value) => {
-    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(value);
+    const numericValue = typeof value === 'number' ? value : parseFloat(value) || 0;
+    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(numericValue);
   };
 
   const handleSearch = (e) => {
@@ -571,7 +605,7 @@ const InvoiceIssued = () => {
       'Total Amount': invoice.amount,
       'Parent Account': invoice.parent_account,
       'Account Debited': invoice.account_debited,
-      'Account Credited': invoice.account_credited.map(account => `${account.name}: ${account.amount}`).join(', '),
+      'Account Credited': invoice.account_credited.map(account => `${account.name} (${formatFinancialValue(account.amount)})`).join(', '),
     }));
 
     const ws = XLSX.utils.json_to_sheet(dataForExcel);
@@ -579,6 +613,119 @@ const InvoiceIssued = () => {
     XLSX.utils.book_append_sheet(wb, ws, 'Invoices');
 
     XLSX.writeFile(wb, 'Invoices.xlsx');
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+
+        const invoicesToUpload = [];
+        let invoiceCounter = 1;
+
+        for (let i = 1; i < rawData.length; i++) {
+          const row = rawData[i];
+          if (!row || row.length < 9 || row.every(cell => cell === '')) continue;
+
+          let amount = 0;
+          try {
+            const amountStr = String(row[8] || '0').trim();
+            const cleanedAmountStr = amountStr.replace(/[^\d.-]/g, '').replace(/,/g, '');
+            amount = parseFloat(cleanedAmountStr) || 0;
+          } catch (e) {
+            console.warn(`Failed to parse amount in row ${i}: ${row[8]}`);
+            continue;
+          }
+
+          const invoiceNumber = `UP-${invoiceCounter++}`;
+
+          let paymentDate;
+          const dateValue = row[1];
+          try {
+            if (dateValue) {
+              if (typeof dateValue === 'number') {
+                const dateObj = XLSX.SSF.parse_date_code(dateValue);
+                paymentDate = new Date(dateObj.y, dateObj.m - 1, dateObj.d);
+              } else if (typeof dateValue === 'string' && dateValue.includes('/')) {
+                const [day, month, year] = dateValue.split('/').map(Number);
+                paymentDate = new Date(year, month - 1, day);
+              }
+              if (!(paymentDate instanceof Date) || isNaN(paymentDate.getTime())) {
+                throw new Error('Invalid date');
+              }
+            } else {
+              throw new Error('Date value is empty');
+            }
+          } catch (e) {
+            console.warn(`Invalid date in row ${i}: ${dateValue}. Using today's date.`);
+            paymentDate = new Date();
+          }
+
+          invoicesToUpload.push({
+            invoice_number: invoiceNumber,
+            date_issued: paymentDate.toISOString().split('T')[0],
+            amount: amount,
+            account_debited: row[5]?.toString().trim() || null,
+            account_credited: row[6]?.toString().trim() ? [{ name: row[6].toString().trim(), amount: amount }] : [],
+            description: row[4]?.toString().trim() || '',
+            name: row[3]?.toString().trim() || '',
+            manual_number: row[1]?.toString().trim() || '',
+            parent_account: row[7]?.toString().trim() || ''
+          });
+        }
+
+        console.log('Processed invoices:', invoicesToUpload);
+        if (invoicesToUpload.length === 0) {
+          throw new Error('No valid invoices found after processing');
+        }
+
+        const token = localStorage.getItem('token');
+        if (!token) throw new Error('Authentication token missing');
+
+        const uploadResults = await Promise.allSettled(
+          invoicesToUpload.map(invoice =>
+            fetch(`${api}/invoices`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify(invoice)
+            }).then(async res => {
+              if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.message || 'Upload failed');
+              }
+              return res.json();
+            })
+          )
+        );
+
+        const successful = uploadResults.filter(r => r.status === 'fulfilled');
+        const failed = uploadResults.filter(r => r.status === 'rejected');
+
+        if (successful.length > 0) {
+          fetchInvoices();
+          alert(`${successful.length} invoices uploaded successfully!`);
+        }
+        if (failed.length > 0) {
+          console.error('Failed uploads:', failed);
+          alert(`${failed.length} invoices failed to upload. Check console for details.`);
+        }
+      } catch (err) {
+        console.error('Upload error:', err);
+        setError(err.message);
+        alert(`Upload failed: ${err.message}`);
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const filteredInvoices = invoices.filter((invoice) =>
@@ -600,6 +747,14 @@ const InvoiceIssued = () => {
       <button className="invoice-issued button" onClick={handleExportToExcel}>
         Export to Excel
       </button>
+
+      <button className="invoice-issued button" onClick={handleDeleteAll} disabled={isDeleting}>
+  Delete All Invoices
+</button>
+{isDeleting && <p>Deleting invoices, please wait...</p>}
+{error && <p className="error">{error}</p>}
+
+      <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
 
       <div className="search-bar">
         <input
@@ -729,7 +884,7 @@ const InvoiceIssued = () => {
                       type="number"
                       value={account.amount}
                       onChange={(e) =>
-                        handleCreditedAccountChange(index, account.value, e.target.value)
+                        handleCreditedAccountChange(index, account.value, parseFloat(e.target.value) || 0)
                       }
                       placeholder="Amount"
                       style={{ marginLeft: "10px" }}
@@ -783,40 +938,36 @@ const InvoiceIssued = () => {
           </tr>
         </thead>
         <tbody>
-          {filteredInvoices.map((invoice) => {
-            const totalAmount = invoice.account_credited.reduce((sum, account) => sum + account.amount, 0);
-
-            return (
-              <tr key={invoice.id}>
-                <td>{invoice.date_issued}</td>
-                <td>{invoice.invoice_number}</td>
-                <td>{invoice.manual_number}</td>
-                <td>{invoice.name}</td>
-                <td>{invoice.description}</td>
-                <td>{invoice.account_debited}</td>
-                <td>
-                  {invoice.account_credited.map((account, index) => (
-                    <div key={index}>
-                      {account.name}: {account.amount}
-                    </div>
-                  ))}
-                </td>
-                <td>{invoice.parent_account}</td>
-                <td>{formatFinancialValue(totalAmount)}</td>
-                <td>
-                  <button onClick={() => handleUpdate(invoice)}>
-                    <FaEdit /> Edit
-                  </button>
-                  <button onClick={() => handleDelete(invoice.id)}>
-                    <FaTrash /> Delete
-                  </button>
-                  <button onClick={() => handlePrint(invoice)}>
-                    <FaPrint /> Print
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
+          {filteredInvoices.map((invoice) => (
+            <tr key={invoice.id}>
+              <td>{invoice.date_issued}</td>
+              <td>{invoice.invoice_number}</td>
+              <td>{invoice.manual_number}</td>
+              <td>{invoice.name}</td>
+              <td>{invoice.description}</td>
+              <td>{invoice.account_debited}</td>
+              <td>
+                {invoice.account_credited.map((account, index) => (
+                  <div key={index}>
+                    {account.name} - {formatFinancialValue(account.amount)}
+                  </div>
+                ))}
+              </td>
+              <td>{invoice.parent_account}</td>
+              <td>{formatFinancialValue(invoice.amount)}</td>
+              <td>
+                <button onClick={() => handleUpdate(invoice)}>
+                  <FaEdit /> Edit
+                </button>
+                <button onClick={() => handleDelete(invoice.id)}>
+                  <FaTrash /> Delete
+                </button>
+                <button onClick={() => handlePrint(invoice)}>
+                  <FaPrint /> Print
+                </button>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

@@ -1,19 +1,24 @@
 import React, { createContext, useContext, useState } from 'react';
 
-// Create a context for balances
 const BalanceContext = createContext();
 
-// Create a provider component to manage balance state
 export const BalanceProvider = ({ children }) => {
-  // State to hold opening and closing balances
   const [balances, setBalances] = useState({
     openingBalance: 0,
-    cashClosing: 0, // Renamed "closingBalance" to "cashClosing" for clarity
+    closingBalance: 0,
+    unpresentedDeposits: 0,
+    unpresentedPayments: 0,
+    unReceiptedDirectBankings: 0,
+    paymentsInBankNotInCashBook: 0,
   });
 
-  // Function to update balances
-  const updateBalances = (openingBalance, cashClosing) => {
-    setBalances({ openingBalance, cashClosing });
+  const updateBalances = (opening, closing, reconciliationItems = {}) => {
+    setBalances(prev => ({
+      ...prev,
+      openingBalance: opening,
+      closingBalance: closing,
+      ...reconciliationItems,
+    }));
   };
 
   return (
@@ -23,5 +28,10 @@ export const BalanceProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use the balance context
-export const useBalance = () => useContext(BalanceContext);
+export const useBalance = () => {
+  const context = useContext(BalanceContext);
+  if (!context) {
+    throw new Error('useBalance must be used within a BalanceProvider');
+  }
+  return context;
+};

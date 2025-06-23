@@ -34,7 +34,7 @@ const Register = () => {
     console.log('Sending user data:', userData);  // Log the data for debugging
 
     try {
-      const response = await fetch('http://127.0.0.1:5000/register', {
+      const response = await fetch('https://backend.youmingtechnologies.co.ke/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -27,7 +27,7 @@ const CashTransactions = () => {
         if (startDate) queryParams.append('start_date', startDate);
         if (endDate) queryParams.append('end_date', endDate);
 
-        const response = await fetch(`http://127.0.0.1:5000/api/transactions?${queryParams.toString()}`, {
+        const response = await fetch(`https://backend.youmingtechnologies.co.ke/api/transactions?${queryParams.toString()}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -143,43 +143,32 @@ const CashTransactions = () => {
   };
 
   const printReport = () => {
-    // Collect all required data first
     const collectReportData = () => {
       const data = {};
-      
-      // Required fields with validation
       data.institutionName = prompt("Enter institution name:", "THOGOTO TRAINING TEACHERS COLLEGE");
       if (!data.institutionName) return null;
-      
       data.reportTitle = prompt("Enter report title:", "BANK RECONCILIATION STATEMENT");
       if (!data.reportTitle) return null;
-      
       data.reportDate = prompt("Enter the report date (e.g., 31st July 2022):", "31st July 2022");
       if (!data.reportDate) return null;
-      
       data.accountName = prompt("Enter account name:", "");
       if (!data.accountName) return null;
-      
       data.accountNumber = prompt("Enter account number:", "1107134544");
       if (!data.accountNumber) return null;
-      
       data.branch = prompt("Enter branch name:", "");
       if (!data.branch) return null;
-      
       data.statementDate = prompt("Enter bank statement date:", "31-Jul-2022");
       if (!data.statementDate) return null;
-      
       return data;
     };
-  
-    // Generate the report window
+
     const generateReportWindow = (data) => {
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
         alert('Popup blocked! Please allow popups for this site.');
         return false;
       }
-  
+
       printWindow.document.write(`
         <html>
           <head>
@@ -243,25 +232,24 @@ const CashTransactions = () => {
           </body>
         </html>
       `);
-  
+
       return true;
     };
-  
-    // Main execution flow
+
     try {
       const reportData = collectReportData();
       if (!reportData) {
         alert('Report generation cancelled');
         return;
       }
-  
+
       const windowCreated = generateReportWindow(reportData);
       if (windowCreated) {
         setTimeout(() => {
           const printWindow = window.open('', '_blank');
           printWindow.print();
           printWindow.close();
-        }, 10000);
+        }, 500);
       }
     } catch (error) {
       console.error('Error generating report:', error);
@@ -469,7 +457,7 @@ const CashbookReconciliationTable = () => {
         const token = localStorage.getItem('token');
         if (!token) throw new Error('No token found. Please log in.');
 
-        const response = await fetch('http://localhost:5000/api/cashbook-reconciliations', {
+        const response = await fetch('https://backend.youmingtechnologies.co.ke/api/cashbook-reconciliations', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',

@@ -13,7 +13,7 @@ const CashbookReconciliationTable = () => {
           throw new Error('No token found. Please log in.');
         }
 
-        const response = await fetch('http://localhost:5000/api/cashbook-reconciliations', {
+        const response = await fetch('https://backend.youmingtechnologies.co.ke/api/cashbook-reconciliations', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -52,7 +52,7 @@ const CashbookReconciliationTable = () => {
         throw new Error('No token found. Please log in.');
       }
 
-      const response = await fetch(`http://localhost:5000/api/cashbook-reconciliations/${reconciliationId}`, {
+      const response = await fetch(`https://backend.youmingtechnologies.co.ke/api/cashbook-reconciliations/${reconciliationId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -233,76 +233,79 @@ const ChartOfAccountsTable = () => {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
+  
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-
-        // Get all data as array of arrays
+        
+        // Convert to JSON with header: 1 to get array of arrays
         const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-
-        console.log('Complete file structure:', rawData); // Debug output
-
+        console.log('Complete file data:', rawData);
+  
         // Process all rows looking for account data pattern
         const accountsToUpload = [];
         const parentAccountMap = {};
-
+  
         for (let i = 0; i < rawData.length; i++) {
           const row = rawData[i];
+          
+          // Skip empty rows or rows with insufficient data (need at least 6 columns including the empty first one)
           if (!row || row.length < 6) continue;
-
-          // Extract values from specific columns based on your data structure
-          const accountType = String(row[1] || '').trim(); // Second column
-          const accountName = String(row[2] || '').trim(); // Third column
-          const parentAccount = String(row[4] || '').trim(); // Fifth column
-          const subAccount = String(row[5] || '').trim(); // Sixth column
-
-          // Log skipped rows with more detail
+  
+          // Extract values from specific columns - accounting for the empty first column
+          const accountType = String(row[1] || '').trim();    // Second column (account_type)
+          const accountName = String(row[2] || '').trim();    // Third column (account_name)
+          const noteNumber = String(row[3] || '').trim();     // Fourth column (note_number)
+          const parentAccount = String(row[4] || '').trim();  // Fifth column (parent_account)
+          const subAccount = String(row[5] || '').trim();     // Sixth column (sub_account_details)
+  
+          // Validate required fields - we don't require note_number
           if (!accountType || !accountName || !parentAccount || !subAccount) {
             console.log('Skipping row due to missing essential data:', row);
             continue;
           }
-
+  
           // Group by parent account
           if (!parentAccountMap[parentAccount]) {
             parentAccountMap[parentAccount] = {
               account_type: accountType,
               account_name: accountName,
               parent_account: parentAccount,
-              note_number: '',
+              note_number: noteNumber || '0', // Default to '0' if empty
               sub_account_details: []
             };
             accountsToUpload.push(parentAccountMap[parentAccount]);
           }
-
+  
           // Add sub-account details
           parentAccountMap[parentAccount].sub_account_details.push({
             name: subAccount,
             id: `subacc-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`
           });
         }
-
+  
         if (accountsToUpload.length === 0) {
           throw new Error(
-            'No valid accounts found. Based on your file structure:\n' +
-            '1. Account data should be in columns 2, 3, 5, and 6\n' +
-            '2. Expected pattern: [empty, Type, Name, empty, Parent, SubAccount]\n' +
-            '3. Check console for complete file structure'
+            `No valid accounts found. Your file must have this exact structure:\n\n` +
+            `[empty] | account_type | account_name | note_number | parent_account | sub_account_details\n` +
+            `Example:\n` +
+            `null | "10-Assets" | "100-Current Assets" | 20 | "1000-Cash & Cash Equivalent" | "1001-College Fund Acc"\n\n` +
+            `First 5 rows of your file:\n${JSON.stringify(rawData.slice(0, 5), null, 2)}`
           );
         }
-
+  
         const token = localStorage.getItem('token');
         if (!token) {
           setError('Authentication token missing');
           return;
         }
-
-        // Upload accounts
+  
+        // Upload accounts with progress tracking
         let successCount = 0;
-        for (const account of accountsToUpload) {
+        const uploadPromises = accountsToUpload.map(async (account) => {
           try {
             const response = await fetch('https://backend.youmingtechnologies.co.ke/chart-of-accounts', {
               method: 'POST',
@@ -312,21 +315,26 @@ const ChartOfAccountsTable = () => {
               },
               body: JSON.stringify(account),
             });
-
+  
             if (!response.ok) {
               const error = await response.json();
               console.error('Upload failed:', account.parent_account, error);
-              continue;
+              return false;
             }
             successCount++;
+            return true;
           } catch (err) {
             console.error('Error uploading:', account.parent_account, err);
+            return false;
           }
-        }
-
+        });
+  
+        const results = await Promise.all(uploadPromises);
+        const failedCount = results.filter(result => !result).length;
+  
         if (successCount > 0) {
-          fetchAccounts();
-          alert(`${successCount} accounts uploaded successfully!`);
+          fetchAccounts(); // Refresh the accounts list
+          alert(`${successCount} parent accounts with ${accountsToUpload.reduce((sum, acc) => sum + acc.sub_account_details.length, 0)} sub-accounts uploaded successfully!${failedCount > 0 ? ` ${failedCount} failed.` : ''}`);
         } else {
           throw new Error('All uploads failed. Check console for details.');
         }
@@ -337,7 +345,6 @@ const ChartOfAccountsTable = () => {
     };
     reader.readAsArrayBuffer(file);
   };
-
   useEffect(() => {
     fetchAccounts();
   }, []);

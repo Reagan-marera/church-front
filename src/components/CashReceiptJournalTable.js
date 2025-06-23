@@ -17,7 +17,7 @@ import {
 import "./CashReceiptJournalTable.css";
 import * as XLSX from 'xlsx';
 
-const api = 'http://127.0.0.1:5000';
+const api = 'https://backend.youmingtechnologies.co.ke';
 
 const CashReceiptJournalTable = () => {
   const [journals, setJournals] = useState([]);
@@ -584,9 +584,9 @@ const CashReceiptJournalTable = () => {
       receipt_type: "",
       account_debited: "",
       account_credited: "",
-      cash: "$0.00",
-      bank: "$0.00",
-      total: "$0.00",
+      cash: "0.00",
+      bank: "0.00",
+      total: "0.00",
       cashbook: "",
       selectedInvoice: null,
       parent_account: "",
@@ -1194,7 +1194,6 @@ const CashReceiptJournalTable = () => {
      <table border="1" cellPadding="5">
   <thead>
     <tr>
-      <th>Id</th>
       <th>Date</th>
       <th>Receipt No</th>
       <th>Manual R. Number</th>
@@ -1222,7 +1221,6 @@ const CashReceiptJournalTable = () => {
 
         return (
           <tr key={journal.id} style={rowStyle}>
-            <td>{journal.id}</td>
             <td>{journal.receipt_date}</td>
             <td>{journal.receipt_no}</td>
             <td>{journal.manual_number}</td>
