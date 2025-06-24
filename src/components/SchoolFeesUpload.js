@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
+import './SchoolFeesUpload.css'; // Import a CSS file for styling
 
 const SchoolFeesUpload = () => {
   const [formData, setFormData] = useState({
@@ -61,7 +62,7 @@ const SchoolFeesUpload = () => {
         const allCustomersList = data.map((customer) => ({
           value: customer.account_name,
           label: customer.account_name,
-          subAccounts: customer.sub_account_details || [] // Ensure subAccounts is defined
+          subAccounts: customer.sub_account_details || []
         }));
         setAllCustomers(allCustomersList);
       } else {
@@ -100,6 +101,13 @@ const SchoolFeesUpload = () => {
       ...formData,
       account_credited: updatedAccounts
     });
+
+    // Calculate total amount
+    const totalAmount = updatedAccounts.reduce((sum, account) => sum + (parseFloat(account.amount) || 0), 0);
+    setFormData(prevFormData => ({
+      ...prevFormData,
+      amount: totalAmount
+    }));
   };
 
   const addAccountCreditedField = () => {
@@ -115,6 +123,13 @@ const SchoolFeesUpload = () => {
       ...formData,
       account_credited: updatedAccounts
     });
+
+    // Calculate total amount after removing an account
+    const totalAmount = updatedAccounts.reduce((sum, account) => sum + (parseFloat(account.amount) || 0), 0);
+    setFormData(prevFormData => ({
+      ...prevFormData,
+      amount: totalAmount
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -130,7 +145,6 @@ const SchoolFeesUpload = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
 
-      // Iterate over each selected customer and their subaccounts
       for (const selectedCustomer of allCustomersSelected) {
         const customer = customers.find(c => c.account_name === selectedCustomer.value);
         if (customer && customer.sub_account_details) {
@@ -190,12 +204,13 @@ const SchoolFeesUpload = () => {
   };
 
   return (
-    <div className="school-fees-upload">
-      <h2>Upload School Fees</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Select class students:</label>
+    <div className="school-fees-upload-container">
+      <h2 className="school-fees-upload-title">Upload School Fees</h2>
+      <form onSubmit={handleSubmit} className="school-fees-upload-form">
+        <div className="form-group">
+          <label className="form-label">Select class students:</label>
           <Select
+            className="form-select"
             value={allCustomersSelected}
             onChange={setAllCustomersSelected}
             options={allCustomers}
@@ -205,9 +220,10 @@ const SchoolFeesUpload = () => {
             styles={customStyles}
           />
         </div>
-        <div>
-          <label>Date Issued:</label>
+        <div className="form-group">
+          <label className="form-label">Date Issued:</label>
           <input
+            className="form-input"
             type="date"
             name="date_issued"
             value={formData.date_issued}
@@ -215,30 +231,33 @@ const SchoolFeesUpload = () => {
             required
           />
         </div>
-        <div>
-          <label>Amount:</label>
+        <div className="form-group">
+          <label className="form-label">Amount:</label>
           <input
+            className="form-input"
             type="number"
             name="amount"
             value={formData.amount}
             onChange={handleInputChange}
-            required
+            readOnly
           />
         </div>
-        <div>
-          <label>Account Debited:</label>
+        <div className="form-group">
+          <label className="form-label">Account Debited:</label>
           <input
+            className="form-input"
             type="text"
             name="account_debited"
             value={formData.account_debited}
             onChange={handleInputChange}
           />
         </div>
-        <div>
-          <label>Account Credited:</label>
+        <div className="form-group">
+          <label className="form-label">Account Credited:</label>
           {formData.account_credited.map((account, index) => (
-            <div key={index}>
+            <div key={index} className="account-credited-group">
               <input
+                className="form-input"
                 type="text"
                 name="account"
                 value={account.account}
@@ -246,53 +265,60 @@ const SchoolFeesUpload = () => {
                 placeholder="Account"
               />
               <input
+                className="form-input"
                 type="number"
                 name="amount"
                 value={account.amount}
                 onChange={(e) => handleAccountCreditedChange(index, e)}
                 placeholder="Amount"
               />
-              <button type="button" onClick={() => removeAccountCreditedField(index)}>
+              <button
+                type="button"
+                className="remove-button"
+                onClick={() => removeAccountCreditedField(index)}
+              >
                 Remove
               </button>
             </div>
           ))}
-          <button type="button" onClick={addAccountCreditedField}>
+          <button
+            type="button"
+            className="add-button"
+            onClick={addAccountCreditedField}
+          >
             Add Another Account
           </button>
         </div>
-        <div>
-          <label>Description:</label>
+        <div className="form-group">
+          <label className="form-label">Description:</label>
           <input
+            className="form-input"
             type="text"
             name="description"
             value={formData.description}
             onChange={handleInputChange}
           />
         </div>
-        <div>
-          <label>Manual Number:</label>
+      
+        <div className="form-group">
+          <label className="form-label">Parent Account:</label>
           <input
-            type="text"
-            name="manual_number"
-            value={formData.manual_number}
-            onChange={handleInputChange}
-          />
-        </div>
-        <div>
-          <label>Parent Account:</label>
-          <input
+            className="form-input"
             type="text"
             name="parent_account"
             value={formData.parent_account}
             onChange={handleInputChange}
           />
         </div>
-        <button type="submit" disabled={loading}>
+        <button
+          type="submit"
+          className="submit-button"
+          disabled={loading}
+        >
           {loading ? 'Uploading...' : 'Upload School Fees'}
         </button>
       </form>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error-message">{error}</p>}
     </div>
   );
 };

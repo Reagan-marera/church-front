@@ -738,21 +738,85 @@ ${printContents}
         <FontAwesomeIcon icon={faFileInvoiceDollar} className="icon" /> Invoice Issued
       </h1>
 
-      <button className="invoice-issued button" onClick={() => setShowForm(true)}>
-        Add New Invoice
-      </button>
+      <button
+    style={{
+      backgroundColor: '#007bff',
+      color: '#fff',
+      border: 'none',
+      padding: '12px 20px',
+      margin: '10px 10px 10px 0',
+      borderRadius: '6px',
+      fontSize: '1rem',
+      cursor: 'pointer',
+      boxShadow: '0 4px 12px rgba(0, 123, 255, 0.2)',
+      transition: 'background-color 0.3s ease, transform 0.2s ease',
+    }}
+    onMouseOver={e => (e.currentTarget.style.backgroundColor = '#0056b3')}
+    onMouseOut={e => (e.currentTarget.style.backgroundColor = '#007bff')}
+    onClick={() => setShowForm(true)}
+  >
+    Add New Invoice
+  </button>
 
-      <button className="invoice-issued button" onClick={handleExportToExcel}>
-        Export to Excel
-      </button>
+  <button
+    style={{
+      backgroundColor: '#28a745',
+      color: '#fff',
+      border: 'none',
+      padding: '12px 20px',
+      margin: '10px 10px 10px 0',
+      borderRadius: '6px',
+      fontSize: '1rem',
+      cursor: 'pointer',
+      boxShadow: '0 4px 12px rgba(40, 167, 69, 0.2)',
+      transition: 'background-color 0.3s ease, transform 0.2s ease',
+    }}
+    onMouseOver={e => (e.currentTarget.style.backgroundColor = '#1e7e34')}
+    onMouseOut={e => (e.currentTarget.style.backgroundColor = '#28a745')}
+    onClick={handleExportToExcel}
+  >
+    Export to Excel
+  </button>
 
-      <button className="invoice-issued button" onClick={handleDeleteAll} disabled={isDeleting}>
-        Delete All Invoices
-      </button>
+  <button
+    style={{
+      backgroundColor: isDeleting ? '#dc3545a0' : '#dc3545',
+      color: '#fff',
+      border: 'none',
+      padding: '12px 20px',
+      margin: '10px 10px 10px 0',
+      borderRadius: '6px',
+      fontSize: '1rem',
+      cursor: isDeleting ? 'not-allowed' : 'pointer',
+      boxShadow: '0 4px 12px rgba(220, 53, 69, 0.2)',
+      transition: 'background-color 0.3s ease, transform 0.2s ease',
+      opacity: isDeleting ? 0.6 : 1,
+    }}
+    disabled={isDeleting}
+    onClick={handleDeleteAll}
+  >
+    {isDeleting ? 'Deleting...' : 'Delete All Invoices'}
+  </button>
 
-      <button className="invoice-issued button" onClick={() => setShowSchoolFeesUpload(true)}>
-        Upload School Fees
-      </button>
+  <button
+    style={{
+      backgroundColor: '#ffc107',
+      color: '#212529',
+      border: 'none',
+      padding: '12px 20px',
+      margin: '10px 10px 10px 0',
+      borderRadius: '6px',
+      fontSize: '1rem',
+      cursor: 'pointer',
+      boxShadow: '0 4px 12px rgba(255, 193, 7, 0.2)',
+      transition: 'background-color 0.3s ease, transform 0.2s ease',
+    }}
+    onMouseOver={e => (e.currentTarget.style.backgroundColor = '#e0a800')}
+    onMouseOut={e => (e.currentTarget.style.backgroundColor = '#ffc107')}
+    onClick={() => setShowSchoolFeesUpload(true)}
+  >
+    Upload School Fees
+  </button>
 
       {isDeleting && <p>Deleting invoices, please wait...</p>}
       {error && <p className="error">{error}</p>}
