@@ -5,6 +5,7 @@ import { FaEdit, FaTrash, FaPrint, FaSearch } from "react-icons/fa";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFileInvoiceDollar } from "@fortawesome/free-solid-svg-icons";
 import * as XLSX from 'xlsx';
+import SchoolFeesUpload from './SchoolFeesUpload'; // Import the SchoolFeesUpload component
 
 const InvoiceIssued = () => {
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -28,6 +29,7 @@ const InvoiceIssued = () => {
   const [allCustomers, setAllCustomers] = useState([]);
   const [chartOfAccounts, setChartOfAccounts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSchoolFeesUpload, setShowSchoolFeesUpload] = useState(false);
 
   const api = 'https://backend.youmingtechnologies.co.ke';
 
@@ -313,12 +315,9 @@ const InvoiceIssued = () => {
       setError("User is not authenticated");
       return;
     }
-  
-    setIsDeleting(true); // Set deleting state to true
-    setError(""); // Clear any previous errors
-  
+    setIsDeleting(true);
+    setError("");
     try {
-      // Use Promise.all to delete invoices in parallel
       await Promise.all(
         invoices.map(invoice =>
           fetch(`${api}/invoices/${invoice.id}`, {
@@ -334,15 +333,14 @@ const InvoiceIssued = () => {
           })
         )
       );
-  
-      fetchInvoices(); // Refresh the list of invoices
+      fetchInvoices();
     } catch (error) {
       setError("Error deleting invoices: " + error.message);
     } finally {
-      setIsDeleting(false); // Reset deleting state
+      setIsDeleting(false);
     }
   };
-  
+
   const handlePost = async (id) => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -548,12 +546,12 @@ const InvoiceIssued = () => {
             </tr>
           </thead>
           <tbody>
-            ${invoice.account_credited.map(account => `
+${invoice.account_credited.map(account => `
               <tr>
                 <td>${account.name}</td>
                 <td>${formatFinancialValue(account.amount)}</td>
               </tr>
-            `).join('')}
+`).join('')}
           </tbody>
         </table>
       </div>
@@ -572,7 +570,7 @@ const InvoiceIssued = () => {
           <title>Invoice</title>
         </head>
         <body>
-          ${printContents}
+${printContents}
           <script>
             window.onload = function() {
               window.print();
@@ -749,10 +747,15 @@ const InvoiceIssued = () => {
       </button>
 
       <button className="invoice-issued button" onClick={handleDeleteAll} disabled={isDeleting}>
-  Delete All Invoices
-</button>
-{isDeleting && <p>Deleting invoices, please wait...</p>}
-{error && <p className="error">{error}</p>}
+        Delete All Invoices
+      </button>
+
+      <button className="invoice-issued button" onClick={() => setShowSchoolFeesUpload(true)}>
+        Upload School Fees
+      </button>
+
+      {isDeleting && <p>Deleting invoices, please wait...</p>}
+      {error && <p className="error">{error}</p>}
 
       <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
 
@@ -916,6 +919,17 @@ const InvoiceIssued = () => {
                 {loading ? "Submitting..." : isEditing ? "Update Invoice" : "Submit Invoice"}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showSchoolFeesUpload && (
+        <div className="modal">
+          <div className="modal-content">
+            <button className="close" onClick={() => setShowSchoolFeesUpload(false)}>
+              &times;
+            </button>
+            <SchoolFeesUpload />
           </div>
         </div>
       )}

@@ -42,7 +42,7 @@ const groupByAccountType = (data) => {
   Object.entries(data).forEach(([key, accountGroup]) => {
     const accountType = accountGroup.account_type;
 
-    if (['40-Revenue', '50-Expenses'].includes(accountType)) return;
+    if (['50-Other Expenditures', '50-Operating Expenses',, '40-Revenue'].includes(accountType)) return;
 
     let accountName = accountGroup.account_name.replace(/-\d+$/, '');
 
@@ -225,10 +225,7 @@ const BalanceStatementAccounts = () => {
             </React.Fragment>
           ))}
           {/* Net Surplus/Deficit Row */}
-          <tr style={{ fontWeight: 'bold', color: 'orange', backgroundColor: 'orange' }}>
-            <td colSpan={4}>Net Surplus/Deficit</td>
-            <td>{netSurplusDeficit.toLocaleString('en-US', { style: 'currency', currency: 'ksh' })}</td>
-          </tr>
+        
           {/* Net Assets Row */}
           <tr style={{ fontWeight: 'bold', color: 'orange', backgroundColor: 'orange' }}>
             <td colSpan={4}>30-Net Assets</td>
