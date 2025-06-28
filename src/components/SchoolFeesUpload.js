@@ -18,6 +18,8 @@ const SchoolFeesUpload = () => {
   const [customers, setCustomers] = useState([]);
   const [allCustomers, setAllCustomers] = useState([]);
   const [allCustomersSelected, setAllCustomersSelected] = useState([]);
+  const [chartOfAccounts, setChartOfAccounts] = useState([]);
+  const [accountsCredited, setAccountsCredited] = useState([]);
 
   const api = 'https://backend.youmingtechnologies.co.ke';
 
@@ -42,12 +44,10 @@ const SchoolFeesUpload = () => {
 
   const fetchCustomers = async () => {
     const token = localStorage.getItem("token");
-
     if (!token) {
       setError("User is not authenticated");
       return;
     }
-
     try {
       const response = await fetch(`${api}/customer`, {
         method: "GET",
@@ -55,7 +55,6 @@ const SchoolFeesUpload = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-
       if (response.ok) {
         const data = await response.json();
         setCustomers(data);
@@ -73,8 +72,51 @@ const SchoolFeesUpload = () => {
     }
   };
 
+  const fetchChartOfAccounts = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("User is not authenticated");
+      return;
+    }
+    try {
+      const response = await fetch(`${api}/chart-of-accounts`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setChartOfAccounts(data);
+        const tradeDebtorsAccount = data.find(
+          (account) =>
+            account.sub_account_details &&
+            account.sub_account_details.some(
+              (subAccount) => subAccount.name === "1150- Trade Debtors Control Account"
+            )
+        );
+        if (tradeDebtorsAccount) {
+          const subAccount = tradeDebtorsAccount.sub_account_details.find(
+            (subAccount) => subAccount.name === "1150- Trade Debtors Control Account"
+          );
+          setFormData(prevFormData => ({
+            ...prevFormData,
+            account_debited: subAccount.name
+          }));
+        } else {
+          setError("1150-Trade Debtors Control Account not found in COA");
+        }
+      } else {
+        setError("Error fetching chart of accounts");
+      }
+    } catch (error) {
+      setError("Error fetching chart of accounts");
+    }
+  };
+
   useEffect(() => {
     fetchCustomers();
+    fetchChartOfAccounts();
   }, []);
 
   const generateInvoiceNumber = () => {
@@ -82,6 +124,11 @@ const SchoolFeesUpload = () => {
     currentCounter += 1;
     localStorage.setItem('schoolFeesCounter', currentCounter);
     return `SF-${currentCounter}`;
+  };
+
+  const resetCounter = () => {
+    localStorage.removeItem('schoolFeesCounter');
+    // Optionally reset any related state if needed
   };
 
   const handleInputChange = (e) => {
@@ -92,15 +139,11 @@ const SchoolFeesUpload = () => {
     });
   };
 
-  const handleAccountCreditedChange = (index, e) => {
-    const { name, value } = e.target;
-    const updatedAccounts = [...formData.account_credited];
-    updatedAccounts[index][name] = value;
+  const handleAccountCreditedChange = (index, selectedOption, amount) => {
+    const updatedAccounts = [...accountsCredited];
+    updatedAccounts[index] = { value: selectedOption, label: selectedOption, amount };
 
-    setFormData({
-      ...formData,
-      account_credited: updatedAccounts
-    });
+    setAccountsCredited(updatedAccounts);
 
     // Calculate total amount
     const totalAmount = updatedAccounts.reduce((sum, account) => sum + (parseFloat(account.amount) || 0), 0);
@@ -110,19 +153,16 @@ const SchoolFeesUpload = () => {
     }));
   };
 
-  const addAccountCreditedField = () => {
-    setFormData({
-      ...formData,
-      account_credited: [...formData.account_credited, { account: '', amount: '' }]
-    });
+  const handleAddCreditedAccount = () => {
+    setAccountsCredited([
+      ...accountsCredited,
+      { value: "", label: "", amount: 0 }
+    ]);
   };
 
-  const removeAccountCreditedField = (index) => {
-    const updatedAccounts = formData.account_credited.filter((_, i) => i !== index);
-    setFormData({
-      ...formData,
-      account_credited: updatedAccounts
-    });
+  const handleRemoveCreditedAccount = (index) => {
+    const updatedAccounts = accountsCredited.filter((_, i) => i !== index);
+    setAccountsCredited(updatedAccounts);
 
     // Calculate total amount after removing an account
     const totalAmount = updatedAccounts.reduce((sum, account) => sum + (parseFloat(account.amount) || 0), 0);
@@ -131,6 +171,19 @@ const SchoolFeesUpload = () => {
       amount: totalAmount
     }));
   };
+
+  const parentAccountOptions = chartOfAccounts.map((account) => ({
+    value: account.parent_account || account.name,
+    label: account.parent_account || account.name,
+  }));
+
+  const creditedAccountOptions = chartOfAccounts
+    .filter(account => account.account_type === "40-Revenue" || account.account_type === "10-Assets")
+    .flatMap(account => account.sub_account_details || [])
+    .map(subAccount => ({
+      value: subAccount.name,
+      label: subAccount.name
+    }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -144,6 +197,7 @@ const SchoolFeesUpload = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
+      let successfulUploads = 0;
 
       for (const selectedCustomer of allCustomersSelected) {
         const customer = customers.find(c => c.account_name === selectedCustomer.value);
@@ -156,8 +210,8 @@ const SchoolFeesUpload = () => {
               date_issued: formData.date_issued,
               amount: parseFloat(formData.amount),
               account_debited: formData.account_debited,
-              account_credited: formData.account_credited.map(acc => ({
-                name: acc.account,
+              account_credited: accountsCredited.map(acc => ({
+                name: acc.value,
                 amount: parseFloat(acc.amount) || 0
               })),
               description: formData.description,
@@ -177,7 +231,9 @@ const SchoolFeesUpload = () => {
               body: JSON.stringify(submissionData)
             });
 
-            if (!response.ok) {
+            if (response.ok) {
+              successfulUploads++;
+            } else {
               const errorData = await response.json();
               throw new Error(errorData.error || 'Failed to upload school fees');
             }
@@ -185,7 +241,7 @@ const SchoolFeesUpload = () => {
         }
       }
 
-      alert('School fees uploaded successfully!');
+      alert(`Successfully uploaded school fees for ${successfulUploads} accounts!`);
       setFormData({
         date_issued: '',
         amount: '',
@@ -195,6 +251,7 @@ const SchoolFeesUpload = () => {
         manual_number: '',
         parent_account: ''
       });
+      setAccountsCredited([{ value: "", label: "", amount: 0 }]);
     } catch (err) {
       setError(err.message);
       console.error(err);
@@ -238,7 +295,6 @@ const SchoolFeesUpload = () => {
             type="number"
             name="amount"
             value={formData.amount}
-            onChange={handleInputChange}
             readOnly
           />
         </div>
@@ -254,28 +310,27 @@ const SchoolFeesUpload = () => {
         </div>
         <div className="form-group">
           <label className="form-label">Account Credited:</label>
-          {formData.account_credited.map((account, index) => (
+          {accountsCredited.map((account, index) => (
             <div key={index} className="account-credited-group">
-              <input
-                className="form-input"
-                type="text"
-                name="account"
-                value={account.account}
-                onChange={(e) => handleAccountCreditedChange(index, e)}
-                placeholder="Account"
+              <Select
+                value={creditedAccountOptions.find(option => option.value === account.value)}
+                onChange={(selectedOption) => handleAccountCreditedChange(index, selectedOption.value, account.amount)}
+                options={creditedAccountOptions}
+                placeholder="Select Credited Account"
+                isSearchable
+                styles={customStyles}
               />
               <input
                 className="form-input"
                 type="number"
-                name="amount"
                 value={account.amount}
-                onChange={(e) => handleAccountCreditedChange(index, e)}
+                onChange={(e) => handleAccountCreditedChange(index, account.value, parseFloat(e.target.value) || 0)}
                 placeholder="Amount"
               />
               <button
                 type="button"
                 className="remove-button"
-                onClick={() => removeAccountCreditedField(index)}
+                onClick={() => handleRemoveCreditedAccount(index)}
               >
                 Remove
               </button>
@@ -284,9 +339,9 @@ const SchoolFeesUpload = () => {
           <button
             type="button"
             className="add-button"
-            onClick={addAccountCreditedField}
+            onClick={handleAddCreditedAccount}
           >
-            Add Another Account
+            Add Credit Account
           </button>
         </div>
         <div className="form-group">
@@ -299,15 +354,15 @@ const SchoolFeesUpload = () => {
             onChange={handleInputChange}
           />
         </div>
-      
         <div className="form-group">
           <label className="form-label">Parent Account:</label>
-          <input
-            className="form-input"
-            type="text"
-            name="parent_account"
-            value={formData.parent_account}
-            onChange={handleInputChange}
+          <Select
+            value={parentAccountOptions.find(option => option.value === formData.parent_account)}
+            onChange={(selectedOption) => setFormData(prev => ({ ...prev, parent_account: selectedOption.value }))}
+            options={parentAccountOptions}
+            placeholder="Select Parent Account"
+            isSearchable
+            styles={customStyles}
           />
         </div>
         <button
@@ -316,6 +371,13 @@ const SchoolFeesUpload = () => {
           disabled={loading}
         >
           {loading ? 'Uploading...' : 'Upload School Fees'}
+        </button>
+        <button
+          type="button"
+          className="reset-button"
+          onClick={resetCounter}
+        >
+          Reset Counter
         </button>
       </form>
       {error && <p className="error-message">{error}</p>}

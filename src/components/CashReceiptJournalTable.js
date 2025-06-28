@@ -477,56 +477,65 @@ const CashReceiptJournalTable = () => {
 
   const handleDeleteAll = async () => {
     if (!window.confirm("Are you sure you want to delete all entries?")) return;
-
+  
     const token = localStorage.getItem("token");
     if (!token) {
       setError("User is not authenticated.");
       return;
     }
-
+  
     try {
-      for (const journal of journals) {
-        if (journal.isDeleted) continue;
-
-        const response = await fetch(`${api}/cash-receipt-journals/${journal.id}`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`Error deleting receipt ${journal.id}:`, errorText);
-          setError(errorText);
-          continue;
+      // Filter out already deleted journals
+      const journalsToDelete = journals.filter(journal => !journal.isDeleted);
+  
+      // Use Promise.all to send delete requests in parallel
+      await Promise.all(journalsToDelete.map(async (journal) => {
+        try {
+          const response = await fetch(`${api}/cash-receipt-journals/${journal.id}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+  
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Error deleting receipt ${journal.id}:`, errorText);
+            setError(errorText);
+            return; // Skip updating state for failed deletions
+          }
+  
+          // Update state and localStorage for successful deletions
+          setJournals((prevJournals) =>
+            prevJournals.map((j) =>
+              j.id === journal.id ? { ...j, isDeleted: true } : j
+            )
+          );
+  
+          const storedDeletedItems = localStorage.getItem("deletedItems");
+          const deletedItems = storedDeletedItems ? JSON.parse(storedDeletedItems) : [];
+          localStorage.setItem("deletedItems", JSON.stringify([...deletedItems, journal.id]));
+        } catch (err) {
+          console.error(`Error deleting journal ${journal.id}:`, err);
+          setError(err.message);
         }
-
-        setJournals((prevJournals) =>
-          prevJournals.map((j) =>
-            j.id === journal.id ? { ...j, isDeleted: true } : j
-          )
-        );
-
-        const storedDeletedItems = localStorage.getItem("deletedItems");
-        const deletedItems = storedDeletedItems ? JSON.parse(storedDeletedItems) : [];
-        localStorage.setItem("deletedItems", JSON.stringify([...deletedItems, journal.id]));
-      }
-
+      }));
+  
+      // Calculate the highest receipt number from remaining journals
       const remainingJournals = journals.filter(journal => !journal.isDeleted);
       const highestReceiptNumber = remainingJournals.reduce((max, journal) => {
         const receiptNumberMatch = journal.receipt_no.match(/R-(\d+)/);
         const receiptNumber = receiptNumberMatch ? parseInt(receiptNumberMatch[1], 10) : 0;
         return Math.max(max, isNaN(receiptNumber) ? 0 : receiptNumber);
       }, 0);
-
+  
       localStorage.setItem("receipt_counter", highestReceiptNumber);
     } catch (err) {
       console.error("Error in handleDeleteAll:", err);
       setError(err.message);
     }
   };
-
+  
   const openFormPopup = (journal = null) => {
     if (journal) {
       setIsEditing(true);

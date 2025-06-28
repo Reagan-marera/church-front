@@ -5,7 +5,7 @@ import { FaEdit, FaTrash, FaPrint, FaSearch } from "react-icons/fa";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFileInvoiceDollar } from "@fortawesome/free-solid-svg-icons";
 import * as XLSX from 'xlsx';
-import SchoolFeesUpload from './SchoolFeesUpload'; // Import the SchoolFeesUpload component
+import SchoolFeesUpload from './SchoolFeesUpload';
 
 const InvoiceIssued = () => {
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -15,7 +15,6 @@ const InvoiceIssued = () => {
   const [accountDebited, setAccountDebited] = useState("");
   const [accountsCredited, setAccountsCredited] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState("");
-  const [allCustomersSelected, setAllCustomersSelected] = useState([]);
   const [manualNumber, setManualNumber] = useState("");
   const [parentAccount, setParentAccount] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -26,7 +25,6 @@ const InvoiceIssued = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingInvoiceId, setEditingInvoiceId] = useState(null);
   const [customers, setCustomers] = useState([]);
-  const [allCustomers, setAllCustomers] = useState([]);
   const [chartOfAccounts, setChartOfAccounts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSchoolFeesUpload, setShowSchoolFeesUpload] = useState(false);
@@ -57,6 +55,11 @@ const InvoiceIssued = () => {
     fetchCustomers();
     fetchChartOfAccounts();
   }, []);
+
+  useEffect(() => {
+    console.log("Customers Data:", customers);
+    console.log("Invoices Data:", invoices);
+  }, [customers, invoices]);
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -109,9 +112,6 @@ const InvoiceIssued = () => {
       if (response.ok) {
         const data = await response.json();
         setCustomers(data);
-
-        const allCustomersList = data.map((customer) => customer.account_name);
-        setAllCustomers(allCustomersList);
       } else {
         setError("Error fetching customers");
       }
@@ -197,17 +197,8 @@ const InvoiceIssued = () => {
         return;
       }
       customersToProcess = selectedCustomerData.sub_account_details.filter(subAccount => subAccount.name === selectedCustomer);
-    } else if (allCustomersSelected.length > 0) {
-      const allCustomersData = customers.filter((customer) =>
-        allCustomersSelected.includes(customer.account_name)
-      );
-      if (allCustomersData.length === 0) {
-        setError("No valid customers found in the selected list.");
-        return;
-      }
-      customersToProcess = allCustomersData.flatMap((customer) => customer.sub_account_details || []);
     } else {
-      setError("Please select a customer or a list of customers.");
+      setError("Please select a customer.");
       return;
     }
 
@@ -299,6 +290,8 @@ const InvoiceIssued = () => {
       });
 
       if (response.ok) {
+        setError("");
+        alert("Invoice deleted successfully!");
         fetchInvoices();
       } else {
         const errorData = await response.json();
@@ -309,30 +302,61 @@ const InvoiceIssued = () => {
     }
   };
 
-  const handleDeleteAll = async () => {
+  const handleDeleteInvoicesForAccount = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
       setError("User is not authenticated");
       return;
     }
+
+    if (!selectedCustomer) {
+      setError("Please select a customer account to delete invoices for.");
+      return;
+    }
+
     setIsDeleting(true);
     setError("");
+
     try {
-      await Promise.all(
-        invoices.map(invoice =>
+      const selectedCustomerData = customers.find(customer => customer.account_name === selectedCustomer);
+      if (!selectedCustomerData || !selectedCustomerData.sub_account_details) {
+        setError("No sub-accounts found for the selected customer account.");
+        return;
+      }
+
+      const subAccountNames = selectedCustomerData.sub_account_details.map(subAccount => subAccount.name);
+      console.log("Selected Customer Data:", selectedCustomerData);
+      console.log("Sub Account Names:", subAccountNames);
+
+      const filteredInvoices = invoices.filter(invoice => subAccountNames.includes(invoice.name));
+      console.log("Filtered Invoices:", filteredInvoices);
+
+      if (filteredInvoices.length === 0) {
+        setError("No invoices found for the selected customer account's sub-accounts.");
+        return;
+      }
+
+      const results = await Promise.allSettled(
+        filteredInvoices.map(invoice =>
           fetch(`${api}/invoices/${invoice.id}`, {
             method: "DELETE",
             headers: {
               Authorization: `Bearer ${token}`,
             },
-          }).then(response => {
-            if (!response.ok) {
-              throw new Error(`Error deleting invoice with ID ${invoice.id}`);
-            }
-            return response.json();
           })
         )
       );
+
+      const successfulDeletions = results.filter(result => result.status === 'fulfilled');
+      const failedDeletions = results.filter(result => result.status === 'rejected');
+
+      if (successfulDeletions.length > 0) {
+        alert(`${successfulDeletions.length} invoices deleted successfully!`);
+      }
+      if (failedDeletions.length > 0) {
+        alert(`${failedDeletions.length} invoices failed to delete.`);
+      }
+
       fetchInvoices();
     } catch (error) {
       setError("Error deleting invoices: " + error.message);
@@ -373,7 +397,6 @@ const InvoiceIssued = () => {
     setDescription("");
     setAccountsCredited([]);
     setSelectedCustomer("");
-    setAllCustomersSelected([]);
     setTotalAmount(0);
     setManualNumber("");
     setParentAccount("");
@@ -389,16 +412,9 @@ const InvoiceIssued = () => {
     return revenueSubAccounts.map((subAccount) => subAccount.name);
   };
 
-  const customerOptions = customers.flatMap((customer) =>
-    customer.sub_account_details.map((subAccount) => ({
-      value: subAccount.name,
-      label: subAccount.name,
-    }))
-  );
-
-  const allCustomersOptions = allCustomers.map((accountName) => ({
-    value: accountName,
-    label: accountName,
+  const customerOptions = customers.map((customer) => ({
+    value: customer.account_name,
+    label: customer.account_name,
   }));
 
   const creditedAccountOptions = getSubAccountNames().map((subAccountName) => ({
@@ -739,84 +755,84 @@ ${printContents}
       </h1>
 
       <button
-    style={{
-      backgroundColor: '#007bff',
-      color: '#fff',
-      border: 'none',
-      padding: '12px 20px',
-      margin: '10px 10px 10px 0',
-      borderRadius: '6px',
-      fontSize: '1rem',
-      cursor: 'pointer',
-      boxShadow: '0 4px 12px rgba(0, 123, 255, 0.2)',
-      transition: 'background-color 0.3s ease, transform 0.2s ease',
-    }}
-    onMouseOver={e => (e.currentTarget.style.backgroundColor = '#0056b3')}
-    onMouseOut={e => (e.currentTarget.style.backgroundColor = '#007bff')}
-    onClick={() => setShowForm(true)}
-  >
-    Add New Invoice
-  </button>
+        style={{
+          backgroundColor: '#007bff',
+          color: '#fff',
+          border: 'none',
+          padding: '12px 20px',
+          margin: '10px 10px 10px 0',
+          borderRadius: '6px',
+          fontSize: '1rem',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(0, 123, 255, 0.2)',
+          transition: 'background-color 0.3s ease, transform 0.2s ease',
+        }}
+        onMouseOver={e => (e.currentTarget.style.backgroundColor = '#0056b3')}
+        onMouseOut={e => (e.currentTarget.style.backgroundColor = '#007bff')}
+        onClick={() => setShowForm(true)}
+      >
+        Add New Invoice
+      </button>
 
-  <button
-    style={{
-      backgroundColor: '#28a745',
-      color: '#fff',
-      border: 'none',
-      padding: '12px 20px',
-      margin: '10px 10px 10px 0',
-      borderRadius: '6px',
-      fontSize: '1rem',
-      cursor: 'pointer',
-      boxShadow: '0 4px 12px rgba(40, 167, 69, 0.2)',
-      transition: 'background-color 0.3s ease, transform 0.2s ease',
-    }}
-    onMouseOver={e => (e.currentTarget.style.backgroundColor = '#1e7e34')}
-    onMouseOut={e => (e.currentTarget.style.backgroundColor = '#28a745')}
-    onClick={handleExportToExcel}
-  >
-    Export to Excel
-  </button>
+      <button
+        style={{
+          backgroundColor: '#28a745',
+          color: '#fff',
+          border: 'none',
+          padding: '12px 20px',
+          margin: '10px 10px 10px 0',
+          borderRadius: '6px',
+          fontSize: '1rem',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(40, 167, 69, 0.2)',
+          transition: 'background-color 0.3s ease, transform 0.2s ease',
+        }}
+        onMouseOver={e => (e.currentTarget.style.backgroundColor = '#1e7e34')}
+        onMouseOut={e => (e.currentTarget.style.backgroundColor = '#28a745')}
+        onClick={handleExportToExcel}
+      >
+        Export to Excel
+      </button>
 
-  <button
-    style={{
-      backgroundColor: isDeleting ? '#dc3545a0' : '#dc3545',
-      color: '#fff',
-      border: 'none',
-      padding: '12px 20px',
-      margin: '10px 10px 10px 0',
-      borderRadius: '6px',
-      fontSize: '1rem',
-      cursor: isDeleting ? 'not-allowed' : 'pointer',
-      boxShadow: '0 4px 12px rgba(220, 53, 69, 0.2)',
-      transition: 'background-color 0.3s ease, transform 0.2s ease',
-      opacity: isDeleting ? 0.6 : 1,
-    }}
-    disabled={isDeleting}
-    onClick={handleDeleteAll}
-  >
-    {isDeleting ? 'Deleting...' : 'Delete All Invoices'}
-  </button>
+      <button
+        style={{
+          backgroundColor: isDeleting ? '#dc3545a0' : '#dc3545',
+          color: '#fff',
+          border: 'none',
+          padding: '12px 20px',
+          margin: '10px 10px 10px 0',
+          borderRadius: '6px',
+          fontSize: '1rem',
+          cursor: isDeleting ? 'not-allowed' : 'pointer',
+          boxShadow: '0 4px 12px rgba(220, 53, 69, 0.2)',
+          transition: 'background-color 0.3s ease, transform 0.2s ease',
+          opacity: isDeleting ? 0.6 : 1,
+        }}
+        disabled={isDeleting}
+        onClick={handleDeleteInvoicesForAccount}
+      >
+        {isDeleting ? 'Deleting...' : 'Delete Invoices for Selected Account'}
+      </button>
 
-  <button
-    style={{
-      backgroundColor: '#ffc107',
-      color: '#212529',
-      border: 'none',
-      padding: '12px 20px',
-      margin: '10px 10px 10px 0',
-      borderRadius: '6px',
-      fontSize: '1rem',
-      cursor: 'pointer',
-      boxShadow: '0 4px 12px rgba(255, 193, 7, 0.2)',
-      transition: 'background-color 0.3s ease, transform 0.2s ease',
-    }}
-    onMouseOver={e => (e.currentTarget.style.backgroundColor = '#e0a800')}
-    onMouseOut={e => (e.currentTarget.style.backgroundColor = '#ffc107')}
-    onClick={() => setShowSchoolFeesUpload(true)}
-  >
-    Upload School Fees
-  </button>
+      <button
+        style={{
+          backgroundColor: '#ffc107',
+          color: '#212529',
+          border: 'none',
+          padding: '12px 20px',
+          margin: '10px 10px 10px 0',
+          borderRadius: '6px',
+          fontSize: '1rem',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(255, 193, 7, 0.2)',
+          transition: 'background-color 0.3s ease, transform 0.2s ease',
+        }}
+        onMouseOver={e => (e.currentTarget.style.backgroundColor = '#e0a800')}
+        onMouseOut={e => (e.currentTarget.style.backgroundColor = '#ffc107')}
+        onClick={() => setShowSchoolFeesUpload(true)}
+      >
+        Upload School Fees
+      </button>
 
       {isDeleting && <p>Deleting invoices, please wait...</p>}
       {error && <p className="error">{error}</p>}
@@ -832,6 +848,18 @@ ${printContents}
           style={{ marginBottom: "20px", padding: "10px", width: "300px" }}
         />
         <FaSearch style={{ position: "relative", left: "-30px", top: "10px" }} />
+      </div>
+
+      <div>
+        <label>Select Customer Account:</label>
+        <Select
+          value={customerOptions.find(option => option.value === selectedCustomer)}
+          onChange={(selectedOption) => setSelectedCustomer(selectedOption.value)}
+          options={customerOptions}
+          placeholder="Select Customer Account"
+          isSearchable
+          styles={customStyles}
+        />
       </div>
 
       {showForm && (
@@ -896,22 +924,6 @@ ${printContents}
                   options={parentAccountOptions}
                   placeholder="Select Parent Account"
                   isSearchable
-                  styles={customStyles}
-                />
-              </div>
-              <div>
-                <label>All Customers:</label>
-                <Select
-                  value={allCustomersOptions.filter(
-                    (option) => allCustomersSelected.includes(option.value)
-                  )}
-                  onChange={(selectedOptions) =>
-                    setAllCustomersSelected(selectedOptions.map(option => option.value))
-                  }
-                  options={allCustomersOptions}
-                  placeholder="Select All Customers"
-                  isSearchable
-                  isMulti
                   styles={customStyles}
                 />
               </div>
