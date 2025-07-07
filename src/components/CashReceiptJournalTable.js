@@ -1,19 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faFileInvoiceDollar,
-  faPlus,
-  faEdit,
-  faTrash,
-  faCalendar,
-  faFileAlt,
-  faUser,
-  faDollarSign,
-  faWallet,
-  faBook,
-  faFileExcel,
-} from "@fortawesome/free-solid-svg-icons";
+import { faFileExcel } from "@fortawesome/free-solid-svg-icons";
 import "./CashReceiptJournalTable.css";
 import * as XLSX from 'xlsx';
 
@@ -46,12 +34,16 @@ const CashReceiptJournalTable = () => {
     cashbook: "",
     selectedInvoice: null,
     parent_account: "",
+    department: "",
   });
+
   const [isEditing, setIsEditing] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(20);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -68,10 +60,7 @@ const CashReceiptJournalTable = () => {
       backgroundColor: state.isFocused ? "#e2e8f0" : "white",
       color: state.isSelected ? "#4a5568" : "black",
       padding: "10px",
-      fontWeight:
-        state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase())
-          ? "bold"
-          : "normal",
+      fontWeight: state.inputValue && state.label.toLowerCase().includes(state.inputValue.toLowerCase()) ? "bold" : "normal",
     }),
     control: (provided) => ({
       ...provided,
@@ -90,7 +79,6 @@ const CashReceiptJournalTable = () => {
     fetchCustomers();
     fetchInvoices();
     initializeReceiptCounter();
-
     const storedDeletedItems = localStorage.getItem("deletedItems");
     if (storedDeletedItems) {
       const deletedItems = JSON.parse(storedDeletedItems);
@@ -306,7 +294,7 @@ const CashReceiptJournalTable = () => {
       );
       return cashAccount?.sub_account_details || [];
     } else {
-      return coa.filter((account) => account.parent_account === "1000");
+      return coa.filter((account) => account.parent_account === "1000-Cash & Cash Equivalent");
     }
   };
 
@@ -337,7 +325,6 @@ const CashReceiptJournalTable = () => {
         setError("User is not authenticated.");
         return;
       }
-
       const payload = {
         receipt_date: formData.receipt_date,
         receipt_no: formData.receipt_no,
@@ -354,8 +341,8 @@ const CashReceiptJournalTable = () => {
         cashbook: formData.cashbook,
         selected_invoice_id: formData.selectedInvoice?.id,
         parent_account: formData.parent_account,
+        department: formData.department,
       };
-
       if (isEditing && editingData) {
         const response = await fetch(`${api}/cash-receipt-journals/${editingData.id}`, {
           method: "PUT",
@@ -365,7 +352,6 @@ const CashReceiptJournalTable = () => {
           },
           body: JSON.stringify(payload),
         });
-
         if (!response.ok) {
           const errorText = await response.text();
           console.error("Error updating receipt:", errorText);
@@ -381,7 +367,6 @@ const CashReceiptJournalTable = () => {
             from_whom_received: subAccount.value,
           };
         });
-
         for (const payload of payloads) {
           const response = await fetch(`${api}/cash-receipt-journals`, {
             method: "POST",
@@ -391,7 +376,6 @@ const CashReceiptJournalTable = () => {
             },
             body: JSON.stringify(payload),
           });
-
           if (!response.ok) {
             const errorText = await response.text();
             console.error("Error creating receipt:", errorText);
@@ -400,7 +384,6 @@ const CashReceiptJournalTable = () => {
           }
         }
       }
-
       refreshData();
       setFormData({
         receipt_date: "",
@@ -418,6 +401,7 @@ const CashReceiptJournalTable = () => {
         cashbook: "",
         selectedInvoice: null,
         parent_account: "",
+        department: "",
       });
       setError("");
       setShowForm(false);
@@ -450,24 +434,20 @@ const CashReceiptJournalTable = () => {
         setError(errorText);
         return;
       }
-
       setJournals((prevJournals) =>
         prevJournals.map((journal) =>
           journal.id === id ? { ...journal, isDeleted: true } : journal
         )
       );
-
       const storedDeletedItems = localStorage.getItem("deletedItems");
       const deletedItems = storedDeletedItems ? JSON.parse(storedDeletedItems) : [];
       localStorage.setItem("deletedItems", JSON.stringify([...deletedItems, id]));
-
       const remainingJournals = journals.filter(journal => journal.id !== id);
       const highestReceiptNumber = remainingJournals.reduce((max, journal) => {
         const receiptNumberMatch = journal.receipt_no.match(/R-(\d+)/);
         const receiptNumber = receiptNumberMatch ? parseInt(receiptNumberMatch[1], 10) : 0;
         return Math.max(max, isNaN(receiptNumber) ? 0 : receiptNumber);
       }, 0);
-
       localStorage.setItem("receipt_counter", highestReceiptNumber);
     } catch (err) {
       console.error("Error in handleDelete:", err);
@@ -477,18 +457,13 @@ const CashReceiptJournalTable = () => {
 
   const handleDeleteAll = async () => {
     if (!window.confirm("Are you sure you want to delete all entries?")) return;
-  
     const token = localStorage.getItem("token");
     if (!token) {
       setError("User is not authenticated.");
       return;
     }
-  
     try {
-      // Filter out already deleted journals
       const journalsToDelete = journals.filter(journal => !journal.isDeleted);
-  
-      // Use Promise.all to send delete requests in parallel
       await Promise.all(journalsToDelete.map(async (journal) => {
         try {
           const response = await fetch(`${api}/cash-receipt-journals/${journal.id}`, {
@@ -497,21 +472,17 @@ const CashReceiptJournalTable = () => {
               Authorization: `Bearer ${token}`,
             },
           });
-  
           if (!response.ok) {
             const errorText = await response.text();
             console.error(`Error deleting receipt ${journal.id}:`, errorText);
             setError(errorText);
-            return; // Skip updating state for failed deletions
+            return;
           }
-  
-          // Update state and localStorage for successful deletions
           setJournals((prevJournals) =>
             prevJournals.map((j) =>
               j.id === journal.id ? { ...j, isDeleted: true } : j
             )
           );
-  
           const storedDeletedItems = localStorage.getItem("deletedItems");
           const deletedItems = storedDeletedItems ? JSON.parse(storedDeletedItems) : [];
           localStorage.setItem("deletedItems", JSON.stringify([...deletedItems, journal.id]));
@@ -520,22 +491,19 @@ const CashReceiptJournalTable = () => {
           setError(err.message);
         }
       }));
-  
-      // Calculate the highest receipt number from remaining journals
       const remainingJournals = journals.filter(journal => !journal.isDeleted);
       const highestReceiptNumber = remainingJournals.reduce((max, journal) => {
         const receiptNumberMatch = journal.receipt_no.match(/R-(\d+)/);
         const receiptNumber = receiptNumberMatch ? parseInt(receiptNumberMatch[1], 10) : 0;
         return Math.max(max, isNaN(receiptNumber) ? 0 : receiptNumber);
       }, 0);
-  
       localStorage.setItem("receipt_counter", highestReceiptNumber);
     } catch (err) {
       console.error("Error in handleDeleteAll:", err);
       setError(err.message);
     }
   };
-  
+
   const openFormPopup = (journal = null) => {
     if (journal) {
       setIsEditing(true);
@@ -556,6 +524,7 @@ const CashReceiptJournalTable = () => {
         cashbook: journal.cashbook,
         selectedInvoice: journal.selectedInvoice || null,
         parent_account: journal.parent_account,
+        department: journal.department || "",
       });
     } else {
       setIsEditing(false);
@@ -576,6 +545,7 @@ const CashReceiptJournalTable = () => {
         cashbook: "",
         selectedInvoice: null,
         parent_account: "",
+        department: "",
       });
     }
     setShowForm(true);
@@ -599,6 +569,7 @@ const CashReceiptJournalTable = () => {
       cashbook: "",
       selectedInvoice: null,
       parent_account: "",
+      department: "",
     });
     setError("");
     setIsEditing(false);
@@ -659,97 +630,101 @@ const CashReceiptJournalTable = () => {
     );
     printWindow.document.write(`
       <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          .header { text-align: center; margin-bottom: 20px; }
-          .header h1 { font-size: 24px; margin: 0; }
-          .header h2 { font-size: 18px; margin: 5px 0; }
-          .header p { font-size: 14px; margin: 0; }
-          .section { margin-bottom: 20px; }
-          .section h3 { font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 5px; }
-          .section table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-          .section table th, .section table td { border: 1px solid #000; padding: 8px; text-align: left; }
-          .section table th { background-color: #f2f2f2; }
-          .total { font-weight: bold; text-align: right; margin-top: 10px; }
-          .footer { text-align: center; margin-top: 20px; font-size: 12px; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>youmingtech</h1>
-          <h2>Cash Receipt Journal</h2>
-          <p>Official Receipt</p>
-        </div>
-        <div class="section">
-          <h3>Receipt Details</h3>
-          <table>
-            <tr>
-              <th>Field</th>
-              <th>Value</th>
-            </tr>
-            <tr>
-              <td>Receipt Date</td>
-              <td>${journal.receipt_date || "N/A"}</td>
-            </tr>
-            <tr>
-              <td>Receipt No</td>
-              <td>${journal.receipt_no || "N/A"}</td>
-            </tr>
-            <tr>
-              <td>Reference No</td>
-              <td>${journal.ref_no || "N/A"}</td>
-            </tr>
-            <tr>
-              <td>From Whom Received</td>
-              <td>${journal.from_whom_received || "N/A"}</td>
-            </tr>
-            <tr>
-              <td>Description</td>
-              <td>${journal.description || "N/A"}</td>
-            </tr>
-            <tr>
-              <td>Receipt Type</td>
-              <td>${journal.receipt_type || "N/A"}</td>
-            </tr>
-            <tr>
-              <td>Total Amount</td>
-              <td>${formatCurrency(parseFloat(journal.total)) || "N/A"}</td>
-            </tr>
-          </table>
-        </div>
-        <div class="section">
-          <h3>Vote Heads</h3>
-          <table>
-            <tr>
-              <th>Account Name</th>
-              <th>Total Amount</th>
-            </tr>
-            ${
-              clearedAccounts.length > 0
-                ? clearedAccounts
-                    .map(
-                      (account) => `
-                    <tr>
-                      <td>${account.name}</td>
-                      <td>${formatCurrency(account.amount)}</td>
-                    </tr>
-                  `
-                    )
-                    .join("")
-                : `<tr><td colspan="4">${journal.account_credited || "No invoice accounts."}</td></tr>`
-            }
-          </table>
-        </div>
-        <div class="section">
-          <h3>Summary</h3>
-          <p class="total">Total Remaining Balance: ${formatCurrency(totalRemainingBalance)}</p>
-        </div>
-        <div class="footer">
-          <p>Thank you for your payment. This is an official receipt.</p>
-          <p>Youming Tech | www.youmingtech.org</p>
-        </div>
-      </body>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; margin-bottom: 20px; }
+            .header h1 { font-size: 24px; margin: 0; }
+            .header h2 { font-size: 18px; margin: 5px 0; }
+            .header p { font-size: 14px; margin: 0; }
+            .section { margin-bottom: 20px; }
+            .section h3 { font-size: 16px; margin-bottom: 10px; border-bottom: 1px solid #000; padding-bottom: 5px; }
+            .section table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+            .section table th, .section table td { border: 1px solid #000; padding: 8px; text-align: left; }
+            .section table th { background-color: #f2f2f2; }
+            .total { font-weight: bold; text-align: right; margin-top: 10px; }
+            .footer { text-align: center; margin-top: 20px; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>youmingtech</h1>
+            <h2>Cash Receipt Journal</h2>
+            <p>Official Receipt</p>
+          </div>
+          <div class="section">
+            <h3>Receipt Details</h3>
+            <table>
+              <tr>
+                <th>Field</th>
+                <th>Value</th>
+              </tr>
+              <tr>
+                <td>Receipt Date</td>
+                <td>${journal.receipt_date || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>Receipt No</td>
+                <td>${journal.receipt_no || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>Reference No</td>
+                <td>${journal.ref_no || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>From Whom Received</td>
+                <td>${journal.from_whom_received || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>Description</td>
+                <td>${journal.description || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>Receipt Type</td>
+                <td>${journal.receipt_type || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>Department</td>
+                <td>${journal.department || "N/A"}</td>
+              </tr>
+              <tr>
+                <td>Total Amount</td>
+                <td>${formatCurrency(parseFloat(journal.total)) || "N/A"}</td>
+              </tr>
+            </table>
+          </div>
+          <div class="section">
+            <h3>Vote Heads</h3>
+            <table>
+              <tr>
+                <th>Account Name</th>
+                <th>Total Amount</th>
+              </tr>
+              ${
+                clearedAccounts.length > 0
+                  ? clearedAccounts
+                      .map(
+                        (account) => `
+                          <tr>
+                            <td>${account.name}</td>
+                            <td>${formatCurrency(account.amount)}</td>
+                          </tr>
+                        `
+                      )
+                      .join("")
+                  : `<tr><td colspan="4">${journal.account_credited || "No invoice accounts."}</td></tr>`
+              }
+            </table>
+          </div>
+          <div class="section">
+            <h3>Summary</h3>
+            <p class="total">Total Remaining Balance: ${formatCurrency(totalRemainingBalance)}</p>
+          </div>
+          <div class="footer">
+            <p>Thank you for your payment. This is an official receipt.</p>
+            <p>Youming Tech | www.youmingtech.org</p>
+          </div>
+        </body>
       </html>
     `);
     printWindow.document.close();
@@ -766,103 +741,91 @@ const CashReceiptJournalTable = () => {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-  
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-  
-        // Get raw data with header: 1 to skip Excel header row
-        const rawData = XLSX.utils.sheet_to_json(firstSheet, { 
-          header: 1, 
+        const rawData = XLSX.utils.sheet_to_json(firstSheet, {
+          header: 1,
           defval: '',
           raw: false
         });
-  
         console.log('First 5 rows:', rawData.slice(0, 5));
-  
         const journalsToUpload = [];
         const skippedReasons = [];
-  
-        // CORRECTED column indices based on actual data structure
         const COLS = {
-          DATE: 1,          // Column B: Date (M/D/YYYY)
-          RECEIPT_NO: 2,    // Column C: Receipt No
-          TRANSACTION_NO: 4, // Column E: Transaction No (skipping empty column D)
-          FROM_WHOM: 5,     // Column F: From Whom Received
-          MANUAL_NO: 6,     // Column G: Manual Receipt No
-          DESCRIPTION: 7,   // Column H: Description
-          RECEIPT_TYPE: 8,  // Column I: Receipt Type
-          PARENT_ACCOUNT: 9, // Column J: Parent Account
-          ACCOUNT_CREDITED: 10, // Column K: Credited Account
-          ACCOUNT_DEBITED: 11, // Column L: Debited Account
-          CASH: 12,         // Column M: Cash
-          BANK: 13          // Column N: Bank
+          DATE: 1,
+          RECEIPT_NO: 2,
+          MANUAL_NO: 3,
+          DEPARTMENT: 4,
+          TRANSACTION_NO: 5,
+          NOTE: 6,
+          FROM_WHOM: 7,
+          DESCRIPTION: 8,
+          AMOUNT: 9,
+          RECEIPT_TYPE: 10,
+          PARENT_ACCOUNT: 11,
+          ACCOUNT_CREDITED: 12,
+          ACCOUNT_DEBITED: 13,
+          CASH: 14,
+          BANK: 15
         };
-  
-        // Process rows starting from row 1 (index 0 is header)
+        let receiptCounter = 1;
+        const usedReceiptNumbers = new Set();
         for (let i = 1; i < rawData.length; i++) {
           const row = rawData[i];
-          if (!row || row.length < 14) { // Now checking for 14 columns
-            skippedReasons.push(`Row ${i+1}: Insufficient columns (${row ? row.length : 'null'})`);
+          if (!row || row.length < 16) {
+            skippedReasons.push(`Row ${i+1}: Insufficient columns (${row?.length || 0})`);
             continue;
           }
-  
-          // Extract date string from column B (index 1)
           const dateString = String(row[COLS.DATE] || '').trim();
-          
-          // Parse date in M/D/YYYY format
           let receipt_date;
           try {
             if (dateString) {
               const [month, day, year] = dateString.split('/').map(Number);
-              const dateObj = new Date(year, month - 1, day);
-              if (!isNaN(dateObj.getTime())) {
-                receipt_date = dateObj.toISOString().split('T')[0];
-              }
+              receipt_date = new Date(year, month - 1, day).toISOString().split('T')[0];
             }
           } catch (err) {
             console.error(`Date parsing error for row ${i+1}:`, err);
-          }
-  
-          if (!receipt_date) {
             skippedReasons.push(`Row ${i+1}: Invalid date format (${dateString})`);
             continue;
           }
-  
-          // Extract values with correct column mapping
-          const receipt_no = String(row[COLS.RECEIPT_NO] || '').trim();
+          let receipt_no = String(row[COLS.RECEIPT_NO] || '').trim();
+          if (!receipt_no) {
+            let newReceiptNo;
+            do {
+              newReceiptNo = `IP-${receiptCounter}`;
+              receiptCounter++;
+            } while (usedReceiptNumbers.has(newReceiptNo));
+            receipt_no = newReceiptNo;
+            usedReceiptNumbers.add(receipt_no);
+          }
+          const manual_number = String(row[COLS.MANUAL_NO] || '').trim();
+          const department = String(row[COLS.DEPARTMENT] || '').trim();
           const transaction_no = String(row[COLS.TRANSACTION_NO] || '').trim();
           const from_whom_received = String(row[COLS.FROM_WHOM] || '').trim();
-          const manual_number = String(row[COLS.MANUAL_NO] || '').trim();
           const description = String(row[COLS.DESCRIPTION] || '').trim();
           const receipt_type = String(row[COLS.RECEIPT_TYPE] || '').trim();
           const parent_account = String(row[COLS.PARENT_ACCOUNT] || '').trim();
           const account_credited = String(row[COLS.ACCOUNT_CREDITED] || '').trim();
           const account_debited = String(row[COLS.ACCOUNT_DEBITED] || '').trim();
-          
-          // Parse amounts - remove commas and convert to numbers
-          const cash = parseFloat(String(row[COLS.CASH] || '0').replace(/,/g, '')) || 0;
-          const bank = parseFloat(String(row[COLS.BANK] || '0').replace(/,/g, '')) || 0;
-  
-          // Validate required fields
-          if (!receipt_no && !manual_number) {
-            skippedReasons.push(`Row ${i+1}: Missing both receipt_no and manual_number`);
-            continue;
-          }
-  
+          const parseAmount = (val) => {
+            const num = String(val || '0').replace(/,/g, '');
+            return isNaN(parseFloat(num)) ? 0 : parseFloat(num);
+          };
+          const cash = parseAmount(row[COLS.CASH]);
+          const bank = parseAmount(row[COLS.BANK]);
+          const amount = parseAmount(row[COLS.AMOUNT]);
           if (!from_whom_received) {
             skippedReasons.push(`Row ${i+1}: Missing recipient`);
             continue;
           }
-  
           if (cash === 0 && bank === 0) {
             skippedReasons.push(`Row ${i+1}: Both cash and bank amounts are zero`);
             continue;
           }
-  
           journalsToUpload.push({
             receipt_date,
             receipt_no,
@@ -875,41 +838,35 @@ const CashReceiptJournalTable = () => {
             account_credited,
             account_debited,
             cash,
-            bank
+            bank,
+            amount,
+            department
           });
         }
-  
         console.log(`Found ${journalsToUpload.length} valid journals to upload`);
         console.log('Sample journal:', journalsToUpload[0]);
-        console.log('Skipped reasons (first 10):', skippedReasons.slice(0, 10));
-  
         if (journalsToUpload.length === 0) {
           throw new Error(`No valid journals found. First reasons:\n${
             skippedReasons.slice(0, 10).join('\n')
           }${skippedReasons.length > 10 ? '\n...and more' : ''}`);
         }
-  
-        // Rest of your upload logic...
         const token = localStorage.getItem('token');
         if (!token) {
           setError('Authentication token missing');
           return;
         }
-  
         let successCount = 0;
         const uploadErrors = [];
-  
         for (const journal of journalsToUpload) {
           try {
             const response = await fetch(`${api}/cash-receipt-journals`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
+                'Authorization': `Bearer ${token}`,
               },
               body: JSON.stringify(journal),
             });
-  
             if (!response.ok) {
               const error = await response.json();
               uploadErrors.push(`Receipt ${journal.receipt_no}: ${error.error || response.statusText}`);
@@ -920,15 +877,13 @@ const CashReceiptJournalTable = () => {
             uploadErrors.push(`Receipt ${journal.receipt_no}: ${err.message}`);
           }
         }
-  
-        // Show results
         let resultMessage = `${successCount} journals uploaded successfully!`;
         if (uploadErrors.length > 0) {
           resultMessage += `\n\n${uploadErrors.length} errors:\n${uploadErrors.slice(0, 5).join('\n')}`;
+          if (uploadErrors.length > 5) resultMessage += '\n...and more';
         }
         alert(resultMessage);
-        fetchJournals(); // Refresh the UI
-  
+        fetchJournals();
       } catch (err) {
         console.error('Upload error:', err);
         setError(err.message);
@@ -977,6 +932,14 @@ const CashReceiptJournalTable = () => {
   const filteredJournals = journals.filter((journal) =>
     journal.from_whom_received.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Pagination logic
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredJournals.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredJournals.length / itemsPerPage);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
     <div>
@@ -1124,6 +1087,16 @@ const CashReceiptJournalTable = () => {
               </select>
             </div>
             <div className="form-row">
+              <label>Department:</label>
+              <input
+                type="text"
+                name="department"
+                value={formData.department}
+                onChange={handleInputChange}
+                className="form-input"
+              />
+            </div>
+            <div className="form-row">
               <label>Account Debited:</label>
               <Select
                 value={debitAccountOptions.find(
@@ -1200,64 +1173,83 @@ const CashReceiptJournalTable = () => {
           </form>
         </div>
       )}
-     <table border="1" cellPadding="5">
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Receipt No</th>
-      <th>Manual R. Number</th>
-      <th>Reference No</th>
-      <th>From Whom Received</th>
-      <th>Description</th>
-      <th>Receipt Type</th>
-      <th>Parent Account</th>
-      <th>Credited Account</th>
-      <th>Debited Account</th>
-      <th>Total</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    {filteredJournals
-      .slice() // Create a copy to avoid mutating original
-      .sort((a, b) => a.id - b.id) // Sort by ID ascending
-      .map((journal) => {
-        const isDeleted = journal.isDeleted;
-        const rowStyle = {
-          textDecoration: isDeleted ? 'line-through' : 'none',
-          backgroundColor: isDeleted ? '#ffcccc' : 'transparent'
-        };
-
-        return (
-          <tr key={journal.id} style={rowStyle}>
-            <td>{journal.receipt_date}</td>
-            <td>{journal.receipt_no}</td>
-            <td>{journal.manual_number}</td>
-            <td>{journal.ref_no}</td>
-            <td>{journal.from_whom_received}</td>
-            <td>{journal.description}</td>
-            <td>{journal.receipt_type}</td>
-            <td>{journal.parent_account}</td>
-            <td>{journal.account_credited}</td>
-            <td>{journal.account_debited}</td>
-            <td>{formatCurrency(parseFloat(journal.total))}</td>
-            <td>
-              {!isDeleted ? (
-                <>
-                  <button onClick={() => openFormPopup(journal)}>Edit</button>
-                  <button onClick={() => handleDelete(journal.id)}>Delete</button>
-                  <button onClick={() => printReceipt(journal)}>Print</button>
-                </>
-              ) : (
-                <span>Deleted</span>
-              )}
-            </td>
+      <table border="1" cellPadding="5">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Receipt No</th>
+            <th>Manual R. Number</th>
+            <th>Reference No</th>
+            <th>From Whom Received</th>
+            <th>Description</th>
+            <th>Receipt Type</th>
+            <th>Parent Account</th>
+            <th>Department</th>
+            <th>Credited Account</th>
+            <th>Debited Account</th>
+            <th>Total</th>
+            <th>Actions</th>
           </tr>
-        );
-      })}
-  </tbody>
-</table>
-
+        </thead>
+        <tbody>
+          {currentItems
+            .slice()
+            .sort((a, b) => a.id - b.id)
+            .map((journal) => {
+              const isDeleted = journal.isDeleted;
+              const rowStyle = {
+                textDecoration: isDeleted ? 'line-through' : 'none',
+                backgroundColor: isDeleted ? '#ffcccc' : 'transparent'
+              };
+              return (
+                <tr key={journal.id} style={rowStyle}>
+                  <td>{journal.receipt_date}</td>
+                  <td>{journal.receipt_no}</td>
+                  <td>{journal.manual_number}</td>
+                  <td>{journal.ref_no}</td>
+                  <td>{journal.from_whom_received}</td>
+                  <td>{journal.description}</td>
+                  <td>{journal.receipt_type}</td>
+                  <td>{journal.parent_account}</td>
+                  <td>{journal.department}</td>
+                  <td>{journal.account_credited}</td>
+                  <td>{journal.account_debited}</td>
+                  <td>{formatCurrency(parseFloat(journal.total))}</td>
+                  <td>
+                    {!isDeleted ? (
+                      <>
+                        <button onClick={() => openFormPopup(journal)}>Edit</button>
+                        <button onClick={() => handleDelete(journal.id)}>Delete</button>
+                        <button onClick={() => printReceipt(journal)}>Print</button>
+                      </>
+                    ) : (
+                      <span>Deleted</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+        </tbody>
+      </table>
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+        <button
+          onClick={() => paginate(currentPage - 1)}
+          disabled={currentPage === 1}
+          style={{ margin: '0 5px' }}
+        >
+          Previous
+        </button>
+        <span style={{ margin: '0 10px', alignSelf: 'center' }}>
+          Page {currentPage} of {totalPages}
+        </span>
+        <button
+          onClick={() => paginate(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          style={{ margin: '0 5px' }}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 };

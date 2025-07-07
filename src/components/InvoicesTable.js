@@ -629,117 +629,308 @@ ${printContents}
     XLSX.writeFile(wb, 'Invoices.xlsx');
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
+
     const file = e.target.files[0];
-    if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+    if (!file) {
 
-        const invoicesToUpload = [];
-        let invoiceCounter = 1;
+      setError('No file selected. Please choose a file to upload.');
 
-        for (let i = 1; i < rawData.length; i++) {
-          const row = rawData[i];
-          if (!row || row.length < 9 || row.every(cell => cell === '')) continue;
+      return;
 
-          let amount = 0;
-          try {
-            const amountStr = String(row[8] || '0').trim();
-            const cleanedAmountStr = amountStr.replace(/[^\d.-]/g, '').replace(/,/g, '');
-            amount = parseFloat(cleanedAmountStr) || 0;
-          } catch (e) {
-            console.warn(`Failed to parse amount in row ${i}: ${row[8]}`);
-            continue;
-          }
+    }
 
-          const invoiceNumber = `UP-${invoiceCounter++}`;
+    const validExtensions = ['.xlsx', '.xls', '.csv'];
 
-          let paymentDate;
-          const dateValue = row[1];
-          try {
-            if (dateValue) {
-              if (typeof dateValue === 'number') {
-                const dateObj = XLSX.SSF.parse_date_code(dateValue);
-                paymentDate = new Date(dateObj.y, dateObj.m - 1, dateObj.d);
-              } else if (typeof dateValue === 'string' && dateValue.includes('/')) {
-                const [day, month, year] = dateValue.split('/').map(Number);
-                paymentDate = new Date(year, month - 1, day);
-              }
-              if (!(paymentDate instanceof Date) || isNaN(paymentDate.getTime())) {
-                throw new Error('Invalid date');
-              }
-            } else {
-              throw new Error('Date value is empty');
-            }
-          } catch (e) {
-            console.warn(`Invalid date in row ${i}: ${dateValue}. Using today's date.`);
-            paymentDate = new Date();
-          }
+    const fileExtension = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
 
-          invoicesToUpload.push({
-            invoice_number: invoiceNumber,
-            date_issued: paymentDate.toISOString().split('T')[0],
-            amount: amount,
-            account_debited: row[5]?.toString().trim() || null,
-            account_credited: row[6]?.toString().trim() ? [{ name: row[6].toString().trim(), amount: amount }] : [],
-            description: row[4]?.toString().trim() || '',
-            name: row[3]?.toString().trim() || '',
-            manual_number: row[1]?.toString().trim() || '',
-            parent_account: row[7]?.toString().trim() || ''
-          });
-        }
+    if (!validExtensions.includes(fileExtension)) {
 
-        console.log('Processed invoices:', invoicesToUpload);
-        if (invoicesToUpload.length === 0) {
-          throw new Error('No valid invoices found after processing');
-        }
+      setError(`Invalid file type: ${fileExtension}. Please upload an Excel file (.xlsx, .xls) or CSV.`);
 
-        const token = localStorage.getItem('token');
-        if (!token) throw new Error('Authentication token missing');
+      return;
 
-        const uploadResults = await Promise.allSettled(
-          invoicesToUpload.map(invoice =>
-            fetch(`${api}/invoices`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify(invoice)
-            }).then(async res => {
-              if (!res.ok) {
-                const error = await res.json();
-                throw new Error(error.message || 'Upload failed');
-              }
-              return res.json();
-            })
-          )
+    }
+
+    try {
+
+      const data = await new Promise((resolve, reject) => {
+
+        const reader = new FileReader();
+
+        reader.onload = (e) => resolve(new Uint8Array(e.target.result));
+
+        reader.onerror = () => reject(new Error('Failed to read file'));
+
+        reader.readAsArrayBuffer(file);
+
+      });
+
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      if (!workbook.SheetNames?.length) {
+
+        throw new Error('No sheets found in the Excel file.');
+
+      }
+
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+
+      const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: null });
+
+      if (rawData.length <= 1) {
+
+        throw new Error('The Excel file contains no data rows.');
+
+      }
+
+      const headers = rawData[0].map(h => h?.toString().trim() || '');
+
+      const getColIndex = (patterns) => {
+
+        const index = headers.findIndex(h =>
+
+          patterns.some(pattern => new RegExp(pattern, 'i').test(h))
+
         );
 
-        const successful = uploadResults.filter(r => r.status === 'fulfilled');
-        const failed = uploadResults.filter(r => r.status === 'rejected');
+        return index >= 0 ? index : null;
 
-        if (successful.length > 0) {
-          fetchInvoices();
-          alert(`${successful.length} invoices uploaded successfully!`);
-        }
-        if (failed.length > 0) {
-          console.error('Failed uploads:', failed);
-          alert(`${failed.length} invoices failed to upload. Check console for details.`);
-        }
-      } catch (err) {
-        console.error('Upload error:', err);
-        setError(err.message);
-        alert(`Upload failed: ${err.message}`);
+      };
+
+      const columnIndices = {
+
+        date: getColIndex(['date']),
+
+        customerName: getColIndex(['customer', 'name']),
+
+        description: getColIndex(['description', 'desc']),
+
+        accountDebited: getColIndex(['account debited', 'debit']),
+
+        accountCredited: getColIndex(['account credited', 'credit']),
+
+        parentAcc: getColIndex(['parent acc', 'parent account']),
+
+        amount: getColIndex(['amount', 'total'])
+
+      };
+
+      if (columnIndices.date === null || columnIndices.amount === null) {
+
+        throw new Error('Required columns (Date and Amount) not found.');
+
       }
-    };
-    reader.readAsArrayBuffer(file);
+
+      const invoicesToUpload = [];
+
+      const rowErrors = [];
+
+      const getCellValue = (row, index) =>
+
+        index !== null && row[index] !== null ? row[index].toString().trim() : null;
+
+      for (let i = 1; i < rawData.length; i++) {
+
+        const row = rawData[i];
+
+        if (!row || row.every(cell => cell === null || cell === '')) {
+
+          rowErrors.push(`Row ${i+1}: Empty row skipped`);
+
+          continue;
+
+        }
+
+        const invoiceRef = `INV-${i}`;
+
+        let amount;
+
+        try {
+
+          const amountValue = getCellValue(row, columnIndices.amount);
+
+          if (!amountValue) throw new Error('Amount is required');
+
+          amount = parseFloat(amountValue.replace(/[^\d.-]/g, ''));
+
+          if (isNaN(amount)) throw new Error(`Invalid amount: ${amountValue}`);
+
+          if (amount <= 0) throw new Error(`Amount must be positive`);
+
+        } catch (err) {
+
+          rowErrors.push(`Row ${i+1}: ${err.message}`);
+
+          continue;
+
+        }
+
+        let paymentDate;
+
+        try {
+
+          const dateValue = getCellValue(row, columnIndices.date);
+
+          if (!dateValue) throw new Error('Date is required');
+
+          if (typeof dateValue === 'number') {
+
+            const dateObj = XLSX.SSF.parse_date_code(dateValue);
+
+            paymentDate = new Date(dateObj.y, dateObj.m - 1, dateObj.d);
+
+          } else if (dateValue.includes('/')) {
+
+            const [day, month, year] = dateValue.split('/').map(Number);
+
+            paymentDate = new Date(year, month - 1, day);
+
+          } else {
+
+            paymentDate = new Date(dateValue);
+
+          }
+
+          if (isNaN(paymentDate.getTime())) throw new Error(`Invalid date format`);
+
+          const today = new Date();
+
+          today.setHours(0, 0, 0, 0);
+
+          if (paymentDate > today) throw new Error(`Date cannot be in future`);
+
+        } catch (err) {
+
+          rowErrors.push(`Row ${i+1}: ${err.message}. Using today's date.`);
+
+          paymentDate = new Date();
+
+          paymentDate.setHours(0, 0, 0, 0);
+
+        }
+
+        const accountDebited = getCellValue(row, columnIndices.accountDebited);
+
+        const accountCredited = getCellValue(row, columnIndices.accountCredited);
+
+        if (!accountDebited && !accountCredited) {
+
+          rowErrors.push(`Row ${i+1}: At least one account (debited or credited) is required`);
+
+          continue;
+
+        }
+
+        invoicesToUpload.push({
+
+          invoice_number: invoiceRef,
+
+          manual_number: invoiceRef,
+
+          date_issued: paymentDate.toISOString().split('T')[0],
+
+          amount: amount,
+
+          account_debited: accountDebited,
+
+          account_credited: accountCredited ? [{ name: accountCredited, amount }] : [],
+
+          description: getCellValue(row, columnIndices.description) || '',
+
+          name: getCellValue(row, columnIndices.customerName) || '',
+
+          parent_account: getCellValue(row, columnIndices.parentAcc) || ''
+
+        });
+
+      }
+
+      if (invoicesToUpload.length === 0) {
+
+        throw new Error(`No valid invoices found. ${rowErrors.length} errors encountered.`);
+
+      }
+
+      const token = localStorage.getItem('token');
+
+      if (!token) throw new Error('Authentication required');
+
+      const results = await Promise.allSettled(
+
+        invoicesToUpload.map(invoice =>
+
+          fetch(`${api}/invoices`, {
+
+            method: 'POST',
+
+            headers: {
+
+              'Content-Type': 'application/json',
+
+              'Authorization': `Bearer ${token}`
+
+            },
+
+            body: JSON.stringify(invoice)
+
+          }).then(async res => {
+
+            if (!res.ok) {
+
+              const error = await res.json().catch(() => ({}));
+
+              throw new Error(error.message || 'Upload failed');
+
+            }
+
+            return res.json();
+
+          })
+
+        )
+
+      );
+
+      const successful = results.filter(r => r.status === 'fulfilled');
+
+      const failed = results.filter(r => r.status === 'rejected');
+
+      if (failed.length > 0) {
+
+        const errorMessage = `${failed.length} uploads failed. First error: ${failed[0].reason.message}`;
+
+        setError(errorMessage);
+
+        console.error('Upload failures:', failed);
+
+      }
+
+      if (successful.length > 0) {
+
+        alert(`${successful.length} invoices uploaded successfully!`);
+
+        fetchInvoices();
+
+      }
+
+      if (rowErrors.length > 0) {
+
+        console.warn('Processing warnings:', rowErrors);
+
+      }
+
+    } catch (err) {
+
+      console.error('Upload error:', err);
+
+      setError(err.message);
+
+      alert(`Error: ${err.message}`);
+
+    }
+
   };
 
   const filteredInvoices = invoices.filter((invoice) =>
