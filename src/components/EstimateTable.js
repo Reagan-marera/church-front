@@ -288,17 +288,92 @@ const EstimateTable = () => {
       "Parent Account": estimate.parent_account,
       "Sub Account": estimate.sub_account,
     })));
-
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Estimates");
     XLSX.writeFile(workbook, "Estimates.xlsx");
   };
 
+  const printDepartmentBudgets = () => {
+    const filtered = estimates.filter((estimate) =>
+      estimate.department.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  
+    if (filtered.length === 0) {
+      alert("No estimates found for the given department.");
+      return;
+    }
+  
+    const departmentTotals = filtered.reduce((acc, estimate) => {
+      const originalTotal = estimate.total_estimates;
+      const adjustedQuantity = estimate.adjusted_quantity || estimate.quantity;
+      const adjustedPrice = estimate.adjusted_price || estimate.current_estimated_price;
+      const adjustedTotal = adjustedQuantity * adjustedPrice;
+  
+      if (!acc[estimate.department]) {
+        acc[estimate.department] = {
+          originalTotal: 0,
+          adjustedTotal: 0,
+          estimates: [],
+        };
+      }
+  
+      acc[estimate.department].originalTotal += originalTotal;
+      acc[estimate.department].adjustedTotal += adjustedTotal;
+      acc[estimate.department].estimates.push(estimate);
+  
+      return acc;
+    }, {});
+  
+    const printWindow = window.open('', '', 'height=600,width=800');
+    printWindow.document.write('<html><head><title>Department Budgets</title>');
+    printWindow.document.write('<style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid black; padding: 8px; text-align: left; }</style>');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write('<h1>Department Budgets</h1>');
+  
+    Object.keys(departmentTotals).forEach((department) => {
+      const departmentData = departmentTotals[department];
+      printWindow.document.write(`<h2>${department}</h2>`);
+      printWindow.document.write('<table>');
+      printWindow.document.write('<thead><tr><th>Item Specifications</th><th>Unit of Measure</th><th>Original Quantity</th><th>Adjusted Quantity</th><th>Original Price</th><th>Adjusted Price</th><th>Original Total</th><th>Adjusted Total</th></tr></thead>');
+      printWindow.document.write('<tbody>');
+  
+      departmentData.estimates.forEach((estimate) => {
+        const adjustedQuantity = estimate.adjusted_quantity || estimate.quantity;
+        const adjustedPrice = estimate.adjusted_price || estimate.current_estimated_price;
+        const adjustedTotal = adjustedQuantity * adjustedPrice;
+  
+        printWindow.document.write(`<tr>
+          <td>${estimate.item_specifications}</td>
+          <td>${estimate.unit_of_measure}</td>
+          <td>${estimate.quantity}</td>
+          <td>${adjustedQuantity}</td>
+          <td>${formatAmount(estimate.current_estimated_price)}</td>
+          <td>${formatAmount(adjustedPrice)}</td>
+          <td>${formatAmount(estimate.total_estimates)}</td>
+          <td>${formatAmount(adjustedTotal)}</td>
+        </tr>`);
+      });
+  
+      printWindow.document.write(`<tr>
+        <td colspan="6" style="text-align: right;"><strong>Total</strong></td>
+        <td><strong>${formatAmount(departmentData.originalTotal)}</strong></td>
+        <td><strong>${formatAmount(departmentData.adjustedTotal)}</strong></td>
+      </tr>`);
+  
+      printWindow.document.write('</tbody></table>');
+    });
+  
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.print();
+  };
+  
   return (
     <div>
       {error && <p style={{ color: "red" }}>{error}</p>}
       <button onClick={() => openFormPopup()}>Add New Estimate</button>
       <button onClick={exportToExcel}>Export to Excel</button>
+      <button onClick={printDepartmentBudgets}>Print Department Budgets</button>
       <input
         type="text"
         placeholder="Search by Department"

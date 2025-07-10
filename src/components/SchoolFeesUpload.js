@@ -120,11 +120,20 @@ const SchoolFeesUpload = () => {
   }, []);
 
   const generateInvoiceNumber = () => {
+    // Get the current counter from local storage
     let currentCounter = parseInt(localStorage.getItem('schoolFeesCounter'), 10) || 0;
+    // Increment the counter
     currentCounter += 1;
+    // Store the updated counter back to local storage
     localStorage.setItem('schoolFeesCounter', currentCounter);
-    return `SF-${currentCounter}`;
+  
+    // Generate a random number
+    const randomNumber = Math.floor(1000 + Math.random() * 9000); // Generates a random 4-digit number
+  
+    // Combine the counter and random number to create a unique invoice number
+    return `SF-${currentCounter}-${randomNumber}`;
   };
+  
 
   const resetCounter = () => {
     localStorage.removeItem('schoolFeesCounter');
@@ -288,16 +297,7 @@ const SchoolFeesUpload = () => {
             required
           />
         </div>
-        <div className="form-group">
-          <label className="form-label">Amount:</label>
-          <input
-            className="form-input"
-            type="number"
-            name="amount"
-            value={formData.amount}
-            readOnly
-          />
-        </div>
+       
         <div className="form-group">
           <label className="form-label">Account Debited:</label>
           <input
@@ -343,6 +343,16 @@ const SchoolFeesUpload = () => {
           >
             Add Credit Account
           </button>
+          <div className="form-group">
+          <label className="form-label">Amount:</label>
+          <input
+            className="form-input"
+            type="number"
+            name="amount"
+            value={formData.amount}
+            readOnly
+          />
+        </div>
         </div>
         <div className="form-group">
           <label className="form-label">Description:</label>

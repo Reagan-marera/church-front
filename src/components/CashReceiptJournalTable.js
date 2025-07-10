@@ -738,9 +738,10 @@ const CashReceiptJournalTable = () => {
     XLSX.writeFile(workbook, 'receipts.xlsx');
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+  
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -752,9 +753,12 @@ const CashReceiptJournalTable = () => {
           defval: '',
           raw: false
         });
+  
         console.log('First 5 rows:', rawData.slice(0, 5));
+  
         const journalsToUpload = [];
         const skippedReasons = [];
+  
         const COLS = {
           DATE: 1,
           RECEIPT_NO: 2,
@@ -772,16 +776,21 @@ const CashReceiptJournalTable = () => {
           CASH: 14,
           BANK: 15
         };
-        let receiptCounter = 1;
+  
+        // Retrieve the last used receipt counter from localStorage
+        let receiptCounter = parseInt(localStorage.getItem('receiptCounter')) || 1;
         const usedReceiptNumbers = new Set();
+  
         for (let i = 1; i < rawData.length; i++) {
           const row = rawData[i];
           if (!row || row.length < 16) {
             skippedReasons.push(`Row ${i+1}: Insufficient columns (${row?.length || 0})`);
             continue;
           }
+  
           const dateString = String(row[COLS.DATE] || '').trim();
           let receipt_date;
+  
           try {
             if (dateString) {
               const [month, day, year] = dateString.split('/').map(Number);
@@ -792,16 +801,19 @@ const CashReceiptJournalTable = () => {
             skippedReasons.push(`Row ${i+1}: Invalid date format (${dateString})`);
             continue;
           }
+  
           let receipt_no = String(row[COLS.RECEIPT_NO] || '').trim();
           if (!receipt_no) {
             let newReceiptNo;
             do {
-              newReceiptNo = `IP-${receiptCounter}`;
+              newReceiptNo = `UP-${receiptCounter}`;
               receiptCounter++;
             } while (usedReceiptNumbers.has(newReceiptNo));
+  
             receipt_no = newReceiptNo;
             usedReceiptNumbers.add(receipt_no);
           }
+  
           const manual_number = String(row[COLS.MANUAL_NO] || '').trim();
           const department = String(row[COLS.DEPARTMENT] || '').trim();
           const transaction_no = String(row[COLS.TRANSACTION_NO] || '').trim();
@@ -811,21 +823,26 @@ const CashReceiptJournalTable = () => {
           const parent_account = String(row[COLS.PARENT_ACCOUNT] || '').trim();
           const account_credited = String(row[COLS.ACCOUNT_CREDITED] || '').trim();
           const account_debited = String(row[COLS.ACCOUNT_DEBITED] || '').trim();
+  
           const parseAmount = (val) => {
             const num = String(val || '0').replace(/,/g, '');
             return isNaN(parseFloat(num)) ? 0 : parseFloat(num);
           };
+  
           const cash = parseAmount(row[COLS.CASH]);
           const bank = parseAmount(row[COLS.BANK]);
           const amount = parseAmount(row[COLS.AMOUNT]);
+  
           if (!from_whom_received) {
             skippedReasons.push(`Row ${i+1}: Missing recipient`);
             continue;
           }
+  
           if (cash === 0 && bank === 0) {
             skippedReasons.push(`Row ${i+1}: Both cash and bank amounts are zero`);
             continue;
           }
+  
           journalsToUpload.push({
             receipt_date,
             receipt_no,
@@ -843,20 +860,25 @@ const CashReceiptJournalTable = () => {
             department
           });
         }
+  
         console.log(`Found ${journalsToUpload.length} valid journals to upload`);
         console.log('Sample journal:', journalsToUpload[0]);
+  
         if (journalsToUpload.length === 0) {
           throw new Error(`No valid journals found. First reasons:\n${
             skippedReasons.slice(0, 10).join('\n')
           }${skippedReasons.length > 10 ? '\n...and more' : ''}`);
         }
+  
         const token = localStorage.getItem('token');
         if (!token) {
           setError('Authentication token missing');
           return;
         }
+  
         let successCount = 0;
         const uploadErrors = [];
+  
         for (const journal of journalsToUpload) {
           try {
             const response = await fetch(`${api}/cash-receipt-journals`, {
@@ -867,6 +889,7 @@ const CashReceiptJournalTable = () => {
               },
               body: JSON.stringify(journal),
             });
+  
             if (!response.ok) {
               const error = await response.json();
               uploadErrors.push(`Receipt ${journal.receipt_no}: ${error.error || response.statusText}`);
@@ -877,11 +900,16 @@ const CashReceiptJournalTable = () => {
             uploadErrors.push(`Receipt ${journal.receipt_no}: ${err.message}`);
           }
         }
+  
+        // Store the last used receipt counter back to localStorage
+        localStorage.setItem('receiptCounter', receiptCounter);
+  
         let resultMessage = `${successCount} journals uploaded successfully!`;
         if (uploadErrors.length > 0) {
           resultMessage += `\n\n${uploadErrors.length} errors:\n${uploadErrors.slice(0, 5).join('\n')}`;
           if (uploadErrors.length > 5) resultMessage += '\n...and more';
         }
+  
         alert(resultMessage);
         fetchJournals();
       } catch (err) {
@@ -889,8 +917,10 @@ const CashReceiptJournalTable = () => {
         setError(err.message);
       }
     };
+  
     reader.readAsArrayBuffer(file);
   };
+  
 
   const customerOptions = customers.flatMap((customer) =>
     customer.sub_account_details.map((subAccount) => ({
