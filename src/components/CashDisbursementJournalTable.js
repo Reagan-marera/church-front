@@ -29,50 +29,21 @@ const Pagination = ({ itemsPerPage, totalItems, paginate, currentPage }) => {
 
   return (
     <nav>
-      <ul
-        className="pagination"
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          flexWrap: 'wrap',
-          gap: '6px',
-        }}
-      >
+      <ul className="pagination" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '6px' }}>
         <li className="page-item">
-          <button
-            onClick={() => paginate(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="page-link"
-            style={{
-              minWidth: '80px',
-              textAlign: 'center',
-            }}
-          >
+          <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="page-link" style={{ minWidth: '80px', textAlign: 'center' }}>
             Previous
           </button>
         </li>
-
         {pageNumbers.map((number) => (
-          <li
-            key={number}
-            className={`page-item ${currentPage === number ? 'active' : ''}`}
-          >
+          <li key={number} className={`page-item ${currentPage === number ? 'active' : ''}`}>
             <button className="page-link" onClick={() => paginate(number)}>
               {number}
             </button>
           </li>
         ))}
-
         <li className="page-item">
-          <button
-            onClick={() => paginate(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="page-link"
-            style={{
-              minWidth: '80px',
-              textAlign: 'center',
-            }}
-          >
+          <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="page-link" style={{ minWidth: '80px', textAlign: 'center' }}>
             Next
           </button>
         </li>
@@ -113,10 +84,8 @@ const DisbursementForm = () => {
   const [printableDisbursement, setPrintableDisbursement] = useState(null);
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const itemsPerPage = 30;
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = disbursements.slice(indexOfFirstItem, indexOfLastItem);
 
   const printRef = useRef();
 
@@ -353,6 +322,33 @@ const DisbursementForm = () => {
       const disbursementsData = await disbursementsResponse.json();
       setDisbursements(disbursementsData);
       alert("Disbursement deleted successfully!");
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!window.confirm("Are you sure you want to delete all entries?")) return;
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setErrorMessage("Unauthorized: Missing token.");
+      return;
+    }
+    try {
+      await Promise.all(disbursements.map(async (disbursement) => {
+        const response = await fetch(`${api}/cash-disbursement-journals/${disbursement.id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText);
+        }
+      }));
+      setDisbursements([]);
+      alert("All disbursements deleted successfully!");
     } catch (error) {
       setErrorMessage(error.message);
     }
@@ -597,6 +593,18 @@ const DisbursementForm = () => {
     reader.readAsArrayBuffer(file);
   };
 
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const filteredDisbursements = disbursements.filter((disbursement) => {
+    return disbursement.to_whom_paid.toLowerCase().includes(searchQuery.toLowerCase());
+  });
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredDisbursements.slice(indexOfFirstItem, indexOfLastItem);
+
   const payeeOptions = payees.flatMap((payee) =>
     payee.sub_account_details?.map((subAccount) => ({
       value: subAccount.name,
@@ -625,7 +633,17 @@ const DisbursementForm = () => {
       <button onClick={handleExportToExcel} className="export-button">
         <FontAwesomeIcon icon={faFileExcel} className="icon" /> Export to Excel
       </button>
+      <button onClick={handleDeleteAll} className="delete-all-button">
+        <FontAwesomeIcon icon={faTrash} className="icon" /> Delete All
+      </button>
       <input type="file" onChange={handleFileUpload} accept=".xlsx, .xls" />
+      <input
+        type="text"
+        placeholder="Search by 'To Whom Paid'..."
+        value={searchQuery}
+        onChange={handleSearch}
+        className="search-input"
+      />
       {showForm && (
         <div className="form-popup">
           <div className="form-container">
@@ -858,7 +876,7 @@ const DisbursementForm = () => {
         <div className="disbursements-list">
           <h2>Disbursements</h2>
           {errorMessage && <p className="error-message">{errorMessage}</p>}
-          {disbursements.length > 0 ? (
+          {filteredDisbursements.length > 0 ? (
             <table className="disbursements-table">
               <thead>
                 <tr>
@@ -916,7 +934,7 @@ const DisbursementForm = () => {
           )}
           <Pagination
             itemsPerPage={itemsPerPage}
-            totalItems={disbursements.length}
+            totalItems={filteredDisbursements.length}
             paginate={setCurrentPage}
             currentPage={currentPage}
           />

@@ -36,7 +36,6 @@ const CashReceiptJournalTable = () => {
     parent_account: "",
     department: "",
   });
-
   const [isEditing, setIsEditing] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -132,12 +131,42 @@ const CashReceiptJournalTable = () => {
         return;
       }
       const data = await response.json();
-      const enrichedJournals = data.map((journal) => ({
-        ...journal,
-        selectedInvoice: invoices.find(
-          (invoice) => invoice.invoice_number === journal.ref_no
-        ),
-        isDeleted: false,
+      const enrichedJournals = await Promise.all(data.map(async (journal) => {
+        const customerName = journal.from_whom_received;
+        let invoiceCreditedAccounts = [];
+        if (customerName) {
+          try {
+            const response = await fetch(
+              `${api}/invoices?name=${encodeURIComponent(customerName)}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error("Error fetching invoices for customer:", errorText);
+              return { ...journal, invoiceAccounts: [], isDeleted: false };
+            }
+            const invoicesData = await response.json();
+            const filteredInvoices = invoicesData.filter(invoice => invoice.name === customerName);
+            if (filteredInvoices.length > 0) {
+              invoiceCreditedAccounts = filteredInvoices.flatMap((invoice) =>
+                invoice.account_credited?.map((account) => ({
+                  name: account.name || "N/A",
+                  amount: parseFloat(account.amount) || 0,
+                }))
+              );
+            }
+          } catch (err) {
+            console.error("Error fetching invoices for customer:", err.message);
+            invoiceCreditedAccounts = [];
+          }
+        }
+        return {
+          ...journal,
+          invoiceAccounts: invoiceCreditedAccounts,
+          isDeleted: false,
+        };
       }));
       setJournals(enrichedJournals);
     } catch (err) {
@@ -201,10 +230,16 @@ const CashReceiptJournalTable = () => {
   };
 
   const generateUniqueReceiptNumber = () => {
-    let currentCounter = parseInt(localStorage.getItem("receipt_counter"), 10) || 0;
-    currentCounter += 1;
-    localStorage.setItem("receipt_counter", currentCounter);
-    return `R-${currentCounter}`;
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const length = 3;
+    let randomPart = '';
+
+    for (let i = 0; i < length; i++) {
+      const randomIndex = Math.floor(Math.random() * characters.length);
+      randomPart += characters.charAt(randomIndex);
+    }
+
+    return `R-${randomPart}`;
   };
 
   const handleCustomerChange = (selectedOption) => {
@@ -535,8 +570,8 @@ const CashReceiptJournalTable = () => {
         ref_no: "",
         from_whom_received: "",
         description: "",
-        manual_number: "",
         receipt_type: "",
+        manual_number: "",
         account_debited: "",
         account_credited: "",
         cash: "0.00",
@@ -741,7 +776,6 @@ const CashReceiptJournalTable = () => {
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-  
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -753,12 +787,9 @@ const CashReceiptJournalTable = () => {
           defval: '',
           raw: false
         });
-  
         console.log('First 5 rows:', rawData.slice(0, 5));
-  
         const journalsToUpload = [];
         const skippedReasons = [];
-  
         const COLS = {
           DATE: 1,
           RECEIPT_NO: 2,
@@ -776,21 +807,16 @@ const CashReceiptJournalTable = () => {
           CASH: 14,
           BANK: 15
         };
-  
-        // Retrieve the last used receipt counter from localStorage
         let receiptCounter = parseInt(localStorage.getItem('receiptCounter')) || 1;
         const usedReceiptNumbers = new Set();
-  
         for (let i = 1; i < rawData.length; i++) {
           const row = rawData[i];
           if (!row || row.length < 16) {
             skippedReasons.push(`Row ${i+1}: Insufficient columns (${row?.length || 0})`);
             continue;
           }
-  
           const dateString = String(row[COLS.DATE] || '').trim();
           let receipt_date;
-  
           try {
             if (dateString) {
               const [month, day, year] = dateString.split('/').map(Number);
@@ -801,7 +827,6 @@ const CashReceiptJournalTable = () => {
             skippedReasons.push(`Row ${i+1}: Invalid date format (${dateString})`);
             continue;
           }
-  
           let receipt_no = String(row[COLS.RECEIPT_NO] || '').trim();
           if (!receipt_no) {
             let newReceiptNo;
@@ -809,11 +834,9 @@ const CashReceiptJournalTable = () => {
               newReceiptNo = `UP-${receiptCounter}`;
               receiptCounter++;
             } while (usedReceiptNumbers.has(newReceiptNo));
-  
             receipt_no = newReceiptNo;
             usedReceiptNumbers.add(receipt_no);
           }
-  
           const manual_number = String(row[COLS.MANUAL_NO] || '').trim();
           const department = String(row[COLS.DEPARTMENT] || '').trim();
           const transaction_no = String(row[COLS.TRANSACTION_NO] || '').trim();
@@ -823,26 +846,21 @@ const CashReceiptJournalTable = () => {
           const parent_account = String(row[COLS.PARENT_ACCOUNT] || '').trim();
           const account_credited = String(row[COLS.ACCOUNT_CREDITED] || '').trim();
           const account_debited = String(row[COLS.ACCOUNT_DEBITED] || '').trim();
-  
           const parseAmount = (val) => {
             const num = String(val || '0').replace(/,/g, '');
             return isNaN(parseFloat(num)) ? 0 : parseFloat(num);
           };
-  
           const cash = parseAmount(row[COLS.CASH]);
           const bank = parseAmount(row[COLS.BANK]);
           const amount = parseAmount(row[COLS.AMOUNT]);
-  
           if (!from_whom_received) {
             skippedReasons.push(`Row ${i+1}: Missing recipient`);
             continue;
           }
-  
           if (cash === 0 && bank === 0) {
             skippedReasons.push(`Row ${i+1}: Both cash and bank amounts are zero`);
             continue;
           }
-  
           journalsToUpload.push({
             receipt_date,
             receipt_no,
@@ -860,25 +878,20 @@ const CashReceiptJournalTable = () => {
             department
           });
         }
-  
         console.log(`Found ${journalsToUpload.length} valid journals to upload`);
         console.log('Sample journal:', journalsToUpload[0]);
-  
         if (journalsToUpload.length === 0) {
           throw new Error(`No valid journals found. First reasons:\n${
             skippedReasons.slice(0, 10).join('\n')
           }${skippedReasons.length > 10 ? '\n...and more' : ''}`);
         }
-  
         const token = localStorage.getItem('token');
         if (!token) {
           setError('Authentication token missing');
           return;
         }
-  
         let successCount = 0;
         const uploadErrors = [];
-  
         for (const journal of journalsToUpload) {
           try {
             const response = await fetch(`${api}/cash-receipt-journals`, {
@@ -889,7 +902,6 @@ const CashReceiptJournalTable = () => {
               },
               body: JSON.stringify(journal),
             });
-  
             if (!response.ok) {
               const error = await response.json();
               uploadErrors.push(`Receipt ${journal.receipt_no}: ${error.error || response.statusText}`);
@@ -900,16 +912,12 @@ const CashReceiptJournalTable = () => {
             uploadErrors.push(`Receipt ${journal.receipt_no}: ${err.message}`);
           }
         }
-  
-        // Store the last used receipt counter back to localStorage
         localStorage.setItem('receiptCounter', receiptCounter);
-  
         let resultMessage = `${successCount} journals uploaded successfully!`;
         if (uploadErrors.length > 0) {
           resultMessage += `\n\n${uploadErrors.length} errors:\n${uploadErrors.slice(0, 5).join('\n')}`;
           if (uploadErrors.length > 5) resultMessage += '\n...and more';
         }
-  
         alert(resultMessage);
         fetchJournals();
       } catch (err) {
@@ -917,10 +925,38 @@ const CashReceiptJournalTable = () => {
         setError(err.message);
       }
     };
-  
     reader.readAsArrayBuffer(file);
   };
-  
+
+  const getUniqueAccounts = () => {
+    const uniqueAccounts = new Set();
+    journals.forEach(journal => {
+      journal.invoiceAccounts?.forEach(account => {
+        uniqueAccounts.add(account.name);
+      });
+    });
+    return Array.from(uniqueAccounts);
+  };
+
+  const calculateAccountTotals = () => {
+    const accountTotals = {};
+    const uniqueAccounts = getUniqueAccounts();
+
+    uniqueAccounts.forEach(account => {
+      accountTotals[account] = 0;
+    });
+
+    journals.forEach(journal => {
+      journal.invoiceAccounts?.forEach(account => {
+        accountTotals[account.name] += parseFloat(account.amount) || 0;
+      });
+    });
+
+    return accountTotals;
+  };
+
+  const uniqueAccounts = getUniqueAccounts();
+  const accountTotals = calculateAccountTotals();
 
   const customerOptions = customers.flatMap((customer) =>
     customer.sub_account_details.map((subAccount) => ({
@@ -963,7 +999,6 @@ const CashReceiptJournalTable = () => {
     journal.from_whom_received.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredJournals.slice(indexOfFirstItem, indexOfLastItem);
@@ -1217,6 +1252,9 @@ const CashReceiptJournalTable = () => {
             <th>Department</th>
             <th>Credited Account</th>
             <th>Debited Account</th>
+            {uniqueAccounts.map(account => (
+              <th key={account}>{account}</th>
+            ))}
             <th>Total</th>
             <th>Actions</th>
           </tr>
@@ -1231,6 +1269,13 @@ const CashReceiptJournalTable = () => {
                 textDecoration: isDeleted ? 'line-through' : 'none',
                 backgroundColor: isDeleted ? '#ffcccc' : 'transparent'
               };
+              const accountAmounts = {};
+              uniqueAccounts.forEach(account => {
+                accountAmounts[account] = 0;
+              });
+              journal.invoiceAccounts?.forEach(account => {
+                accountAmounts[account.name] = account.amount;
+              });
               return (
                 <tr key={journal.id} style={rowStyle}>
                   <td>{journal.receipt_date}</td>
@@ -1244,6 +1289,9 @@ const CashReceiptJournalTable = () => {
                   <td>{journal.department}</td>
                   <td>{journal.account_credited}</td>
                   <td>{journal.account_debited}</td>
+                  {uniqueAccounts.map(account => (
+                    <td key={account}>{formatCurrency(accountAmounts[account])}</td>
+                  ))}
                   <td>{formatCurrency(parseFloat(journal.total))}</td>
                   <td>
                     {!isDeleted ? (
@@ -1260,6 +1308,16 @@ const CashReceiptJournalTable = () => {
               );
             })}
         </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan="11" style={{ textAlign: 'right', fontWeight: 'bold' }}>Totals</td>
+            {uniqueAccounts.map(account => (
+              <td key={account}>{formatCurrency(accountTotals[account])}</td>
+            ))}
+            <td>{formatCurrency(journals.reduce((sum, journal) => sum + parseFloat(journal.total), 0))}</td>
+            <td></td>
+          </tr>
+        </tfoot>
       </table>
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
         <button
