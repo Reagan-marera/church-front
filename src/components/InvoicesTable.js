@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Select from "react-select";
 import ReactPaginate from "react-paginate";
-import "./InvoicesTable.css"; // Ensure this includes the custom CSS for pagination
+import "./InvoicesTable.css";
 import { FaEdit, FaTrash, FaPrint, FaSearch } from "react-icons/fa";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFileInvoiceDollar } from "@fortawesome/free-solid-svg-icons";
@@ -33,7 +33,6 @@ const InvoiceIssued = () => {
   const [selectedDescription, setSelectedDescription] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
   const invoicesPerPage = 50;
-
   const api = 'https://backend.youmingtechnologies.co.ke';
 
   const customStyles = {
@@ -173,13 +172,16 @@ const InvoiceIssued = () => {
       setError("User is not authenticated");
       return;
     }
+
     const isValidDate = (date) => {
       return /^\d{4}-\d{2}-\d{2}$/.test(date);
     };
+
     if (!isValidDate(dateIssued)) {
       setError("Invalid date format. Please use YYYY-MM-DD.");
       return;
     }
+
     let customersToProcess = [];
     if (selectedCustomer) {
       const selectedCustomerData = customers.find((customer) =>
@@ -194,11 +196,13 @@ const InvoiceIssued = () => {
       setError("Please select a customer.");
       return;
     }
+
     const sumOfCreditedAmounts = accountsCredited.reduce((sum, account) => sum + account.amount, 0);
     if (sumOfCreditedAmounts !== totalAmount) {
       setError("The sum of credited amounts must equal the total amount.");
       return;
     }
+
     for (const subAccount of customersToProcess) {
       const uniqueInvoiceNumber = generateUniqueInvoiceNumber();
       const payload = {
@@ -215,6 +219,7 @@ const InvoiceIssued = () => {
         manual_number: manualNumber || null,
         parent_account: parentAccount,
       };
+
       try {
         const url = isEditing
           ? `${api}/invoices/${editingInvoiceId}`
@@ -237,6 +242,7 @@ const InvoiceIssued = () => {
         return;
       }
     }
+
     fetchInvoices();
     resetForm();
     setError("");
@@ -290,32 +296,19 @@ const InvoiceIssued = () => {
     }
   };
 
-  const handleDeleteInvoicesForAccount = async () => {
+  const handleDeleteAll = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
       setError("User is not authenticated");
       return;
     }
-    if (!selectedCustomer) {
-      setError("Please select a customer account to delete invoices for.");
-      return;
-    }
+
     setIsDeleting(true);
     setError("");
+
     try {
-      const selectedCustomerData = customers.find(customer => customer.account_name === selectedCustomer);
-      if (!selectedCustomerData || !selectedCustomerData.sub_account_details) {
-        setError("No sub-accounts found for the selected customer account.");
-        return;
-      }
-      const subAccountNames = selectedCustomerData.sub_account_details.map(subAccount => subAccount.name);
-      const filteredInvoices = invoices.filter(invoice => subAccountNames.includes(invoice.name));
-      if (filteredInvoices.length === 0) {
-        setError("No invoices found for the selected customer account's sub-accounts.");
-        return;
-      }
       const results = await Promise.allSettled(
-        filteredInvoices.map(invoice =>
+        invoices.map(invoice =>
           fetch(`${api}/invoices/${invoice.id}`, {
             method: "DELETE",
             headers: {
@@ -324,14 +317,17 @@ const InvoiceIssued = () => {
           })
         )
       );
+
       const successfulDeletions = results.filter(result => result.status === 'fulfilled');
       const failedDeletions = results.filter(result => result.status === 'rejected');
+
       if (successfulDeletions.length > 0) {
         alert(`${successfulDeletions.length} invoices deleted successfully!`);
       }
       if (failedDeletions.length > 0) {
         alert(`${failedDeletions.length} invoices failed to delete.`);
       }
+
       fetchInvoices();
     } catch (error) {
       setError("Error deleting invoices: " + error.message);
@@ -346,23 +342,19 @@ const InvoiceIssued = () => {
       setError("User is not authenticated");
       return;
     }
-
     if (!selectedDescription) {
       setError("Please select a description to delete invoices for.");
       return;
     }
-
     try {
       const normalizedSelectedDescription = String(selectedDescription).trim();
       const filteredInvoices = invoices.filter(invoice =>
         invoice.description.trim() === normalizedSelectedDescription
       );
-
       if (filteredInvoices.length === 0) {
         setError("No invoices found for the selected description.");
         return;
       }
-
       const results = await Promise.allSettled(
         filteredInvoices.map(invoice =>
           fetch(`${api}/invoices/${invoice.id}`, {
@@ -373,18 +365,14 @@ const InvoiceIssued = () => {
           })
         )
       );
-
       const successfulDeletions = results.filter(result => result.status === 'fulfilled');
       const failedDeletions = results.filter(result => result.status === 'rejected');
-
       if (successfulDeletions.length > 0) {
         alert(`${successfulDeletions.length} invoices deleted successfully!`);
       }
-
       if (failedDeletions.length > 0) {
         alert(`${failedDeletions.length} invoices failed to delete.`);
       }
-
       fetchInvoices();
     } catch (error) {
       setError("Error deleting invoices: " + error.message);
@@ -436,11 +424,11 @@ const InvoiceIssued = () => {
   };
 
   const customerOptions = customers.flatMap((customer) =>
-  customer.sub_account_details.map((subAccount) => ({
-    value: subAccount.name,
-    label: subAccount.name,
-  }))
-);
+    customer.sub_account_details.map((subAccount) => ({
+      value: subAccount.name,
+      label: subAccount.name,
+    }))
+  );
 
   const creditedAccountOptions = getSubAccountNames().map((subAccountName) => ({
     value: subAccountName,
@@ -583,6 +571,7 @@ ${invoice.account_credited.map(account => `
         <p>For inquiries, contact us at: info@company.com</p>
       </div>
     `;
+
     const printWindow = window.open("", "_blank");
     printWindow.document.open();
     printWindow.document.write(`
@@ -807,9 +796,9 @@ ${printContents}
           opacity: isDeleting ? 0.6 : 1,
         }}
         disabled={isDeleting}
-        onClick={handleDeleteInvoicesForAccount}
+        onClick={handleDeleteAll}
       >
-        {isDeleting ? 'Deleting...' : 'Delete Invoices for Selected Account'}
+        {isDeleting ? 'Deleting...' : 'Delete All Invoices'}
       </button>
       <button
         style={{
