@@ -1,7 +1,7 @@
 /* General Styles */
 body {
-  font-family: 'Arial', sans-serif;
-  background-color: #f4f4f4; /* Light grey background */
+  font-family: 'Roboto', sans-serif;
+  background-color: #f0f2f5;
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -16,7 +16,7 @@ body {
 
 h1, h2 {
   font-size: 1.5rem;
-  color: #003366; /* Dark blue */
+  color: #007bff;
   margin-bottom: 10px;
 }
 
@@ -42,7 +42,7 @@ h1, h2 {
 .invoice-form label {
   font-weight: bold;
   font-size: 1rem;
-  color: #333333; /* Dark grey */
+  color: #333;
 }
 
 .invoice-form input,
@@ -63,7 +63,7 @@ h1, h2 {
 
 button {
   padding: 12px 24px;
-  background-color: #007bff; /* Primary blue */
+  background-color: #007bff;
   color: white;
   border: none;
   border-radius: 5px;
@@ -73,7 +73,7 @@ button {
 }
 
 button:hover {
-  background-color: #0056b3; /* Darker blue */
+  background-color: #0056b3;
 }
 
 button:disabled {
@@ -83,12 +83,12 @@ button:disabled {
 
 /* Modal Styles */
 .modal {
-  position: fixed; /* Fixed to the screen */
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.3); /* Slightly transparent background */
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -99,11 +99,11 @@ button:disabled {
   background-color: #ffffff;
   padding: 20px;
   border-radius: 8px;
-  width: 90%; /* Use a percentage of the screen size */
-  max-width: 900px; /* Limit to a smaller max width */
-  max-height: 80vh; /* Ensure modal is never too tall */
+  width: 90%;
+  max-width: 900px;
+  max-height: 80vh;
   position: relative;
-  overflow-y: auto; /* Allow scrolling if content exceeds the modal size */
+  overflow-y: auto;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease-in-out;
 }
@@ -123,10 +123,14 @@ button:disabled {
 .close:hover {
   color: #007bff;
 }
-.color{color:black;}
+
+.color {
+  color: black;
+}
+
 /* Error message */
 .error {
-  color: red;
+  color: #d9534f;
   font-size: 1rem;
   margin-top: 10px;
   font-weight: bold;
@@ -138,6 +142,7 @@ table {
   width: 100%;
   margin-top: 30px;
   border-collapse: collapse;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 th,
@@ -149,8 +154,8 @@ td {
 }
 
 th {
-  background-color: #f2f2f2;
-  color: #003366;
+  background-color: #007bff;
+  color: #ffffff;
 }
 
 td {
@@ -161,26 +166,6 @@ tr:hover {
   background-color: #f1f1f1;
 }
 
-button {
-  padding: 6px 12px;
-  background-color: #ff6f61; /* Red */
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s ease;
-}
-
-button:hover {
-  background-color: #e65c53;
-}
-
-button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
 /* Responsive Table Styles */
 @media screen and (max-width: 768px) {
   table {
@@ -188,7 +173,8 @@ button:disabled {
     overflow-x: auto;
   }
 
-  th, td {
+  th,
+  td {
     white-space: nowrap;
   }
 
@@ -205,6 +191,7 @@ button:disabled {
     width: 100%;
   }
 }
+
 /* Pagination CSS */
 .pagination {
   display: flex;
@@ -212,7 +199,7 @@ button:disabled {
   align-items: center;
   list-style: none;
   padding: 20px 0;
-  font-family: Arial, sans-serif;
+  font-family: 'Roboto', sans-serif;
 }
 
 .pagination li {
@@ -223,43 +210,43 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
+  color: #007bff;
   padding: 8px 16px;
   text-decoration: none;
   transition: background-color 0.3s, color 0.3s;
-  border: 1px solid #333;
+  border: 1px solid #007bff;
   border-radius: 4px;
   min-width: 40px;
   height: 40px;
 }
 
 .pagination a:hover:not(.active) {
-  background-color: #333;
+  background-color: #007bff;
   color: #fff;
 }
 
 .pagination .active a {
-  background-color: #e50914;
+  background-color: #007bff;
   color: white;
-  border: 1px solid #e50914;
+  border: 1px solid #007bff;
 }
 
 .pagination .disabled a {
-  color: #555;
+  color: #ccc;
   cursor: not-allowed;
-  background-color: #222;
-  border: 1px solid #444;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
 }
 
 .pagination .previous a,
 .pagination .next a {
-  background-color: #222;
-  color: #999;
+  background-color: #fff;
+  color: #007bff;
 }
 
 .pagination .previous:hover:not(.disabled) a,
 .pagination .next:hover:not(.disabled) a {
-  background-color: #333;
+  background-color: #007bff;
   color: #fff;
 }
 

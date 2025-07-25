@@ -1,17 +1,18 @@
 /* Container for the entire balance sheet */
 .balance-sheet-container {
-  width: 80%;
+  width: 90%;
   margin: 20px auto;
-  font-family: Arial, sans-serif;
-  background-color: #f9f9f9; /* Light background for the container */
-  padding: 20px; /* Added padding for better visual space */
-  border-radius: 8px; /* Slight rounding for the container */
+  font-family: 'Roboto', sans-serif;
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Title styles */
 h1 {
   text-align: center;
-  color: #fefeff;
+  color: #007bff;
   margin-bottom: 20px;
 }
 
@@ -19,69 +20,71 @@ h1 {
 .summary {
   display: flex;
   justify-content: space-around;
-  margin-bottom: 20px; /* Reduced margin for a more compact view */
+  margin-bottom: 20px;
 }
 
 .summary-item {
-  background-color: #ecf0f1;
-  padding: 12px; /* Reduced padding for smaller items */
+  background-color: #f8f9fa;
+  padding: 15px;
   border-radius: 8px;
   text-align: center;
   width: 30%;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .summary-item h3 {
-  color: #34495e;
+  color: #333;
   margin: 0;
 }
 
 .summary-item p {
-  font-size: 16px; /* Smaller font size */
+  font-size: 18px;
   font-weight: bold;
   margin: 5px 0 0 0;
+  color: #007bff;
 }
 
 /* Balance check section */
 .balance-check {
-  margin-bottom: 20px; /* Reduced margin */
+  margin-bottom: 20px;
   text-align: center;
 }
 
 .balance-check h4 {
-  color: #e74c3c;
+  color: #d9534f;
   margin: 0;
 }
 
 .balance-check p {
-  font-size: 16px; /* Smaller font size */
+  font-size: 18px;
   font-weight: bold;
-  color: #27ae60;
-  margin: 0; 
+  color: #5cb85c;
+  margin: 0;
 }
 
 /* Table styles */
 .balance-sheet-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 15px; /* Reduced margin for a more compact layout */
-  font-size: 14px; /* Smaller font size */
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
-  background-color: #fff; /* White background for the table */
+  margin-top: 20px;
+  font-size: 16px;
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Header styling */
-.balance-sheet-table th, .balance-sheet-table td {
-  padding: 8px 10px; /* Reduced padding */
+.balance-sheet-table th,
+.balance-sheet-table td {
+  padding: 12px 15px;
   text-align: left;
-  border: 1px solid #bdc3c7; /* Light gray border for the grid */
+  border: 1px solid #ddd;
   margin: 0;
   font-weight: normal;
 }
 
 /* Header row */
 .balance-sheet-table th {
-  background-color: #ffffff; /* Dark background for header */
+  background-color: #007bff;
   color: white;
   font-weight: bold;
   text-transform: uppercase;
@@ -89,86 +92,81 @@ h1 {
 
 /* Alternating row colors */
 .balance-sheet-table tbody tr:nth-child(even) {
-  background-color: #f4f6f7; /* Light gray for even rows */
+  background-color: #f8f9fa;
 }
 
 .balance-sheet-table tbody tr:nth-child(odd) {
-  background-color: #ffffff; /* White for odd rows */
+  background-color: #ffffff;
 }
 
 /* Hover effect for rows */
 .balance-sheet-table tbody tr:hover {
-  background-color: #dcdde1; /* Slightly darker gray on hover */
+  background-color: #e9ecef;
   cursor: pointer;
-}
-
-/* Table cell hover effect */
-.balance-sheet-table td:hover {
-  background-color: #ecf0f1;
-  transition: background-color 0.3s ease;
 }
 
 /* Styling for the first column (labels) */
 .balance-sheet-table td:first-child {
   font-weight: bold;
-  background-color: #ecf0f1; /* Light background for labels */
+  background-color: #f8f9fa;
   text-align: left;
-  padding-left: 15px; /* Less padding for first column */
+  padding-left: 15px;
 }
 
-/* Styling for Account Type (Updated class) */
+/* Styling for Account Type */
 .account-type {
-  color: #2980b9;  /* Blue color for Account Type */
-  font-weight: bold;  /* Makes Account Type bold */
+  color: #007bff;
+  font-weight: bold;
 }
 
-/* Optional: You can also add some styling on hover or for clarity */
 .account-type:hover {
-  text-decoration: underline;  /* Underline on hover */
+  text-decoration: underline;
 }
 
 /* Loading and error styles */
-.loading, .error {
+.loading,
+.error {
   text-align: center;
-  font-size: 16px; /* Reduced font size */
-  color: #e74c3c;
+  font-size: 18px;
+  color: #d9534f;
 }
 
 /* For responsive design (small screens) */
 @media (max-width: 768px) {
-  .balance-sheet-table th, .balance-sheet-table td {
-      padding: 6px 8px; /* Further reduce padding on smaller screens */
-      font-size: 12px; /* Smaller font for small screens */
+  .balance-sheet-table th,
+  .balance-sheet-table td {
+    padding: 8px 10px;
+    font-size: 14px;
   }
 
   .summary-item {
-      padding: 10px; /* Reduce padding for smaller items on small screens */
-      width: 30%; /* Keep the same width percentage for consistency */
+    padding: 10px;
+    width: 45%;
   }
 }
 
-/* Optional: Add styling for the Account Type rows in different colors */
+/* Styling for different account types */
 .asset-row {
-  background-color: #3498db; /* Blue for Assets */
-  color: rgb(0, 0, 0);
+  background-color: #cce5ff;
+  color: #004085;
 }
 
 .liability-row {
-  background-color: #e74c3c; /* Red for Liabilities */
-  color: rgb(0, 0, 0);
+  background-color: #f8d7da;
+  color: #721c24;
 }
 
 .equity-row {
-  background-color: #2ecc71; /* Green for Equity */
-  color: rgb(0, 0, 0);
+  background-color: #d4edda;
+  color: #155724;
 }
 
 .revenue-row {
-  background-color: #f39c12; /* Yellow for Revenue */
-  color: rgb(0, 0, 0);
+  background-color: #fff3cd;
+  color: #856404;
 }
 
 .expense-row {
-  background-color: #9b59b6; /* Purple for Expenses */
-  color: rgb(0, 0, 0);
+  background-color: #e2e3e5;
+  color: #383d41;
 }

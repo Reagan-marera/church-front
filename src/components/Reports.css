@@ -1,58 +1,58 @@
 /* Styles for the Financial Report */
 .report-container {
-    padding: 20px;
-    margin: 20px auto;
-    max-width: 1200px;
-    background-color: #f5f7fa;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .report-title {
-    font-size: 2rem;
-    color: #005a8d;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  
-  .table-container {
-    overflow-x: auto;
-  }
-  
-  .financial-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    background-color: #ffffff;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  .financial-table th,
-  .financial-table td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #e0e0e0;
-  }
-  
-  .financial-table th {
-    background-color: #005a8d;
-    color: white;
-    font-weight: bold;
-  }
-  
-  .financial-table tr:nth-child(even) {
-    background-color: #f9f9f9;
-  }
-  
-  .financial-table tr:hover {
-    background-color: #f1f1f1;
-  }
-  
-  .loading, .error {
-    text-align: center;
-    font-size: 1.5rem;
-    color: #ff6347;
-    margin-top: 50px;
-  }
-  
+  padding: 20px;
+  margin: 20px auto;
+  max-width: 1200px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.report-title {
+  font-size: 2rem;
+  color: #007bff;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.financial-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.financial-table th,
+.financial-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+.financial-table th {
+  background-color: #007bff;
+  color: white;
+  font-weight: bold;
+}
+
+.financial-table tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.financial-table tr:hover {
+  background-color: #e9ecef;
+}
+
+.loading,
+.error {
+  text-align: center;
+  font-size: 1.5rem;
+  color: #d9534f;
+  margin-top: 50px;
+}
