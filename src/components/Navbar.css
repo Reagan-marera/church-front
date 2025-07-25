@@ -1,11 +1,10 @@
 /* General Styles */
 .navbar {
-  background-color: #000; /* Black background */
-  padding: 0.5rem;
-  border-bottom: 2px solid #ff8c42; /* Orange border */
-  font-family: 'Arial', sans-serif; /* Modern font */
-  width: 1630px; /* or a specific width like 1200px */
-
+  background-color: #ffffff; /* White background */
+  padding: 0.5rem 1rem;
+  border-bottom: 2px solid #007bff; /* Professional blue */
+  font-family: 'Roboto', sans-serif; /* Professional font */
+  width: 100%; /* Responsive width */
 }
 
 .nav-list {
@@ -15,9 +14,8 @@
   align-items: center;
   margin: 0;
   padding: 0;
-  width: 1000px; /* or a specific width like 1200px */
+  width: 100%;
 }
-
 
 .nav-list li {
   position: relative;
@@ -27,7 +25,7 @@
 .nav-link {
   display: flex;
   align-items: center;
-  color: #fff; /* White text */
+  color: #007bff; /* Professional blue */
   text-decoration: none;
   font-size: 1rem;
   padding: 0.5rem 1rem;
@@ -35,7 +33,7 @@
 }
 
 .nav-link:hover {
-  color: #ff8c42; /* Orange on hover */
+  color: #0056b3; /* Darker blue */
 }
 
 .nav-icon {
@@ -48,13 +46,14 @@
   position: absolute;
   top: 100%;
   left: 0;
-  background-color: #1a1a1a; /* Dark gray background */
-  border: 1px solid #ff8c42; /* Orange border */
+  background-color: #ffffff; /* White background */
+  border: 1px solid #ddd; /* Light gray border */
   border-radius: 5px;
   padding: 0.5rem 0;
   z-index: 1000;
   min-width: 200px;
   display: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .dropdown:hover .dropdown-menu {
@@ -64,15 +63,15 @@
 .dropdown-link {
   display: flex;
   align-items: center;
-  color: #fff; /* White text */
+  color: #333; /* Dark text */
   text-decoration: none;
   padding: 0.5rem 1rem;
   transition: background-color 0.3s ease;
 }
 
 .dropdown-link:hover {
-  background-color: #333; /* Darker gray on hover */
-  color: #ff8c42; /* Orange on hover */
+  background-color: #f0f2f5; /* Light gray on hover */
+  color: #0056b3; /* Darker blue on hover */
 }
 
 .dropdown-icon {
@@ -86,11 +85,11 @@
   border: none;
   cursor: pointer;
   font-size: 1rem;
-  color: #fff; /* White text */
+  color: #007bff; /* Professional blue */
   padding: 0.5rem 1rem;
   transition: color 0.3s ease;
 }
 
 .logout-button:hover {
-  color: #ff8c42; /* Orange on hover */
+  color: #0056b3; /* Darker blue */
 }

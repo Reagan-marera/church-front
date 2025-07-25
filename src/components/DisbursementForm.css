@@ -1,29 +1,32 @@
 /* General Styles */
 .disbursement-container {
-  font-family: Arial, sans-serif;
+  font-family: 'Roboto', sans-serif;
   background-color: #ffffff;
-  color: #ffffff;
+  color: #333;
   padding: 20px;
-  border-radius: 10px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-h1, h2 {
-  color: #ff8c42;
+h1,
+h2 {
+  color: #007bff;
 }
 
 button {
-  background-color: #0004ff;
+  background-color: #007bff;
   color: #ffffff;
   border: none;
-  padding: 2px 2px;
+  padding: 10px 15px;
   border-radius: 5px;
   cursor: pointer;
   font-size: 14px;
   margin: 5px;
+  transition: background-color 0.3s ease;
 }
 
 button:hover {
-  background-color: #e67e22;
+  background-color: #0056b3;
 }
 
 /* Form Popup */
@@ -33,7 +36,7 @@ button:hover {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -42,12 +45,12 @@ button:hover {
 .form-container {
   background-color: #ffffff;
   padding: 20px;
-  border-radius: 10px;
+  border-radius: 8px;
   width: 900px;
   max-width: 90%;
-  border-radius: 30px;
-  max-height: 80vh; /* Limit the height of the modal */
-  overflow-y: auto; /* Enable vertical scrolling if content exceeds */
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .form-row {
@@ -57,25 +60,25 @@ button:hover {
 label {
   display: block;
   margin-bottom: 5px;
-  color: #000000;
+  color: #333;
 }
 
 .form-input {
   width: 100%;
   padding: 10px;
-  border: 1px solid #444;
+  border: 1px solid #ccc;
   border-radius: 5px;
-  background-color: #ffffff;
-  color: #000000;
+  background-color: #f8f9fa;
+  color: #333;
 }
 
 .form-input:focus {
-  border-color: #ff8c42;
+  border-color: #007bff;
   outline: none;
 }
 
 .error-message {
-  color: #ff4444;
+  color: #d9534f;
   margin-top: 10px;
 }
 
@@ -87,43 +90,48 @@ label {
 table {
   width: 100%;
   border-collapse: collapse;
-  background-color: #000000;
-  border-radius: 10px;
+  background-color: #ffffff;
+  border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-th, td {
-  padding: 2px;
+th,
+td {
+  padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #444;
-  background-color: #000000;
-  color: #ececec;
+  border-bottom: 1px solid #ddd;
+  background-color: #ffffff;
+  color: #333;
 }
 
 .ths {
-  background-color: #000000;
-  color: #ff8c42;
+  background-color: #007bff;
+  color: #ffffff;
 }
 
 tr:hover {
-  background-color: #000000;
+  background-color: #f1f1f1;
 }
 
-.edit-button, .delete-button {
+.edit-button,
+.delete-button {
   background-color: transparent;
-  border: 1px solid #ff8c42;
-  color: #ff8c42;
-  padding: 5px 5px;
+  border: 1px solid #007bff;
+  color: #007bff;
+  padding: 5px 10px;
   margin: 2px;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.edit-button:hover, .delete-button:hover {
-  background-color: #291ce2;
+.edit-button:hover,
+.delete-button:hover {
+  background-color: #007bff;
   color: #ffffff;
 }
 
 /* Icons */
 .icon {
   margin-right: 5px;
-  color: #000000;
+  color: #007bff;
 }

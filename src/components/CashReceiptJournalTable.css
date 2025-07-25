@@ -3,15 +3,22 @@
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
-  background-color: #1a1a1a;
+  background-color: #ffffff;
   padding: 20px;
   border-radius: 8px;
-  color: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
-.form-inputs{color: #ff8c42;
+
+.form-inputs {
   width: 100%;
   padding: 12px;
-  margin-top: 5px;}
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+  background-color: #f9f9f9;
+}
+
 .form-row {
   margin-bottom: 20px;
 }
@@ -20,7 +27,7 @@
 label {
   display: block;
   margin-bottom: 5px;
-  color: #ff8c42;
+  color: #333;
   font-size: 1rem;
   font-weight: 600;
 }
@@ -30,38 +37,38 @@ label {
   width: 100%;
   padding: 12px;
   margin-top: 5px;
-  background-color: #333;
-  border: 1px solid #444;
+  background-color: #f9f9f9;
+  border: 1px solid #ccc;
   border-radius: 5px;
-  color: rgb(0, 0, 0);
+  color: #333;
   font-size: 1rem;
 }
 
 /* Read-Only Styling */
 .form-input.read-only {
-  background-color: #f8fafc;
-  color: #333;
+  background-color: #e9ecef;
+  color: #495057;
 }
 
 /* Focused Input Styling */
 .form-input:focus {
-  border-color: #ff8c42;
+  border-color: #007bff;
   outline: none;
 }
 
 /* Select Input (Custom Styles for React Select) */
 .Select__control {
-  background-color: #333 !important;
-  border-color: #444 !important;
-  color: white !important;
+  background-color: #f9f9f9 !important;
+  border-color: #ccc !important;
+  color: #333 !important;
 }
 
 .Select__control--is-focused {
-  border-color: #ff8c42 !important;
+  border-color: #007bff !important;
 }
 
 .Select__placeholder {
-  color: #b3b3b3 !important;
+  color: #999 !important;
 }
 
 /* Buttons */
@@ -71,24 +78,25 @@ button {
   cursor: pointer;
   border: none;
   border-radius: 5px;
+  transition: background-color 0.3s ease;
 }
 
 .submit-button {
-  background-color: #2012eb;
+  background-color: #007bff;
   color: white;
 }
 
 .submit-button:hover {
-  background-color: #e07d2f;
+  background-color: #0056b3;
 }
 
 .cancel-button {
-  background-color: #555;
+  background-color: #6c757d;
   color: white;
 }
 
 .cancel-button:hover {
-  background-color: #444;
+  background-color: #5a6268;
 }
 
 /* Button Group (Submit and Cancel) */
