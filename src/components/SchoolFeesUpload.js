@@ -19,7 +19,7 @@ const SchoolFeesUpload = () => {
   const [allCustomers, setAllCustomers] = useState([]);
   const [allCustomersSelected, setAllCustomersSelected] = useState([]);
   const [chartOfAccounts, setChartOfAccounts] = useState([]);
-  const [accountsCredited, setAccountsCredited] = useState([]);
+  const [accountsCredited, setAccountsCredited] = useState([{ value: "", label: "", amount: 0 }]);
 
   const api = 'https://backend.youmingtechnologies.co.ke';
 
@@ -120,24 +120,13 @@ const SchoolFeesUpload = () => {
   }, []);
 
   const generateInvoiceNumber = () => {
-    // Get the current counter from local storage
-    let currentCounter = parseInt(localStorage.getItem('schoolFeesCounter'), 10) || 0;
-    // Increment the counter
-    currentCounter += 1;
-    // Store the updated counter back to local storage
-    localStorage.setItem('schoolFeesCounter', currentCounter);
-  
-    // Generate a random number
-    const randomNumber = Math.floor(1000 + Math.random() * 9000); // Generates a random 4-digit number
-  
-    // Combine the counter and random number to create a unique invoice number
-    return `SF-${currentCounter}-${randomNumber}`;
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(2, 8);
+    return `SF-${timestamp}-${randomStr}`;
   };
-  
 
   const resetCounter = () => {
     localStorage.removeItem('schoolFeesCounter');
-    // Optionally reset any related state if needed
   };
 
   const handleInputChange = (e) => {
@@ -151,10 +140,7 @@ const SchoolFeesUpload = () => {
   const handleAccountCreditedChange = (index, selectedOption, amount) => {
     const updatedAccounts = [...accountsCredited];
     updatedAccounts[index] = { value: selectedOption, label: selectedOption, amount };
-
     setAccountsCredited(updatedAccounts);
-
-    // Calculate total amount
     const totalAmount = updatedAccounts.reduce((sum, account) => sum + (parseFloat(account.amount) || 0), 0);
     setFormData(prevFormData => ({
       ...prevFormData,
@@ -172,8 +158,6 @@ const SchoolFeesUpload = () => {
   const handleRemoveCreditedAccount = (index) => {
     const updatedAccounts = accountsCredited.filter((_, i) => i !== index);
     setAccountsCredited(updatedAccounts);
-
-    // Calculate total amount after removing an account
     const totalAmount = updatedAccounts.reduce((sum, account) => sum + (parseFloat(account.amount) || 0), 0);
     setFormData(prevFormData => ({
       ...prevFormData,
@@ -197,12 +181,10 @@ const SchoolFeesUpload = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
     if (!allCustomersSelected.length) {
       setError('Please select at least one customer.');
       return;
     }
-
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -213,7 +195,6 @@ const SchoolFeesUpload = () => {
         if (customer && customer.sub_account_details) {
           for (const subAccount of customer.sub_account_details) {
             const invoiceNumber = generateInvoiceNumber();
-
             const submissionData = {
               invoice_number: invoiceNumber,
               date_issued: formData.date_issued,
@@ -228,8 +209,6 @@ const SchoolFeesUpload = () => {
               manual_number: formData.manual_number,
               parent_account: formData.parent_account
             };
-
-            console.log('Data being sent:', submissionData);
 
             const response = await fetch(`${api}/invoices`, {
               method: 'POST',
@@ -297,7 +276,7 @@ const SchoolFeesUpload = () => {
             required
           />
         </div>
-       
+
         <div className="form-group">
           <label className="form-label">Account Debited:</label>
           <input
@@ -344,15 +323,15 @@ const SchoolFeesUpload = () => {
             Add Credit Account
           </button>
           <div className="form-group">
-          <label className="form-label">Amount:</label>
-          <input
-            className="form-input"
-            type="number"
-            name="amount"
-            value={formData.amount}
-            readOnly
-          />
-        </div>
+            <label className="form-label">Amount:</label>
+            <input
+              className="form-input"
+              type="number"
+              name="amount"
+              value={formData.amount}
+              readOnly
+            />
+          </div>
         </div>
         <div className="form-group">
           <label className="form-label">Description:</label>

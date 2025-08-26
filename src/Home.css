@@ -21,15 +21,16 @@
 
 .company-name {
   font-family: 'Arial', sans-serif;
-  font-size: 24px;
+  font-size: 28px;
   font-weight: bold;
-  color: #004085; /* Professional blue */
+  color: #ff6600; /* Professional blue */
   letter-spacing: 1px;
   text-transform: uppercase;
   padding: 5px 10px;
   border: 2px solid #004085; /* Blue border */
   border-radius: 8px;
   display: inline-block;
+  background-color: #000000;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
@@ -60,12 +61,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  background-color: #ffffff; /* White background */
-  border-bottom: 2px solid #007bff; /* Professional blue */
+  padding: 0.5rem 0.5rem;
+  background-color: #131212; /* White background */
+  border-bottom: 2px solid #ffffff; /* Professional blue */
   position: relative;
   top: 0;
-  z-index: 1000;
+  z-index: 1200;
 }
 
 .navbarhome .navbar-brand {
@@ -94,7 +95,7 @@
 }
 
 .navbarhome .navbar-link:hover {
-  color: #0056b3; /* Darker blue */
+  color: #031325; /* Darker blue */
 }
 
 /* Hero Section */
@@ -259,6 +260,10 @@
 
 .footer-links a:hover {
   color: #0056b3; /* Darker blue */
+}
+.brand-icon {
+  font-size: 28px; /* Adjust size as needed */
+  color: black;
 }
 
 /* Responsive Design */

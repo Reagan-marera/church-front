@@ -8,7 +8,7 @@
   border-collapse: collapse;
   margin-top: 20px;
 }
-
+.total-value{color: #ddd;}
 .trial-balance-table th,
 .trial-balance-table td {
   border: 1px solid #ddd;

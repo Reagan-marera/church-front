@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
 
 const BudgetVsActuals = () => {
   const [data, setData] = useState([]);
@@ -26,7 +27,7 @@ const BudgetVsActuals = () => {
         }
 
         const result = await response.json();
-        console.log('Backend Response:', result); // Log the response for debugging
+        console.log('Backend Response:', result);
         setData(result);
       } catch (error) {
         setError(error.message);
@@ -41,6 +42,7 @@ const BudgetVsActuals = () => {
 
   const aggregateData = (data) => {
     const aggregated = {};
+
     data.forEach((item) => {
       const {
         parent_account,
@@ -66,17 +68,14 @@ const BudgetVsActuals = () => {
       aggregated[parent_account].adjusted_budget += adjusted_budget;
       aggregated[parent_account].final_budget += final_budget;
 
-      // Pick the actual amount from the first entry
       if (aggregated[parent_account].actual_amount === 0) {
         aggregated[parent_account].actual_amount = actual_amount;
       }
     });
 
-    // Calculate performance difference and utilization difference after aggregation
     for (const key in aggregated) {
       aggregated[key].performance_difference =
         aggregated[key].final_budget - aggregated[key].actual_amount;
-
       if (aggregated[key].final_budget !== 0) {
         aggregated[key].utilization_difference =
           (aggregated[key].performance_difference / aggregated[key].final_budget) * 100;
@@ -96,6 +95,23 @@ const BudgetVsActuals = () => {
     }).format(Math.abs(amount));
   };
 
+  const exportToExcel = () => {
+    const worksheetData = aggregatedData.map((item) => ({
+      'Parent Account': item.parent_account || 'N/A',
+      'Original Budget': item.original_budget || 0,
+      'Adjusted Budget': item.adjusted_budget || 0,
+      'Final Budget': item.final_budget || 0,
+      'Actual Amount': item.actual_amount || 0,
+      'Performance Difference': item.performance_difference || 0,
+      'Utilization Difference (%)': Math.abs(item.utilization_difference || 0).toFixed(2),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "BudgetVsActuals");
+    XLSX.writeFile(workbook, "BudgetVsActuals.xlsx");
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -107,6 +123,9 @@ const BudgetVsActuals = () => {
   return (
     <div>
       <h2>Budget vs Actuals</h2>
+      <button onClick={exportToExcel} className="export-button">
+        Export to Excel
+      </button>
       <table className="report-table">
         <thead>
           <tr>

@@ -25,16 +25,14 @@ const InvoiceReceived = () => {
   const [grnNumber, setGrnNumber] = useState("");
   const [payeeName, setPayeeName] = useState("");
   const [parentAccount, setParentAccount] = useState("");
-
   const [invoices, setInvoices] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
   const [payees, setPayees] = useState([]);
   const [chartOfAccounts, setChartOfAccounts] = useState([]);
-
   const [editingInvoice, setEditingInvoice] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const customStyles = {
     option: (provided, state) => ({
@@ -66,13 +64,11 @@ const InvoiceReceived = () => {
   const fetchInvoices = async () => {
     setLoading(true);
     const token = localStorage.getItem("token");
-
     if (!token) {
       setError("User is not authenticated");
       setLoading(false);
       return;
     }
-
     try {
       const response = await fetch(`${api}/invoice-received`, {
         method: "GET",
@@ -80,11 +76,9 @@ const InvoiceReceived = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-
       if (!response.ok) {
         throw new Error(await response.text());
       }
-
       const data = await response.json();
       console.log("Fetched Invoices:", data);
       setInvoices(Array.isArray(data) ? data : []);
@@ -98,12 +92,10 @@ const InvoiceReceived = () => {
 
   const fetchPayees = async () => {
     const token = localStorage.getItem("token");
-
     if (!token) {
       setError("User is not authenticated");
       return;
     }
-
     try {
       const response = await fetch(`${api}/payee`, {
         method: "GET",
@@ -111,7 +103,6 @@ const InvoiceReceived = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-
       if (response.ok) {
         const data = await response.json();
         setPayees(data);
@@ -125,12 +116,10 @@ const InvoiceReceived = () => {
 
   const fetchChartOfAccounts = async () => {
     const token = localStorage.getItem("token");
-
     if (!token) {
       setError("User is not authenticated");
       return;
     }
-
     try {
       const response = await fetch(`${api}/chart-of-accounts`, {
         method: "GET",
@@ -138,11 +127,9 @@ const InvoiceReceived = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-
       if (response.ok) {
         const data = await response.json();
         setChartOfAccounts(data);
-
         const tradeCreditorsAccount = data.find(
           (account) =>
             account.sub_account_details &&
@@ -150,7 +137,6 @@ const InvoiceReceived = () => {
               (subAccount) => subAccount.name === "2250- Trade Payables Control Account"
             )
         );
-
         if (tradeCreditorsAccount) {
           const subAccount = tradeCreditorsAccount.sub_account_details.find(
             (subAccount) => subAccount.name === "2250- Trade Payables Control Account"
@@ -174,13 +160,11 @@ const InvoiceReceived = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     const token = localStorage.getItem("token");
     if (!token) {
       setError("User is not authenticated");
       return;
     }
-
     const newInvoice = {
       invoice_number: invoiceNumber,
       date_issued: dateIssued,
@@ -195,7 +179,6 @@ const InvoiceReceived = () => {
       name: payeeName,
       parent_account: parentAccount,
     };
-
     try {
       const response = await fetch(
         `${api}/invoice-received/${editingInvoice ? editingInvoice : ''}`,
@@ -208,7 +191,6 @@ const InvoiceReceived = () => {
           body: JSON.stringify(newInvoice),
         }
       );
-
       if (response.ok) {
         fetchInvoices();
         resetForm();
@@ -238,13 +220,11 @@ const InvoiceReceived = () => {
     const payeeSubAccounts = payees.flatMap((payee) =>
       payee.sub_account_details.map((subAccount) => subAccount.name)
     );
-
     const coaSubAccounts = chartOfAccounts
       .filter((account) => account.account_type !== "40-Revenue")
       .flatMap((account) =>
         account.sub_account_details ? account.sub_account_details.map((subAccount) => subAccount.name) : []
       );
-
     return [...new Set([...payeeSubAccounts, ...coaSubAccounts])];
   };
 
@@ -275,7 +255,6 @@ const InvoiceReceived = () => {
       setError("User is not authenticated");
       return;
     }
-
     try {
       const response = await fetch(`${api}/invoice-received/${invoiceId}`, {
         method: "DELETE",
@@ -283,7 +262,6 @@ const InvoiceReceived = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-
       if (response.ok) {
         fetchInvoices();
       } else {
@@ -301,7 +279,6 @@ const InvoiceReceived = () => {
       setError("User is not authenticated");
       return;
     }
-
     try {
       const response = await fetch(`${api}/invoice-received`, {
         method: "GET",
@@ -309,11 +286,9 @@ const InvoiceReceived = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-
       if (!response.ok) {
         throw new Error(await response.text());
       }
-
       const data = await response.json();
       const deletePromises = data.map(invoice =>
         fetch(`${api}/invoice-received/${invoice.id}`, {
@@ -323,7 +298,6 @@ const InvoiceReceived = () => {
           },
         })
       );
-
       await Promise.all(deletePromises);
       fetchInvoices();
     } catch (error) {
@@ -360,7 +334,6 @@ const InvoiceReceived = () => {
     const updatedAccounts = [...accountsDebited];
     updatedAccounts[index] = { value, label: value, amount: parseFloat(amount) };
     setAccountsDebited(updatedAccounts);
-
     const newTotalAmount = updatedAccounts.reduce((sum, account) => sum + account.amount, 0);
     setTotalAmount(newTotalAmount);
   };
@@ -368,17 +341,30 @@ const InvoiceReceived = () => {
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
         setError("");
         setLoading(true);
+
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array" });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+
         const invoicesToUpload = [];
         let invoiceCounter = 1;
+
+        const generateRandomString = (length) => {
+          const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+          let result = '';
+          for (let i = 0; i < length; i++) {
+            result += characters.charAt(Math.floor(Math.random() * characters.length));
+          }
+          return result;
+        };
+
         const COLUMNS = {
           DATE: 1,
           INV_NO: 2,
@@ -408,7 +394,7 @@ const InvoiceReceived = () => {
 
           if (amount <= 0) continue;
 
-          const invoiceNumber = row[COLUMNS.INV_NO]?.toString().trim() || `UP-${invoiceCounter++}`;
+          const invoiceNumber = row[COLUMNS.INV_NO]?.toString().trim() || `INV-${generateRandomString(8)}-${invoiceCounter++}`;
 
           let dateIssued;
           try {
@@ -420,7 +406,6 @@ const InvoiceReceived = () => {
               const [month, day, year] = dateValue.split("/").map(Number);
               dateIssued = new Date(year, month - 1, day);
             }
-
             if (!dateIssued || isNaN(dateIssued.getTime())) {
               throw new Error('Invalid date');
             }
@@ -448,6 +433,7 @@ const InvoiceReceived = () => {
 
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Authentication token missing");
+
         const uploadResults = { success: 0, failures: 0, errors: [] };
 
         for (const invoice of invoicesToUpload) {
@@ -465,6 +451,7 @@ const InvoiceReceived = () => {
               const errorData = await response.json().catch(() => ({}));
               throw new Error(errorData.error || "Upload failed");
             }
+
             uploadResults.success++;
           } catch (err) {
             uploadResults.failures++;
@@ -479,6 +466,7 @@ const InvoiceReceived = () => {
         if (uploadResults.success > 0) {
           alert(`${uploadResults.success} invoices uploaded successfully!`);
         }
+
         if (uploadResults.failures > 0) {
           setError(`${uploadResults.failures} failed. Errors: ${uploadResults.errors.map(e => `${e.invoice}: ${e.error}`).join(", ")}`);
         }
@@ -489,10 +477,12 @@ const InvoiceReceived = () => {
         setLoading(false);
       }
     };
+
     reader.onerror = () => {
       setError("Failed to read file");
       setLoading(false);
     };
+
     reader.readAsArrayBuffer(file);
   };
 
@@ -509,20 +499,25 @@ const InvoiceReceived = () => {
         : 'No Accounts Debited',
       'Account Credited': invoice.account_credited,
     }));
-
     const ws = XLSX.utils.json_to_sheet(dataForExcel);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Invoices');
-
     XLSX.writeFile(wb, 'Invoices.xlsx');
   };
+
+  const filteredInvoices = invoices.filter(
+    (invoice) =>
+      invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      invoice.grn_number.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="invoice-received">
       <h1 className="head">
         <FontAwesomeIcon icon={faCreditCard} className="icon" /> Invoice Received
       </h1>
-
       <button
         onClick={() => setShowForm(true)}
         style={{
@@ -536,7 +531,6 @@ const InvoiceReceived = () => {
       >
         Add New Invoice
       </button>
-
       <button
         onClick={handleExportToExcel}
         style={{
@@ -551,22 +545,6 @@ const InvoiceReceived = () => {
       >
         Export to Excel
       </button>
-
-      <button
-        onClick={handleDeleteAll}
-        style={{
-          backgroundColor: "#FF0000",
-          color: "white",
-          padding: "10px 20px",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer",
-          marginLeft: "10px",
-        }}
-      >
-        Delete All Invoices
-      </button>
-
       <input
         type="file"
         accept=".xlsx, .xls"
@@ -575,7 +553,19 @@ const InvoiceReceived = () => {
           marginLeft: "10px",
         }}
       />
-
+      <input
+        type="text"
+        placeholder="Search invoices..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        style={{
+          padding: "10px",
+          margin: "10px 0",
+          width: "300px",
+          borderRadius: "5px",
+          border: "1px solid #cbd5e0",
+        }}
+      />
       {showForm && (
         <div className="modal">
           <div className="modal-content">
@@ -601,7 +591,6 @@ const InvoiceReceived = () => {
                   required
                 />
               </div>
-
               <div>
                 <label>GRN Number:</label>
                 <input
@@ -689,7 +678,6 @@ const InvoiceReceived = () => {
                   className="form-input"
                 />
               </div>
-
               <button type="submit" disabled={loading}>
                 {loading ? "Submitting..." : editingInvoice ? "Update Invoice" : "Submit Invoice"}
               </button>
@@ -697,9 +685,7 @@ const InvoiceReceived = () => {
           </div>
         </div>
       )}
-
       {error && <div className="error">{error}</div>}
-
       <h2>Invoices List</h2>
       {loading ? (
         <p>Loading...</p>
@@ -720,29 +706,29 @@ const InvoiceReceived = () => {
             </tr>
           </thead>
           <tbody>
-            {invoices.length > 0 ? (
-              invoices.map((invoice) => (
+            {filteredInvoices.length > 0 ? (
+              filteredInvoices.map((invoice) => (
                 <tr key={invoice.id}>
                   <td>{invoice.date_issued}</td>
                   <td>{invoice.invoice_number}</td>
                   <td>{invoice.grn_number}</td>
                   <td>{invoice.name}</td>
                   <td>{invoice.description}</td>
-                <td>
-  {Array.isArray(invoice.account_debited) ? (
-    invoice.account_debited.length > 0 ? (
-      invoice.account_debited.map((account, index) => (
-        <div key={index}>
-          {account.name || account.account || 'Unknown Account'} - {formatFinancialValue(account.amount)}
-        </div>
-      ))
-    ) : (
-      "No Accounts Debited"
-    )
-  ) : (
-    typeof invoice.account_debited === 'string' ? invoice.account_debited : "Invalid Format"
-  )}
-</td>
+                  <td>
+                    {Array.isArray(invoice.account_debited) ? (
+                      invoice.account_debited.length > 0 ? (
+                        invoice.account_debited.map((account, index) => (
+                          <div key={index}>
+                            {account.name || account.account || 'Unknown Account'} - {formatFinancialValue(account.amount)}
+                          </div>
+                        ))
+                      ) : (
+                        "No Accounts Debited"
+                      )
+                    ) : (
+                      typeof invoice.account_debited === 'string' ? invoice.account_debited : "Invalid Format"
+                    )}
+                  </td>
                   <td>{invoice.account_credited}</td>
                   <td>{invoice.parent_account}</td>
                   <td>{formatFinancialValue(invoice.amount)}</td>

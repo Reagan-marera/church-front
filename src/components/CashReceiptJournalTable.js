@@ -43,6 +43,8 @@ const CashReceiptJournalTable = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
+  const [deleteDescription, setDeleteDescription] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -89,6 +91,19 @@ const CashReceiptJournalTable = () => {
     }
   }, []);
 
+  const groupJournalsByMonth = (journals) => {
+    const grouped = {};
+    journals.forEach((journal) => {
+      const date = new Date(journal.receipt_date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!grouped[monthKey]) {
+        grouped[monthKey] = [];
+      }
+      grouped[monthKey].push(journal);
+    });
+    return grouped;
+  };
+
   const refreshData = () => {
     fetchJournals();
     fetchCOA();
@@ -131,42 +146,12 @@ const CashReceiptJournalTable = () => {
         return;
       }
       const data = await response.json();
-      const enrichedJournals = await Promise.all(data.map(async (journal) => {
-        const customerName = journal.from_whom_received;
-        let invoiceCreditedAccounts = [];
-        if (customerName) {
-          try {
-            const response = await fetch(
-              `${api}/invoices?name=${encodeURIComponent(customerName)}`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
-            if (!response.ok) {
-              const errorText = await response.text();
-              console.error("Error fetching invoices for customer:", errorText);
-              return { ...journal, invoiceAccounts: [], isDeleted: false };
-            }
-            const invoicesData = await response.json();
-            const filteredInvoices = invoicesData.filter(invoice => invoice.name === customerName);
-            if (filteredInvoices.length > 0) {
-              invoiceCreditedAccounts = filteredInvoices.flatMap((invoice) =>
-                invoice.account_credited?.map((account) => ({
-                  name: account.name || "N/A",
-                  amount: parseFloat(account.amount) || 0,
-                }))
-              );
-            }
-          } catch (err) {
-            console.error("Error fetching invoices for customer:", err.message);
-            invoiceCreditedAccounts = [];
-          }
-        }
-        return {
-          ...journal,
-          invoiceAccounts: invoiceCreditedAccounts,
-          isDeleted: false,
-        };
+      const enrichedJournals = data.map((journal) => ({
+        ...journal,
+        selectedInvoice: invoices.find(
+          (invoice) => invoice.invoice_number === journal.ref_no
+        ),
+        isDeleted: false,
       }));
       setJournals(enrichedJournals);
     } catch (err) {
@@ -230,16 +215,10 @@ const CashReceiptJournalTable = () => {
   };
 
   const generateUniqueReceiptNumber = () => {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const length = 3;
-    let randomPart = '';
-
-    for (let i = 0; i < length; i++) {
-      const randomIndex = Math.floor(Math.random() * characters.length);
-      randomPart += characters.charAt(randomIndex);
-    }
-
-    return `R-${randomPart}`;
+    let currentCounter = parseInt(localStorage.getItem("receipt_counter"), 10) || 0;
+    currentCounter += 1;
+    localStorage.setItem("receipt_counter", currentCounter);
+    return `R-${currentCounter}`;
   };
 
   const handleCustomerChange = (selectedOption) => {
@@ -539,6 +518,134 @@ const CashReceiptJournalTable = () => {
     }
   };
 
+  const handleDeleteByDescription = async () => {
+    if (!window.confirm(`Are you sure you want to delete all entries with the description "${deleteDescription}"?`)) return;
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("User is not authenticated.");
+      return;
+    }
+    try {
+      const journalsToDelete = journals.filter(
+        (journal) => journal.description === deleteDescription && !journal.isDeleted
+      );
+      await Promise.all(
+        journalsToDelete.map(async (journal) => {
+          try {
+            const response = await fetch(`${api}/cash-receipt-journals/${journal.id}`, {
+              method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error(`Error deleting receipt ${journal.id}:`, errorText);
+              setError(errorText);
+              return;
+            }
+            setJournals((prevJournals) =>
+              prevJournals.map((j) =>
+                j.id === journal.id ? { ...j, isDeleted: true } : j
+              )
+            );
+            const storedDeletedItems = localStorage.getItem("deletedItems");
+            const deletedItems = storedDeletedItems ? JSON.parse(storedDeletedItems) : [];
+            localStorage.setItem("deletedItems", JSON.stringify([...deletedItems, journal.id]));
+          } catch (err) {
+            console.error(`Error deleting journal ${journal.id}:`, err);
+            setError(err.message);
+          }
+        })
+      );
+      const remainingJournals = journals.filter((journal) => !journal.isDeleted);
+      const highestReceiptNumber = remainingJournals.reduce((max, journal) => {
+        const receiptNumberMatch = journal.receipt_no.match(/R-(\d+)/);
+        const receiptNumber = receiptNumberMatch ? parseInt(receiptNumberMatch[1], 10) : 0;
+        return Math.max(max, isNaN(receiptNumber) ? 0 : receiptNumber);
+      }, 0);
+      localStorage.setItem("receipt_counter", highestReceiptNumber);
+    } catch (err) {
+      console.error("Error in handleDeleteByDescription:", err);
+      setError(err.message);
+    }
+  };
+
+  const handleDeleteByDate = async () => {
+    if (!selectedDate) {
+      alert("Please select a month.");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete all transactions for the month: ${new Date(selectedDate + '-01').toLocaleString('default', { month: 'long', year: 'numeric' })}?`)) {
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("User is not authenticated.");
+      return;
+    }
+
+    try {
+      const journalsToDelete = journals.filter(
+        (journal) => {
+          const journalDate = new Date(journal.receipt_date);
+          const journalMonthKey = `${journalDate.getFullYear()}-${String(journalDate.getMonth() + 1).padStart(2, '0')}`;
+          return journalMonthKey === selectedDate && !journal.isDeleted;
+        }
+      );
+
+      await Promise.all(
+        journalsToDelete.map(async (journal) => {
+          try {
+            const response = await fetch(`${api}/cash-receipt-journals/${journal.id}`, {
+              method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error(`Error deleting receipt ${journal.id}:`, errorText);
+              setError(errorText);
+              return;
+            }
+            setJournals((prevJournals) =>
+              prevJournals.map((j) =>
+                j.id === journal.id ? { ...j, isDeleted: true } : j
+              )
+            );
+            const storedDeletedItems = localStorage.getItem("deletedItems");
+            const deletedItems = storedDeletedItems ? JSON.parse(storedDeletedItems) : [];
+            localStorage.setItem("deletedItems", JSON.stringify([...deletedItems, journal.id]));
+          } catch (err) {
+            console.error(`Error deleting journal ${journal.id}:`, err);
+            setError(err.message);
+          }
+        })
+      );
+
+      const remainingJournals = journals.filter(journal => !journal.isDeleted);
+      const highestReceiptNumber = remainingJournals.reduce((max, journal) => {
+        const receiptNumberMatch = journal.receipt_no.match(/R-(\d+)/);
+        const receiptNumber = receiptNumberMatch ? parseInt(receiptNumberMatch[1], 10) : 0;
+        return Math.max(max, isNaN(receiptNumber) ? 0 : receiptNumber);
+      }, 0);
+      localStorage.setItem("receipt_counter", highestReceiptNumber);
+
+      alert(`All transactions for the month "${new Date(selectedDate + '-01').toLocaleString('default', { month: 'long', year: 'numeric' })}" have been deleted successfully!`);
+      setSelectedDate("");
+    } catch (err) {
+      console.error("Error in handleDeleteByDate:", err);
+      setError(err.message);
+    }
+  };
+
+  const handleDateChange = (e) => {
+    setSelectedDate(e.target.value);
+  };
+
   const openFormPopup = (journal = null) => {
     if (journal) {
       setIsEditing(true);
@@ -570,8 +677,8 @@ const CashReceiptJournalTable = () => {
         ref_no: "",
         from_whom_received: "",
         description: "",
-        receipt_type: "",
         manual_number: "",
+        receipt_type: "",
         account_debited: "",
         account_credited: "",
         cash: "0.00",
@@ -830,8 +937,9 @@ const CashReceiptJournalTable = () => {
           let receipt_no = String(row[COLS.RECEIPT_NO] || '').trim();
           if (!receipt_no) {
             let newReceiptNo;
+            const randomSuffix = Math.random().toString(36).substring(2, 6);
             do {
-              newReceiptNo = `UP-${receiptCounter}`;
+              newReceiptNo = `UP-${receiptCounter}-${randomSuffix}`;
               receiptCounter++;
             } while (usedReceiptNumbers.has(newReceiptNo));
             receipt_no = newReceiptNo;
@@ -928,36 +1036,6 @@ const CashReceiptJournalTable = () => {
     reader.readAsArrayBuffer(file);
   };
 
-  const getUniqueAccounts = () => {
-    const uniqueAccounts = new Set();
-    journals.forEach(journal => {
-      journal.invoiceAccounts?.forEach(account => {
-        uniqueAccounts.add(account.name);
-      });
-    });
-    return Array.from(uniqueAccounts);
-  };
-
-  const calculateAccountTotals = () => {
-    const accountTotals = {};
-    const uniqueAccounts = getUniqueAccounts();
-
-    uniqueAccounts.forEach(account => {
-      accountTotals[account] = 0;
-    });
-
-    journals.forEach(journal => {
-      journal.invoiceAccounts?.forEach(account => {
-        accountTotals[account.name] += parseFloat(account.amount) || 0;
-      });
-    });
-
-    return accountTotals;
-  };
-
-  const uniqueAccounts = getUniqueAccounts();
-  const accountTotals = calculateAccountTotals();
-
   const customerOptions = customers.flatMap((customer) =>
     customer.sub_account_details.map((subAccount) => ({
       value: subAccount.name,
@@ -1013,9 +1091,6 @@ const CashReceiptJournalTable = () => {
       <button onClick={handleExportToExcel} style={{ marginLeft: '10px' }}>
         <FontAwesomeIcon icon={faFileExcel} className="icon" /> Export to Excel
       </button>
-      <button onClick={handleDeleteAll} style={{ marginLeft: '10px' }}>
-        Delete All
-      </button>
       <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center' }}>
         <label htmlFor="file-upload" style={{ marginRight: '10px' }}>Upload Excel File:</label>
         <input
@@ -1025,6 +1100,35 @@ const CashReceiptJournalTable = () => {
           onChange={handleFileUpload}
           style={{ padding: '5px', border: '1px solid #ccc', borderRadius: '4px' }}
         />
+      </div>
+      <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center' }}>
+        <input
+          type="text"
+          placeholder="Enter description to delete"
+          value={deleteDescription}
+          onChange={(e) => setDeleteDescription(e.target.value)}
+          style={{ marginRight: '10px', padding: '5px' }}
+        />
+        <button onClick={handleDeleteByDescription} style={{ marginLeft: '10px' }}>
+          Delete by Description
+        </button>
+      </div>
+      <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center' }}>
+        <select
+          value={selectedDate}
+          onChange={handleDateChange}
+          style={{ marginRight: '10px', padding: '5px' }}
+        >
+          <option value="">Select Month</option>
+          {Object.keys(groupJournalsByMonth(journals)).map((month, index) => (
+            <option key={index} value={month}>
+              {new Date(month + '-01').toLocaleString('default', { month: 'long', year: 'numeric' })}
+            </option>
+          ))}
+        </select>
+        <button onClick={handleDeleteByDate} style={{ marginLeft: '10px' }}>
+          Delete by Month
+        </button>
       </div>
       <input
         type="text"
@@ -1252,9 +1356,6 @@ const CashReceiptJournalTable = () => {
             <th>Department</th>
             <th>Credited Account</th>
             <th>Debited Account</th>
-            {uniqueAccounts.map(account => (
-              <th key={account}>{account}</th>
-            ))}
             <th>Total</th>
             <th>Actions</th>
           </tr>
@@ -1269,13 +1370,6 @@ const CashReceiptJournalTable = () => {
                 textDecoration: isDeleted ? 'line-through' : 'none',
                 backgroundColor: isDeleted ? '#ffcccc' : 'transparent'
               };
-              const accountAmounts = {};
-              uniqueAccounts.forEach(account => {
-                accountAmounts[account] = 0;
-              });
-              journal.invoiceAccounts?.forEach(account => {
-                accountAmounts[account.name] = account.amount;
-              });
               return (
                 <tr key={journal.id} style={rowStyle}>
                   <td>{journal.receipt_date}</td>
@@ -1289,9 +1383,6 @@ const CashReceiptJournalTable = () => {
                   <td>{journal.department}</td>
                   <td>{journal.account_credited}</td>
                   <td>{journal.account_debited}</td>
-                  {uniqueAccounts.map(account => (
-                    <td key={account}>{formatCurrency(accountAmounts[account])}</td>
-                  ))}
                   <td>{formatCurrency(parseFloat(journal.total))}</td>
                   <td>
                     {!isDeleted ? (
@@ -1308,16 +1399,6 @@ const CashReceiptJournalTable = () => {
               );
             })}
         </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan="11" style={{ textAlign: 'right', fontWeight: 'bold' }}>Totals</td>
-            {uniqueAccounts.map(account => (
-              <td key={account}>{formatCurrency(accountTotals[account])}</td>
-            ))}
-            <td>{formatCurrency(journals.reduce((sum, journal) => sum + parseFloat(journal.total), 0))}</td>
-            <td></td>
-          </tr>
-        </tfoot>
       </table>
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
         <button

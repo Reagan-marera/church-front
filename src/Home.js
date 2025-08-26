@@ -46,7 +46,7 @@ function Home() {
           <nav className="navbar-home">
             <div className="navbar-brand">
               <FaLaptopCode className="brand-icon" />
-              <span className="company-name">YOUMING TECHNOLOGIES</span>
+             <i><span className="company-name">YOUMING TECHNOLOGIES</span></i> 
             </div>
             <div className="navbar-links">
               

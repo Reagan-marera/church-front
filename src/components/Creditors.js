@@ -10,8 +10,11 @@ const Creditors = () => {
   const [error, setError] = useState(null);
   const [accountBalances, setAccountBalances] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 'all', 'outstanding', 'overpaid'
+  const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [accountNames, setAccountNames] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState('');
+  const [supplierToAccountMap, setSupplierToAccountMap] = useState({});
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -27,7 +30,7 @@ const Creditors = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [invoicesResponse, disbursementsResponse] = await Promise.all([
+        const [invoicesResponse, disbursementsResponse, accountsResponse] = await Promise.all([
           fetch(`${API}/invoice-received`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -39,22 +42,35 @@ const Creditors = () => {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
               'Content-Type': 'application/json',
             },
+          }),
+          fetch(`${API}/payee`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json',
+            },
           })
         ]);
 
-        if (!invoicesResponse.ok) {
-          throw new Error('Failed to fetch invoices');
-        }
-        if (!disbursementsResponse.ok) {
-          throw new Error('Failed to fetch disbursements');
+        if (!invoicesResponse.ok || !disbursementsResponse.ok || !accountsResponse.ok) {
+          throw new Error('Failed to fetch data');
         }
 
         const invoicesData = await invoicesResponse.json();
         const disbursementsData = await disbursementsResponse.json();
+        const accountsData = await accountsResponse.json();
 
         setInvoices(invoicesData);
         setDisbursements(disbursementsData);
+        setAccountNames(accountsData.map(account => account.account_name));
 
+        // Create a mapping of supplier names to account names
+        const map = {};
+        accountsData.forEach(account => {
+          account.sub_account_details.forEach(subAccount => {
+            map[subAccount.name] = account.account_name;
+          });
+        });
+        setSupplierToAccountMap(map);
       } catch (err) {
         console.error("Fetch error:", err);
         setError(err.message);
@@ -66,45 +82,40 @@ const Creditors = () => {
   }, []);
 
   useEffect(() => {
-    if (!invoices.length && !disbursements.length) return;
+    if (!invoices.length || !disbursements.length || !Object.keys(supplierToAccountMap).length) return;
 
-    // Calculate total disbursements per supplier (to_whom_paid)
     const disbursementsBySupplier = disbursements.reduce((acc, disbursement) => {
       const supplier = disbursement.to_whom_paid || disbursement.name || 'Unknown';
       if (!acc[supplier]) {
         acc[supplier] = 0;
       }
-      // Use cash + bank amounts from disbursement
       const disbursementAmount = (parseFloat(disbursement.cash) || 0) + (parseFloat(disbursement.bank) || 0);
       acc[supplier] += disbursementAmount;
       return acc;
     }, {});
 
-    // Calculate total invoice amounts per supplier (name)
     const invoicesBySupplier = invoices.reduce((acc, invoice) => {
       const supplier = invoice.name || 'Unknown';
       if (!acc[supplier]) {
         acc[supplier] = 0;
       }
-      // Use amount from invoice
       const invoiceAmount = parseFloat(invoice.amount) || 0;
       acc[supplier] += invoiceAmount;
       return acc;
     }, {});
 
-    // Combine all unique suppliers from both invoices and disbursements
     const allSuppliers = new Set([
       ...invoices.map(inv => inv.name),
       ...disbursements.map(disb => disb.to_whom_paid || disb.name)
     ].filter(Boolean));
 
-    // Create account balances for each supplier
     const accountData = Array.from(allSuppliers).map(supplier => {
       const invoiceAmount = invoicesBySupplier[supplier] || 0;
       const disbursementAmount = disbursementsBySupplier[supplier] || 0;
-      
+
       return {
         supplierName: supplier,
+        accountName: supplierToAccountMap[supplier] || 'Unknown',
         invoiceAmount,
         disbursementAmount,
         clearedAmount: Math.min(invoiceAmount, disbursementAmount),
@@ -115,11 +126,11 @@ const Creditors = () => {
       };
     });
 
-    // Add suppliers who only have disbursements (no invoices)
     const disbursementOnlySuppliers = Object.keys(disbursementsBySupplier)
       .filter(supplier => !invoicesBySupplier[supplier])
       .map(supplier => ({
         supplierName: supplier,
+        accountName: supplierToAccountMap[supplier] || 'Unknown',
         invoiceAmount: 0,
         disbursementAmount: disbursementsBySupplier[supplier],
         clearedAmount: 0,
@@ -132,14 +143,12 @@ const Creditors = () => {
     const combinedData = [...accountData, ...disbursementOnlySuppliers];
     setAccountBalances(combinedData);
     setLoading(false);
-
-  }, [invoices, disbursements]);
+  }, [invoices, disbursements, supplierToAccountMap]);
 
   const filteredBalances = accountBalances.filter(account => {
-    // Apply search filter
     const matchesSearch = account.supplierName.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Apply status filter
+    const matchesAccount = selectedAccount ? account.accountName === selectedAccount : true;
+
     let matchesFilter = true;
     if (filter === 'outstanding') {
       matchesFilter = account.remainingBalance > 0;
@@ -148,8 +157,8 @@ const Creditors = () => {
     } else if (filter === 'disbursementOnly') {
       matchesFilter = !account.hasInvoice && account.hasDisbursement;
     }
-    
-    return matchesSearch && matchesFilter;
+
+    return matchesSearch && matchesAccount && matchesFilter;
   });
 
   if (loading) {
@@ -163,12 +172,11 @@ const Creditors = () => {
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
       <h2>Creditors Reconciliation</h2>
-      
+
       <div style={{ margin: '20px 0' }}>
         <p>Journal Total: KES {journal?.total?.toFixed(2) || '0.00'}</p>
       </div>
 
-      {/* Filters */}
       <div style={{ marginBottom: '20px', display: 'flex', gap: '15px', alignItems: 'center' }}>
         <div>
           <label htmlFor="search" style={{ marginRight: '10px' }}>Search:</label>
@@ -180,7 +188,22 @@ const Creditors = () => {
             style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
           />
         </div>
-        
+
+        <div>
+          <label htmlFor="account" style={{ marginRight: '10px' }}>Account:</label>
+          <select
+            id="account"
+            value={selectedAccount}
+            onChange={(e) => setSelectedAccount(e.target.value)}
+            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+          >
+            <option value="">All Accounts</option>
+            {accountNames.map((name, index) => (
+              <option key={index} value={name}>{name}</option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label htmlFor="filter" style={{ marginRight: '10px' }}>Filter:</label>
           <select
@@ -216,18 +239,10 @@ const Creditors = () => {
                 <td style={{ padding: '12px', textAlign: 'right' }}>KES {account.invoiceAmount.toFixed(2)}</td>
                 <td style={{ padding: '12px', textAlign: 'right' }}>KES {account.disbursementAmount.toFixed(2)}</td>
                 <td style={{ padding: '12px', textAlign: 'right' }}>KES {account.clearedAmount.toFixed(2)}</td>
-                <td style={{ 
-                  padding: '12px', 
-                  textAlign: 'right',
-                  color: account.remainingBalance > 0 ? 'red' : 'inherit'
-                }}>
+                <td style={{ padding: '12px', textAlign: 'right', color: account.remainingBalance > 0 ? 'red' : 'inherit' }}>
                   KES {account.remainingBalance.toFixed(2)}
                 </td>
-                <td style={{ 
-                  padding: '12px', 
-                  textAlign: 'right',
-                  color: account.overpayment > 0 ? 'blue' : 'inherit'
-                }}>
+                <td style={{ padding: '12px', textAlign: 'right', color: account.overpayment > 0 ? 'blue' : 'inherit' }}>
                   KES {account.overpayment.toFixed(2)}
                 </td>
               </tr>
@@ -238,12 +253,12 @@ const Creditors = () => {
 
       <div style={{ marginTop: '30px', padding: '15px', background: 'black', color: 'white', borderRadius: '5px' }}>
         <h3>Summary</h3>
-        <p>Total Invoices: KES {accountBalances.reduce((sum, acc) => sum + acc.invoiceAmount, 0).toFixed(2)}</p>
-        <p>Total Payments: KES {accountBalances.reduce((sum, acc) => sum + acc.disbursementAmount, 0).toFixed(2)}</p>
-        <p>Total Cleared: KES {accountBalances.reduce((sum, acc) => sum + acc.clearedAmount, 0).toFixed(2)}</p>
-        <p>Total Outstanding: KES {accountBalances.reduce((sum, acc) => sum + acc.remainingBalance, 0).toFixed(2)}</p>
+        <p>Total Invoices: KES {filteredBalances.reduce((sum, acc) => sum + acc.invoiceAmount, 0).toFixed(2)}</p>
+        <p>Total Payments: KES {filteredBalances.reduce((sum, acc) => sum + acc.disbursementAmount, 0).toFixed(2)}</p>
+        <p>Total Cleared: KES {filteredBalances.reduce((sum, acc) => sum + acc.clearedAmount, 0).toFixed(2)}</p>
+        <p>Total Outstanding: KES {filteredBalances.reduce((sum, acc) => sum + acc.remainingBalance, 0).toFixed(2)}</p>
         <p style={{ fontWeight: 'bold' }}>
-          Total Overpayment: KES {accountBalances.reduce((sum, acc) => sum + acc.overpayment, 0).toFixed(2)}
+          Total Overpayment: KES {filteredBalances.reduce((sum, acc) => sum + acc.overpayment, 0).toFixed(2)}
         </p>
       </div>
     </div>

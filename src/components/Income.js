@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
 
 const IncomeStatement = () => {
   const [balanceData, setBalanceData] = useState(null);
@@ -44,26 +45,21 @@ const IncomeStatement = () => {
   // Group accounts by account_type
   const groupByAccountType = (data) => {
     const groupedData = {};
-
     Object.entries(data).forEach(([accountName, accountGroup]) => {
       const accountType = accountGroup.account_type;
-
       if (!groupedData[accountType]) {
         groupedData[accountType] = [];
       }
-
       // Calculate total amount for each account
       const totalAmount = Object.values(accountGroup.parent_accounts).reduce(
         (sum, parentData) => sum + parentData.amount, 0
       );
-
       groupedData[accountType].push({
         accountName,
         parentAccounts: accountGroup.parent_accounts,
         totalAmount, // Include totalAmount in the account object
       });
     });
-
     return groupedData;
   };
 
@@ -80,9 +76,45 @@ const IncomeStatement = () => {
   const totalExpenses = categoryTotals['50-Operating Expenses'] || 0;
   const netSurplusDeficit = totalIncome - totalExpenses;
 
+  // Function to export data to Excel
+  const exportToExcel = () => {
+    const worksheetData = [];
+
+    Object.entries(groupedData).forEach(([accountType, accounts]) => {
+      accounts.forEach((account) => {
+        Object.entries(account.parentAccounts).forEach(([parentAccount, parentData]) => {
+          if (parentData.amount > 0) {
+            worksheetData.push({
+              'Account Type': accountType,
+              'Account Name': account.accountName,
+              'Note Number': parentData.note_number,
+              'Parent Account': parentAccount,
+              'Amount': parentData.amount,
+            });
+          }
+        });
+      });
+    });
+
+    // Add net surplus/deficit
+    worksheetData.push({
+      'Account Type': '',
+      'Account Name': '',
+      'Note Number': '',
+      'Parent Account': 'Net Surplus/Deficit',
+      'Amount': netSurplusDeficit,
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Income Statement");
+    XLSX.writeFile(workbook, "IncomeStatement.xlsx");
+  };
+
   return (
     <div className="balance-statement-container">
       <h1>Income Statement</h1>
+      <button onClick={exportToExcel} className="export-button">Export to Excel</button>
       <table className="balance-table">
         <thead>
           <tr>

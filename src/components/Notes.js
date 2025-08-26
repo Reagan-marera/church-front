@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
 import './TransactionList.css'; // Import the CSS file
 
 const AccountsTransactions = () => {
@@ -38,7 +39,6 @@ const AccountsTransactions = () => {
 
         // Group accounts by parent account and note number
         const groupedAccounts = groupAccountsByParentAndNote(accountBalances);
-
         setTransactions(groupedAccounts);
         setLoading(false);
       } catch (error) {
@@ -72,6 +72,36 @@ const AccountsTransactions = () => {
     }).format(amount);
   };
 
+  const exportToExcel = () => {
+    const worksheetData = [];
+
+    Object.entries(transactions).forEach(([parentAccount, { accounts, total }]) => {
+      accounts.forEach((account) => {
+        if (account.note_number && account.note_number !== 'N/A') {
+          worksheetData.push({
+            'Parent Account': parentAccount,
+            'Note Number': account.note_number,
+            'Account': account.account,
+            'Balance': account.balance,
+          });
+        }
+      });
+
+      // Add total row for each parent account
+      worksheetData.push({
+        'Parent Account': `Total for ${parentAccount}`,
+        'Note Number': '',
+        'Account': '',
+        'Balance': total,
+      });
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "AccountBalances");
+    XLSX.writeFile(workbook, "AccountBalances.xlsx");
+  };
+
   if (loading) {
     return <div className="loading">Loading financial data...</div>;
   }
@@ -83,6 +113,9 @@ const AccountsTransactions = () => {
   return (
     <div>
       <h1>Account Balances</h1>
+      <button onClick={exportToExcel} className="export-button">
+        Export to Excel
+      </button>
       {Object.keys(transactions).length === 0 ? (
         <div className="no-data">No transactions available.</div>
       ) : (

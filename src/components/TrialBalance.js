@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import * as XLSX from 'xlsx';
 import './trialbalance.css';
 
 const TrialBalance = () => {
@@ -40,6 +41,21 @@ const TrialBalance = () => {
     return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  // Function to export trial balance data to Excel
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(trialBalance.map(account => ({
+      Account: account.account,
+      Dr: account.balance >= 0 ? account.balance : 0,
+      Cr: account.balance < 0 ? Math.abs(account.balance) : 0
+    })));
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Trial Balance");
+
+    // Generate Excel file and trigger download
+    XLSX.writeFile(workbook, "TrialBalance.xlsx");
+  };
+
   if (loading) {
     return <div className="loading">Loading...</div>;
   }
@@ -51,6 +67,7 @@ const TrialBalance = () => {
   return (
     <div className="trial-balance-container">
       <h1>Trial Balance</h1>
+      <button onClick={exportToExcel} className="export-button">Export to Excel</button>
       <table className="trial-balance-table">
         <thead>
           <tr>
@@ -64,7 +81,6 @@ const TrialBalance = () => {
             const isDebit = account.balance >= 0; // Positive balance goes to Dr
             const drValue = isDebit ? account.balance : 0; // Dr column gets balance if positive
             const crValue = !isDebit ? Math.abs(account.balance) : 0; // Cr column gets abs(balance) if negative
-
             return (
               <tr key={account.account}>
                 <td className="account-cell">{account.account}</td>

@@ -22,11 +22,9 @@ const api = 'https://backend.youmingtechnologies.co.ke';
 const Pagination = ({ itemsPerPage, totalItems, paginate, currentPage }) => {
   const pageNumbers = [];
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-
   for (let i = 1; i <= totalPages; i++) {
     pageNumbers.push(i);
   }
-
   return (
     <nav>
       <ul className="pagination" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '6px' }}>
@@ -70,7 +68,6 @@ const DisbursementForm = () => {
     parent_account: "",
     department: "",
   });
-
   const [errorMessage, setErrorMessage] = useState("");
   const [coaAccounts, setCoaAccounts] = useState([]);
   const [payees, setPayees] = useState([]);
@@ -85,8 +82,11 @@ const DisbursementForm = () => {
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [creditedAccounts, setCreditedAccounts] = useState([]);
+  const [selectedCreditedAccount, setSelectedCreditedAccount] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+  const [uniqueDates, setUniqueDates] = useState([]);
   const itemsPerPage = 30;
-
   const printRef = useRef();
 
   const formatCurrency = (amount) => {
@@ -158,6 +158,15 @@ const DisbursementForm = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (disbursements.length > 0) {
+      const uniqueCreditedAccounts = [...new Set(disbursements.map(disbursement => disbursement.account_credited))];
+      setCreditedAccounts(uniqueCreditedAccounts);
+      const dates = [...new Set(disbursements.map(disbursement => disbursement.disbursement_date))];
+      setUniqueDates(dates);
+    }
+  }, [disbursements]);
+
   const fetchJournals = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -214,15 +223,9 @@ const DisbursementForm = () => {
     setTotalDisbursed(formatCurrency(totalDisbursedAmount));
   };
 
-  const generateUniqueVoucherNumber = (existingVouchers) => {
-    if (existingVouchers.length === 0) {
-      return "PV-1";
-    }
-    const highestVoucherNumber = existingVouchers.reduce((max, voucher) => {
-      const number = parseInt(voucher.p_voucher_no.split("-")[1]);
-      return number > max ? number : max;
-    }, 0);
-    return `PV-${highestVoucherNumber + 1}`;
+  const generateUniqueVoucherNumber = () => {
+    const randomNumber = Math.floor(Math.random() * 10000) + 1;
+    return `PV-${randomNumber}`;
   };
 
   const handleSubmit = async (e) => {
@@ -354,6 +357,90 @@ const DisbursementForm = () => {
     }
   };
 
+  const handleDeleteByCreditedAccount = async () => {
+    if (!selectedCreditedAccount) {
+      alert("Please select a credited account.");
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete all transactions for the credited account: ${selectedCreditedAccount}?`)) {
+      return;
+    }
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setErrorMessage("Unauthorized: Missing token.");
+      return;
+    }
+    try {
+      const disbursementsToDelete = disbursements.filter(
+        (disbursement) => disbursement.account_credited === selectedCreditedAccount
+      );
+      await Promise.all(disbursementsToDelete.map(async (disbursement) => {
+        const response = await fetch(`${api}/cash-disbursement-journals/${disbursement.id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText);
+        }
+      }));
+      const disbursementsResponse = await fetch(`${api}/cash-disbursement-journals`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
+      const disbursementsData = await disbursementsResponse.json();
+      setDisbursements(disbursementsData);
+      alert(`All transactions for the credited account "${selectedCreditedAccount}" have been deleted successfully!`);
+      setSelectedCreditedAccount("");
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
+
+  const handleDeleteByDate = async () => {
+    if (!selectedDate) {
+      alert("Please select a date.");
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete all transactions for the date: ${selectedDate}?`)) {
+      return;
+    }
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setErrorMessage("Unauthorized: Missing token.");
+      return;
+    }
+    try {
+      const disbursementsToDelete = disbursements.filter(
+        (disbursement) => disbursement.disbursement_date === selectedDate
+      );
+      await Promise.all(disbursementsToDelete.map(async (disbursement) => {
+        const response = await fetch(`${api}/cash-disbursement-journals/${disbursement.id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText);
+        }
+      }));
+      const disbursementsResponse = await fetch(`${api}/cash-disbursement-journals`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
+      const disbursementsData = await disbursementsResponse.json();
+      setDisbursements(disbursementsData);
+      alert(`All transactions for the date "${selectedDate}" have been deleted successfully!`);
+      setSelectedDate("");
+    } catch (error) {
+      setErrorMessage(error.message);
+    }
+  };
+
   const handleEditClick = (disbursement) => {
     setEditingDisbursement(disbursement);
     setFormData({
@@ -456,7 +543,6 @@ const DisbursementForm = () => {
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -468,7 +554,6 @@ const DisbursementForm = () => {
           defval: '',
           raw: false
         });
-
         const COLS = {
           DATE: 1,
           CHEQUE_NO: 2,
@@ -484,21 +569,23 @@ const DisbursementForm = () => {
           BANK: 12,
           TOTAL: 13
         };
-
         const token = localStorage.getItem('token');
         if (!token) {
           throw new Error('Authentication token missing');
         }
-
-        let cashCounter = 1;
         const cashChequeNumbers = new Set();
-
+        const results = [];
+        let successCount = 0;
+        let errorCount = 0;
         for (let i = 1; i < rawData.length; i++) {
           const row = rawData[i];
           if (!row || row.length < 13) {
+            console.warn(`Skipping row ${i + 1}: insufficient columns`);
             continue;
           }
-
+          if (row.every(cell => cell === '' || cell === null || cell === undefined)) {
+            continue;
+          }
           const dateValue = row[COLS.DATE];
           let chequeNo = String(row[COLS.CHEQUE_NO] || '').trim();
           const manualPvNo = String(row[COLS.MANUAL_PV_NO] || '').trim();
@@ -509,41 +596,62 @@ const DisbursementForm = () => {
           const parentAccount = String(row[COLS.PARENT_ACCOUNT] || '').trim();
           const accountDebited = String(row[COLS.ACCOUNT_DEBITED] || '').trim();
           const accountCredited = String(row[COLS.ACCOUNT_CREDITED] || '').trim();
-
           const parseAmount = (value) => {
             if (value === null || value === undefined || value === '') return 0;
             const numStr = String(value).replace(/,/g, '');
             return parseFloat(numStr) || 0;
           };
-
           const cash = parseAmount(row[COLS.CASH]);
           const bank = parseAmount(row[COLS.BANK]);
           const total = parseAmount(row[COLS.TOTAL]);
-
-          if (chequeNo.toLowerCase() === 'cash') {
-            let newChequeNo = `cash-${cashCounter}`;
-            while (cashChequeNumbers.has(newChequeNo)) {
-              cashCounter++;
-              newChequeNo = `cash-${cashCounter}`;
-            }
+          if (chequeNo.toLowerCase().includes('cash')) {
+            let newChequeNo;
+            let attempts = 0;
+            const maxAttempts = 5;
+            do {
+              attempts++;
+              const timestamp = Date.now();
+              const randomNum = Math.floor(Math.random() * 1000000);
+              newChequeNo = `cash-${timestamp}-${randomNum}`;
+              if (attempts >= maxAttempts) {
+                throw new Error(`Failed to generate unique cheque number after ${maxAttempts} attempts`);
+              }
+            } while (cashChequeNumbers.has(newChequeNo));
             chequeNo = newChequeNo;
             cashChequeNumbers.add(chequeNo);
-            cashCounter++;
           }
-
           let paymentDate;
           try {
             if (typeof dateValue === 'number') {
               const dateObj = XLSX.SSF.parse_date_code(dateValue);
               paymentDate = new Date(dateObj.y, dateObj.m - 1, dateObj.d).toISOString().split('T')[0];
             } else if (typeof dateValue === 'string') {
-              const [month, day, year] = dateValue.split('/').map(Number);
-              paymentDate = new Date(year, month - 1, day).toISOString().split('T')[0];
+              if (dateValue.includes('/')) {
+                const [month, day, year] = dateValue.split('/').map(Number);
+                paymentDate = new Date(year, month - 1, day).toISOString().split('T')[0];
+              } else if (dateValue.includes('-')) {
+                paymentDate = new Date(dateValue).toISOString().split('T')[0];
+              }
             }
           } catch (err) {
+            console.error(`Error parsing date for row ${i + 1}:`, err);
+            results.push({
+              row: i + 1,
+              status: 'error',
+              message: `Invalid date format: ${dateValue}`
+            });
+            errorCount++;
             continue;
           }
-
+          if (!paymentDate) {
+            results.push({
+              row: i + 1,
+              status: 'error',
+              message: `Missing or invalid date: ${dateValue}`
+            });
+            errorCount++;
+            continue;
+          }
           const journal = {
             disbursement_date: paymentDate,
             cheque_no: chequeNo,
@@ -560,7 +668,6 @@ const DisbursementForm = () => {
             bank: bank,
             total: total
           };
-
           try {
             const response = await fetch(`${api}/cash-disbursement-journals`, {
               method: 'POST',
@@ -570,21 +677,35 @@ const DisbursementForm = () => {
               },
               body: JSON.stringify(journal)
             });
-
             if (!response.ok) {
               const errorData = await response.json();
-              console.error('Server responded with an error:', errorData);
-              throw new Error(`HTTP error! status: ${response.status}`);
+              throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
             }
-
             const result = await response.json();
-            console.log('Upload successful:', result);
+            results.push({
+              row: i + 1,
+              status: 'success',
+              message: 'Upload successful',
+              data: result
+            });
+            successCount++;
           } catch (err) {
-            console.error('Upload error for row', i + 1, ':', err);
+            console.error(`Upload error for row ${i + 1}:`, err);
+            results.push({
+              row: i + 1,
+              status: 'error',
+              message: err.message || 'Failed to upload journal'
+            });
+            errorCount++;
           }
         }
-
-        alert('All journals processed');
+        console.log('Upload results:', {
+          total: rawData.length - 1,
+          success: successCount,
+          errors: errorCount,
+          details: results
+        });
+        alert(`Upload completed: ${successCount} successful, ${errorCount} errors`);
       } catch (err) {
         console.error('Upload error:', err);
         alert(`Upload failed: ${err.message}`);
@@ -595,6 +716,10 @@ const DisbursementForm = () => {
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
+  };
+
+  const handleDateChange = (e) => {
+    setSelectedDate(e.target.value);
   };
 
   const filteredDisbursements = disbursements.filter((disbursement) => {
@@ -622,6 +747,10 @@ const DisbursementForm = () => {
     label: subAccount.name,
   }));
 
+  const handleCreditedAccountChange = (e) => {
+    setSelectedCreditedAccount(e.target.value);
+  };
+
   return (
     <div className="disbursement-container">
       <h1 className="head">
@@ -633,9 +762,28 @@ const DisbursementForm = () => {
       <button onClick={handleExportToExcel} className="export-button">
         <FontAwesomeIcon icon={faFileExcel} className="icon" /> Export to Excel
       </button>
-      <button onClick={handleDeleteAll} className="delete-all-button">
-        <FontAwesomeIcon icon={faTrash} className="icon" /> Delete All
-      </button>
+      <div className="delete-by-credited-account">
+        <select value={selectedCreditedAccount} onChange={handleCreditedAccountChange} className="form-input">
+          <option value="">Select Credited Account</option>
+          {creditedAccounts.map((account, index) => (
+            <option key={index} value={account}>{account}</option>
+          ))}
+        </select>
+        <button onClick={handleDeleteByCreditedAccount} className="delete-button">
+          <FontAwesomeIcon icon={faTrash} className="icon" /> Delete by Credited Account
+        </button>
+      </div>
+      <div className="delete-by-date">
+        <select value={selectedDate} onChange={handleDateChange} className="form-input">
+          <option value="">Select Date</option>
+          {uniqueDates.map((date, index) => (
+            <option key={index} value={date}>{date}</option>
+          ))}
+        </select>
+        <button onClick={handleDeleteByDate} className="delete-button">
+          <FontAwesomeIcon icon={faTrash} className="icon" /> Delete by Date
+        </button>
+      </div>
       <input type="file" onChange={handleFileUpload} accept=".xlsx, .xls" />
       <input
         type="text"

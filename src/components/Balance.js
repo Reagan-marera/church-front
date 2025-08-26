@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import * as XLSX from 'xlsx';
 
 // Helper function to calculate totals
 const calculateTotals = (data) => {
@@ -41,8 +42,7 @@ const groupByAccountType = (data) => {
 
   Object.entries(data).forEach(([key, accountGroup]) => {
     const accountType = accountGroup.account_type;
-
-    if (['50-Other Expenditures', '50-Operating Expenses',, '40-Revenue'].includes(accountType)) return;
+    if (['50-Other Expenditures', '50-Operating Expenses', '50-perating Expenses', '40-Revenue'].includes(accountType)) return;
 
     let accountName = accountGroup.account_name.replace(/-\d+$/, '');
 
@@ -75,7 +75,6 @@ const groupByAccountType = (data) => {
 
 const BalanceStatementAccounts = () => {
   const [accountData, setAccountData] = useState(null);
-  const [incomeData, setIncomeData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -99,22 +98,6 @@ const BalanceStatementAccounts = () => {
 
         const balanceData = await balanceResponse.json();
         setAccountData(balanceData);
-
-        // Fetch income statement data
-        const incomeResponse = await fetch('https://backend.youmingtechnologies.co.ke/income-statement/accounts', {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!incomeResponse.ok) {
-          throw new Error(`HTTP error! status: ${incomeResponse.status}`);
-        }
-
-        const incomeData = await incomeResponse.json();
-        setIncomeData(incomeData);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -137,40 +120,57 @@ const BalanceStatementAccounts = () => {
   const totals = calculateTotals(accountData);
   const netDifference = totals.totalAssets - totals.totalLiabilities;
 
-  // Calculate net surplus/deficit from income statement data
-  const groupByAccountTypeIncome = (data) => {
-    const groupedData = {};
+  // Function to export data to Excel
+  const exportToExcel = () => {
+    const worksheetData = [];
 
-    Object.entries(data).forEach(([accountName, accountGroup]) => {
-      const accountType = accountGroup.account_type;
-
-      if (!groupedData[accountType]) {
-        groupedData[accountType] = [];
-      }
-
-      groupedData[accountType].push({
-        accountName,
-        parentAccounts: accountGroup.parent_accounts,
-        totalAmount: accountGroup.total_amount,
+    Object.entries(groupedData).forEach(([accountType, accounts]) => {
+      accounts.forEach((account) => {
+        worksheetData.push({
+          'Account Type': accountType,
+          'Account Name': account.accountName,
+          'Note Number': account.noteNumber,
+          'Parent Account': account.parentAccount,
+          'Total Amount': account.totalAmount,
+        });
       });
     });
 
-    return groupedData;
+    // Add totals and net difference
+    worksheetData.push(
+      {
+        'Account Type': 'Totals',
+        'Account Name': '',
+        'Note Number': '',
+        'Parent Account': 'Total Assets',
+        'Total Amount': totals.totalAssets,
+      },
+      {
+        'Account Type': 'Totals',
+        'Account Name': '',
+        'Note Number': '',
+        'Parent Account': 'Total Liabilities',
+        'Total Amount': totals.totalLiabilities,
+      },
+      {
+        'Account Type': 'Totals',
+        'Account Name': '',
+        'Note Number': '',
+        'Parent Account': 'Net Difference (Assets - Liabilities)',
+        'Total Amount': netDifference,
+      }
+    );
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Balance Statement");
+    XLSX.writeFile(workbook, "BalanceStatement.xlsx");
   };
-
-  const incomeGroupedData = groupByAccountTypeIncome(incomeData);
-  const categoryTotals = {};
-  Object.entries(incomeGroupedData).forEach(([accountType, accounts]) => {
-    categoryTotals[accountType] = accounts.reduce((sum, account) => sum + account.totalAmount, 0);
-  });
-
-  const totalIncome = categoryTotals['40-Revenue'] || 0;
-  const totalExpenses = categoryTotals['50-Expenses'] || 0;
-  const netSurplusDeficit = totalIncome - totalExpenses;
 
   return (
     <div className="balance-statement-container">
       <h1>Balance Statement Accounts</h1>
+      <button onClick={exportToExcel} className="export-button">Export to Excel</button>
       <table className="balance-table" role="table" aria-label="Balance Statement">
         <thead>
           <tr>
@@ -195,7 +195,7 @@ const BalanceStatementAccounts = () => {
                   <td>{account.accountName}</td>
                   <td>{account.noteNumber}</td>
                   <td>{account.parentAccount}</td>
-                  <td>{account.totalAmount.toLocaleString('en-US', { style: 'currency', currency: 'ksh' })}</td>
+                  <td>{account.totalAmount.toLocaleString('en-US', { style: 'currency', currency: 'KSH' })}</td>
                 </tr>
               ))}
               {accountType === '10-Assets' && (
@@ -203,7 +203,7 @@ const BalanceStatementAccounts = () => {
                   <td colSpan={4} className="total-row" style={{ color: 'orange' }}>
                     Total Assets:
                   </td>
-                  <td style={{ color: 'orange' }}>{totals.totalAssets.toLocaleString('en-US', { style: 'currency', currency: 'ksh' })}</td>
+                  <td style={{ color: 'orange' }}>{totals.totalAssets.toLocaleString('en-US', { style: 'currency', currency: 'KSH' })}</td>
                 </tr>
               )}
               {accountType === '20-Liabilities' && (
@@ -212,27 +212,22 @@ const BalanceStatementAccounts = () => {
                     <td colSpan={4} className="total-row" style={{ color: 'orange' }}>
                       Total Liabilities:
                     </td>
-                    <td style={{ color: 'orange' }}>{totals.totalLiabilities.toLocaleString('en-US', { style: 'currency', currency: 'ksh' })}</td>
+                    <td style={{ color: 'orange' }}>{totals.totalLiabilities.toLocaleString('en-US', { style: 'currency', currency: 'KSH' })}</td>
                   </tr>
                   <tr>
                     <td colSpan={4} className="net-difference-row" style={{ color: 'orange' }}>
                       Net Difference (Assets - Liabilities):
                     </td>
-                    <td style={{ color: 'orange' }}>{netDifference.toLocaleString('en-US', { style: 'currency', currency: 'ksh' })}</td>
+                    <td style={{ color: 'orange' }}>{netDifference.toLocaleString('en-US', { style: 'currency', currency: 'KSH' })}</td>
                   </tr>
                 </>
               )}
             </React.Fragment>
           ))}
-          {/* Net Surplus/Deficit Row */}
-        
-          {/* Net Assets Row */}
           <tr style={{ fontWeight: 'bold', color: 'orange', backgroundColor: 'orange' }}>
             <td colSpan={4}>30-Net Assets</td>
-            <td style={{ color: 'orange' }}>{netDifference.toLocaleString('en-US', { style: 'currency', currency: 'ksh' })}</td>
+            <td style={{ color: 'orange' }}>{netDifference.toLocaleString('en-US', { style: 'currency', currency: 'KSH' })}</td>
           </tr>
-          {/* Unrestricted Net Assets Row */}
-         
         </tbody>
       </table>
     </div>

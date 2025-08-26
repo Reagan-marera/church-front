@@ -84,22 +84,25 @@ const ExpenseTransactions = ({ startDate, endDate }) => {
   const handleSearch = (e) => {
     const term = e.target.value.toLowerCase();
     setSearchTerm(term);
-
+  
     if (term) {
-      const filtered = combinedData.filter((item) =>
-        item.type.toLowerCase().includes(term) ||
-        item.reference.toLowerCase().includes(term) ||
-        item.from.toLowerCase().includes(term) ||
-        item.description.toLowerCase().includes(term) ||
-        item.parent_account.toLowerCase().includes(term) ||
-        item.account_name.toLowerCase().includes(term)
-      );
+      const filtered = combinedData.filter((item) => {
+        const reference = item.reference ? item.reference.toString().toLowerCase() : '';
+        return (
+          item.type.toLowerCase().includes(term) ||
+          reference.includes(term) ||
+          item.from.toLowerCase().includes(term) ||
+          item.description.toLowerCase().includes(term) ||
+          item.parent_account.toLowerCase().includes(term) ||
+          item.account_name.toLowerCase().includes(term)
+        );
+      });
       setFilteredData(filtered);
     } else {
       setFilteredData(combinedData);
     }
   };
-
+  
   const exportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(filteredData.map(item => ({
       Type: item.type,

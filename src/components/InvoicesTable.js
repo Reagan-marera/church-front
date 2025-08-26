@@ -620,10 +620,16 @@ ${printContents}
     XLSX.utils.book_append_sheet(wb, ws, 'Invoices');
     XLSX.writeFile(wb, 'Invoices.xlsx');
   };
-
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+  
+    const generateUniqueInvoiceNumber = () => {
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substring(2, 8);
+      return `INV-${timestamp}-${randomStr}`;
+    };
+  
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -631,11 +637,13 @@ ${printContents}
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
+  
         const invoicesToUpload = [];
-        let invoiceCounter = 1;
+  
         for (let i = 1; i < rawData.length; i++) {
           const row = rawData[i];
           if (!row || row.length < 9 || row.every(cell => cell === '')) continue;
+  
           let amount = 0;
           try {
             const amountStr = String(row[8] || '0').trim();
@@ -645,7 +653,7 @@ ${printContents}
             console.warn(`Failed to parse amount in row ${i}: ${row[8]}`);
             continue;
           }
-          const invoiceNumber = `inup-${invoiceCounter++}`;
+  
           let paymentDate;
           const dateValue = row[1];
           try {
@@ -667,8 +675,9 @@ ${printContents}
             console.warn(`Invalid date in row ${i}: ${dateValue}. Using today's date.`);
             paymentDate = new Date();
           }
+  
           invoicesToUpload.push({
-            invoice_number: invoiceNumber,
+            invoice_number: generateUniqueInvoiceNumber(),
             date_issued: paymentDate.toISOString().split('T')[0],
             amount: amount,
             account_debited: row[5]?.toString().trim() || null,
@@ -679,12 +688,15 @@ ${printContents}
             parent_account: row[7]?.toString().trim() || ''
           });
         }
+  
         console.log('Processed invoices:', invoicesToUpload);
         if (invoicesToUpload.length === 0) {
           throw new Error('No valid invoices found after processing');
         }
+  
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Authentication token missing');
+  
         const uploadResults = await Promise.allSettled(
           invoicesToUpload.map(invoice =>
             fetch(`${api}/invoices`, {
@@ -703,8 +715,10 @@ ${printContents}
             })
           )
         );
+  
         const successful = uploadResults.filter(r => r.status === 'fulfilled');
         const failed = uploadResults.filter(r => r.status === 'rejected');
+  
         if (successful.length > 0) {
           fetchInvoices();
           alert(`${successful.length} invoices uploaded successfully!`);
@@ -721,6 +735,8 @@ ${printContents}
     };
     reader.readAsArrayBuffer(file);
   };
+  
+  
 
   const filteredInvoices = invoices.filter((invoice) =>
     invoice.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -781,7 +797,7 @@ ${printContents}
       >
         Export to Excel
       </button>
-      <button
+      {/* <button
         style={{
           backgroundColor: isDeleting ? '#dc3545a0' : '#dc3545',
           color: '#fff',
@@ -799,7 +815,7 @@ ${printContents}
         onClick={handleDeleteAll}
       >
         {isDeleting ? 'Deleting...' : 'Delete All Invoices'}
-      </button>
+      </button> */}
       <button
         style={{
           backgroundColor: '#ffc107',
