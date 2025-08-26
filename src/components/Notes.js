@@ -4,7 +4,7 @@ import './TransactionList.css'; // Import the CSS file
 
 const AccountsTransactions = () => {
   const [transactions, setTransactions] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -56,13 +56,17 @@ const AccountsTransactions = () => {
       // Group accounts by parent account and note number
       const groupedAccounts = groupAccountsByParentAndNote(accountBalances);
       setTransactions(groupedAccounts);
-      setLoading(false);
     } catch (error) {
       console.error('Fetch error:', error);
       setError(error);
+    } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
 
   const groupAccountsByParentAndNote = (accounts) => {
     const grouped = {};

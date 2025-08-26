@@ -6,7 +6,7 @@ import { useBalance } from './BalanceContext';
 const CashFlowStatement = () => {
   const { balances } = useBalance();
   const [balanceData, setBalanceData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -47,6 +47,10 @@ const CashFlowStatement = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const calculateTotals = (data) => {
     let totalOperating = 0;

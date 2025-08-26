@@ -75,7 +75,7 @@ const groupByAccountType = (data) => {
 
 const BalanceStatementAccounts = () => {
   const [accountData, setAccountData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -120,12 +120,20 @@ const BalanceStatementAccounts = () => {
     }
   };
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   if (loading) {
     return <div className="loading">Loading...</div>;
   }
 
   if (error) {
     return <div className="error">Error: {error}</div>;
+  }
+
+  if (!accountData) {
+    return <div>No data available.</div>;
   }
 
   const groupedData = groupByAccountType(accountData);
