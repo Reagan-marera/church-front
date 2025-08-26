@@ -4,52 +4,65 @@ import './TransactionList.css'; // Import the CSS file
 
 const AccountsTransactions = () => {
   const [transactions, setTransactions] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      const token = localStorage.getItem('token');
-      console.log('Token:', token);
+  const fetchTransactions = async () => {
+    setLoading(true);
+    const token = localStorage.getItem('token');
+    console.log('Token:', token);
 
-      if (!token) {
-        setError(new Error('No token found. Please log in again.'));
-        setLoading(false);
-        return;
+    if (!token) {
+      setError(new Error('No token found. Please log in again.'));
+      setLoading(false);
+      return;
+    }
+
+    try {
+      let url = 'https://backend.youmingtechnologies.co.ke/transactions/accounts';
+
+      const params = new URLSearchParams();
+      if (startDate) {
+        params.append('start_date', startDate);
+      }
+      if (endDate) {
+        params.append('end_date', endDate);
       }
 
-      try {
-        const response = await fetch('https://backend.youmingtechnologies.co.ke/transactions/accounts', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch transactions. Please try again later.');
-        }
-
-        const data = await response.json();
-        console.log('Data:', data);
-
-        // Extract the account balances from the response
-        const accountBalances = data.account_balances || [];
-
-        // Group accounts by parent account and note number
-        const groupedAccounts = groupAccountsByParentAndNote(accountBalances);
-        setTransactions(groupedAccounts);
-        setLoading(false);
-      } catch (error) {
-        console.error('Fetch error:', error);
-        setError(error);
-        setLoading(false);
+      if (params.toString()) {
+        url += `?${params.toString()}`;
       }
-    };
 
-    fetchTransactions();
-  }, []);
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch transactions. Please try again later.');
+      }
+
+      const data = await response.json();
+      console.log('Data:', data);
+
+      // Extract the account balances from the response
+      const accountBalances = data.account_balances || [];
+
+      // Group accounts by parent account and note number
+      const groupedAccounts = groupAccountsByParentAndNote(accountBalances);
+      setTransactions(groupedAccounts);
+      setLoading(false);
+    } catch (error) {
+      console.error('Fetch error:', error);
+      setError(error);
+      setLoading(false);
+    }
+  };
 
   const groupAccountsByParentAndNote = (accounts) => {
     const grouped = {};
@@ -113,6 +126,28 @@ const AccountsTransactions = () => {
   return (
     <div>
       <h1>Account Balances</h1>
+
+      {/* Date filtering options */}
+      <div className="date-filter">
+        <label>
+          Start Date:
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </label>
+        <label>
+          End Date:
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </label>
+        <button onClick={fetchTransactions} className="filter-button">Filter</button>
+      </div>
+
       <button onClick={exportToExcel} className="export-button">
         Export to Excel
       </button>

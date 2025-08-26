@@ -4,14 +4,32 @@ import './trialbalance.css';
 
 const TrialBalance = () => {
   const [trialBalance, setTrialBalance] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Fetch trial balance data from the backend
   const fetchTrialBalance = async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem('token'); // Retrieve auth token (if required)
-      const response = await fetch('https://backend.youmingtechnologies.co.ke/trial-balance', {
+      let url = 'https://backend.youmingtechnologies.co.ke/trial-balance';
+
+      // Add query parameters if startDate and endDate are selected
+      const params = new URLSearchParams();
+      if (startDate) {
+        params.append('start_date', startDate);
+      }
+      if (endDate) {
+        params.append('end_date', endDate);
+      }
+
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`, // Include token if authentication is required
@@ -31,10 +49,6 @@ const TrialBalance = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchTrialBalance();
-  }, []);
 
   // Helper function to format numbers with commas and two decimal places
   const formatNumber = (value) => {
@@ -67,6 +81,28 @@ const TrialBalance = () => {
   return (
     <div className="trial-balance-container">
       <h1>Trial Balance</h1>
+
+      {/* Date filtering options */}
+      <div className="date-filter">
+        <label>
+          Start Date:
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </label>
+        <label>
+          End Date:
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </label>
+        <button onClick={fetchTrialBalance} className="filter-button">Filter</button>
+      </div>
+
       <button onClick={exportToExcel} className="export-button">Export to Excel</button>
       <table className="trial-balance-table">
         <thead>
