@@ -75,38 +75,50 @@ const groupByAccountType = (data) => {
 
 const BalanceStatementAccounts = () => {
   const [accountData, setAccountData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem('token');
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      let url = 'https://backend.youmingtechnologies.co.ke/balance-statement/accounts';
 
-        // Fetch balance statement data
-        const balanceResponse = await fetch('https://backend.youmingtechnologies.co.ke/balance-statement/accounts', {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!balanceResponse.ok) {
-          throw new Error(`HTTP error! status: ${balanceResponse.status}`);
-        }
-
-        const balanceData = await balanceResponse.json();
-        setAccountData(balanceData);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+      const params = new URLSearchParams();
+      if (startDate) {
+        params.append('start_date', startDate);
       }
-    };
+      if (endDate) {
+        params.append('end_date', endDate);
+      }
 
-    fetchData();
-  }, []);
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      // Fetch balance statement data
+      const balanceResponse = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!balanceResponse.ok) {
+        throw new Error(`HTTP error! status: ${balanceResponse.status}`);
+      }
+
+      const balanceData = await balanceResponse.json();
+      setAccountData(balanceData);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return <div className="loading">Loading...</div>;
@@ -170,6 +182,28 @@ const BalanceStatementAccounts = () => {
   return (
     <div className="balance-statement-container">
       <h1>Balance Statement Accounts</h1>
+
+      {/* Date filtering options */}
+      <div className="date-filter">
+        <label>
+          Start Date:
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+          />
+        </label>
+        <label>
+          End Date:
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+          />
+        </label>
+        <button onClick={fetchData} className="filter-button">Filter</button>
+      </div>
+
       <button onClick={exportToExcel} className="export-button">Export to Excel</button>
       <table className="balance-table" role="table" aria-label="Balance Statement">
         <thead>
