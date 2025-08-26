@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 
 const IncomeStatement = () => {
   const [balanceData, setBalanceData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -47,6 +47,10 @@ const IncomeStatement = () => {
     }
   };
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -57,6 +61,9 @@ const IncomeStatement = () => {
 
   // Group accounts by account_type
   const groupByAccountType = (data) => {
+    if (!data) {
+      return {};
+    }
     const groupedData = {};
     Object.entries(data).forEach(([accountName, accountGroup]) => {
       const accountType = accountGroup.account_type;

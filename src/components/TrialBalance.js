@@ -4,7 +4,7 @@ import './trialbalance.css';
 
 const TrialBalance = () => {
   const [trialBalance, setTrialBalance] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -42,13 +42,17 @@ const TrialBalance = () => {
       }
 
       const data = await response.json(); // Expecting an array of trial balance data
-      setTrialBalance(data.trial_balance); // Set the trial balance data directly
+      setTrialBalance(data.trial_balance || []); // Set the trial balance data directly
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchTrialBalance();
+  }, []);
 
   // Helper function to format numbers with commas and two decimal places
   const formatNumber = (value) => {
