@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const API = 'https://backend.youmingtechnologies.co.ke';
 
@@ -254,7 +255,11 @@ const Creditors = () => {
           <tbody>
             {filteredBalances.map((account, index) => (
               <tr key={index} style={{ borderBottom: '1px solid #ddd', backgroundColor: index % 2 ? '#f9f9f9' : 'white' }}>
-                <td style={{ padding: '12px' }}>{account.supplierName}</td>
+                <td style={{ padding: '12px' }}>
+                  <Link to={`/transactions/creditor/${account.supplierName}`} style={{ textDecoration: 'none', color: '#4CAF50' }}>
+                    {account.supplierName}
+                  </Link>
+                </td>
                 <td style={{ padding: '12px', textAlign: 'right' }}>KES {account.invoiceAmount.toFixed(2)}</td>
                 <td style={{ padding: '12px', textAlign: 'right' }}>KES {account.disbursementsInvoiced.toFixed(2)}</td>
                 <td style={{ padding: '12px', textAlign: 'right' }}>KES {account.disbursementsCash.toFixed(2)}</td>
