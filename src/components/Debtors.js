@@ -63,7 +63,6 @@ const Debtors = () => {
         setCashReceipts(receiptsData);
         setAccountNames(accountsData.map(account => account.account_name));
 
-        // Create a mapping of customer names to account names
         const map = {};
         accountsData.forEach(account => {
           account.sub_account_details.forEach(subAccount => {
@@ -84,70 +83,61 @@ const Debtors = () => {
   useEffect(() => {
     if (!invoices.length || !cashReceipts.length || !Object.keys(customerToAccountMap).length) return;
 
-    const receiptsByCustomer = cashReceipts.reduce((acc, receipt) => {
+    // Aggregate receipts by customer and payment type
+    const receiptsByCustomerAndType = cashReceipts.reduce((acc, receipt) => {
       const customer = receipt.from_whom_received || receipt.name || 'Unknown';
-      if (!acc[customer]) {
-        acc[customer] = 0;
-      }
+      const receiptType = receipt.receipt_type || 'Unknown';
+      if (!acc[customer]) acc[customer] = { invoiced: 0, cash: 0 };
       const receiptAmount = (parseFloat(receipt.cash) || 0) + (parseFloat(receipt.bank) || 0);
-      acc[customer] += receiptAmount;
+      if (receiptType === 'Invoiced') {
+        acc[customer].invoiced += receiptAmount;
+      } else if (receiptType === 'Cash') {
+        acc[customer].cash += receiptAmount;
+      }
       return acc;
     }, {});
 
+    // Aggregate invoices by customer
     const invoicesByCustomer = invoices.reduce((acc, invoice) => {
       const customer = invoice.name || 'Unknown';
-      if (!acc[customer]) {
-        acc[customer] = 0;
-      }
+      if (!acc[customer]) acc[customer] = 0;
       const invoiceAmount = parseFloat(invoice.amount) || 0;
       acc[customer] += invoiceAmount;
       return acc;
     }, {});
 
+    // Get unique customers from both invoices and receipts
     const allCustomers = new Set([
-      ...invoices.map(inv => inv.name),
-      ...cashReceipts.map(rec => rec.from_whom_received || rec.name)
-    ].filter(Boolean));
+      ...Object.keys(invoicesByCustomer),
+      ...Object.keys(receiptsByCustomerAndType)
+    ]);
 
+    // Create account data for each unique customer
     const accountData = Array.from(allCustomers).map(customer => {
       const invoiceAmount = invoicesByCustomer[customer] || 0;
-      const receiptAmount = receiptsByCustomer[customer] || 0;
+      const receipts = receiptsByCustomerAndType[customer] || { invoiced: 0, cash: 0 };
+      const totalReceipts = receipts.invoiced + receipts.cash;
       return {
         customerName: customer,
         accountName: customerToAccountMap[customer] || 'Unknown',
         invoiceAmount,
-        receiptAmount,
-        clearedAmount: Math.min(invoiceAmount, receiptAmount),
-        remainingBalance: Math.max(0, invoiceAmount - receiptAmount),
-        overpayment: Math.max(0, receiptAmount - invoiceAmount),
+        receiptAmount: totalReceipts,
+        receiptsInvoiced: receipts.invoiced,
+        receiptsCash: receipts.cash,
+        remainingBalance: Math.max(0, invoiceAmount - receipts.invoiced),
+        overpayment: Math.max(0, receipts.invoiced - invoiceAmount),
         hasInvoice: invoiceAmount > 0,
-        hasReceipt: receiptAmount > 0
+        hasReceipt: totalReceipts > 0
       };
     });
 
-    const receiptOnlyCustomers = Object.keys(receiptsByCustomer)
-      .filter(customer => !invoicesByCustomer[customer])
-      .map(customer => ({
-        customerName: customer,
-        accountName: customerToAccountMap[customer] || 'Unknown',
-        invoiceAmount: 0,
-        receiptAmount: receiptsByCustomer[customer],
-        clearedAmount: 0,
-        remainingBalance: 0,
-        overpayment: receiptsByCustomer[customer],
-        hasInvoice: false,
-        hasReceipt: true
-      }));
-
-    const combinedData = [...accountData, ...receiptOnlyCustomers];
-    setAccountBalances(combinedData);
+    setAccountBalances(accountData);
     setLoading(false);
   }, [invoices, cashReceipts, customerToAccountMap]);
 
   const filteredBalances = accountBalances.filter(account => {
     const matchesSearch = account.customerName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesAccount = selectedAccount ? account.accountName === selectedAccount : true;
-
     let matchesFilter = true;
     if (filter === 'outstanding') {
       matchesFilter = account.remainingBalance > 0;
@@ -156,7 +146,6 @@ const Debtors = () => {
     } else if (filter === 'receiptOnly') {
       matchesFilter = !account.hasInvoice && account.hasReceipt;
     }
-
     return matchesSearch && matchesAccount && matchesFilter;
   });
 
@@ -220,8 +209,9 @@ const Debtors = () => {
             <tr style={{ backgroundColor: '#4CAF50', color: 'white' }}>
               <th style={{ padding: '12px', textAlign: 'left' }}>Customer Name</th>
               <th style={{ padding: '12px', textAlign: 'right' }}>Invoice Amount</th>
-              <th style={{ padding: '12px', textAlign: 'right' }}>Receipt Amount</th>
-              <th style={{ padding: '12px', textAlign: 'right' }}>Cleared Amount</th>
+              <th style={{ padding: '12px', textAlign: 'right' }}>Receipts (Invoiced)</th>
+              <th style={{ padding: '12px', textAlign: 'right' }}>Receipts (Cash)</th>
+              <th style={{ padding: '12px', textAlign: 'right' }}>Total Receipts</th>
               <th style={{ padding: '12px', textAlign: 'right' }}>Remaining Balance</th>
               <th style={{ padding: '12px', textAlign: 'right' }}>Overpayment</th>
             </tr>
@@ -231,8 +221,9 @@ const Debtors = () => {
               <tr key={index} style={{ borderBottom: '1px solid #ddd', backgroundColor: index % 2 ? '#f9f9f9' : 'white' }}>
                 <td style={{ padding: '12px' }}>{account.customerName}</td>
                 <td style={{ padding: '12px', textAlign: 'right' }}>KES {account.invoiceAmount.toFixed(2)}</td>
+                <td style={{ padding: '12px', textAlign: 'right' }}>KES {account.receiptsInvoiced.toFixed(2)}</td>
+                <td style={{ padding: '12px', textAlign: 'right' }}>KES {account.receiptsCash.toFixed(2)}</td>
                 <td style={{ padding: '12px', textAlign: 'right' }}>KES {account.receiptAmount.toFixed(2)}</td>
-                <td style={{ padding: '12px', textAlign: 'right' }}>KES {account.clearedAmount.toFixed(2)}</td>
                 <td style={{ padding: '12px', textAlign: 'right', color: account.remainingBalance > 0 ? 'red' : 'inherit' }}>
                   KES {account.remainingBalance.toFixed(2)}
                 </td>
@@ -247,9 +238,16 @@ const Debtors = () => {
       <div style={{ marginTop: '30px', padding: '15px', background: 'black', color: 'white', borderRadius: '5px' }}>
         <h3>Summary</h3>
         <p>Total Invoices: KES {filteredBalances.reduce((sum, acc) => sum + acc.invoiceAmount, 0).toFixed(2)}</p>
+        <p>Total Receipts (Invoiced): KES {filteredBalances.reduce((sum, acc) => sum + acc.receiptsInvoiced, 0).toFixed(2)}</p>
+        <p>Total Receipts (Cash): KES {filteredBalances.reduce((sum, acc) => sum + acc.receiptsCash, 0).toFixed(2)}</p>
         <p>Total Receipts: KES {filteredBalances.reduce((sum, acc) => sum + acc.receiptAmount, 0).toFixed(2)}</p>
-        <p>Total Cleared: KES {filteredBalances.reduce((sum, acc) => sum + acc.clearedAmount, 0).toFixed(2)}</p>
-        <p>Total Outstanding: KES {filteredBalances.reduce((sum, acc) => sum + acc.remainingBalance, 0).toFixed(2)}</p>
+        <p>
+          Total Outstanding: KES {
+            (filteredBalances.reduce((sum, acc) => sum + acc.invoiceAmount, 0) -
+             filteredBalances.reduce((sum, acc) => sum + acc.receiptsInvoiced, 0))
+            .toFixed(2)
+          }
+        </p>
         <p style={{ fontWeight: 'bold' }}>
           Total Overpayment: KES {filteredBalances.reduce((sum, acc) => sum + acc.overpayment, 0).toFixed(2)}
         </p>

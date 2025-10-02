@@ -22,14 +22,21 @@ const api = 'https://backend.youmingtechnologies.co.ke';
 const Pagination = ({ itemsPerPage, totalItems, paginate, currentPage }) => {
   const pageNumbers = [];
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+
   for (let i = 1; i <= totalPages; i++) {
     pageNumbers.push(i);
   }
+
   return (
     <nav>
       <ul className="pagination" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '6px' }}>
         <li className="page-item">
-          <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} className="page-link" style={{ minWidth: '80px', textAlign: 'center' }}>
+          <button
+            onClick={() => paginate(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="page-link"
+            style={{ minWidth: '80px', textAlign: 'center' }}
+          >
             Previous
           </button>
         </li>
@@ -41,7 +48,12 @@ const Pagination = ({ itemsPerPage, totalItems, paginate, currentPage }) => {
           </li>
         ))}
         <li className="page-item">
-          <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} className="page-link" style={{ minWidth: '80px', textAlign: 'center' }}>
+          <button
+            onClick={() => paginate(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="page-link"
+            style={{ minWidth: '80px', textAlign: 'center' }}
+          >
             Next
           </button>
         </li>
@@ -51,6 +63,7 @@ const Pagination = ({ itemsPerPage, totalItems, paginate, currentPage }) => {
 };
 
 const DisbursementForm = () => {
+  // State declarations
   const [formData, setFormData] = useState({
     disbursement_date: "",
     cheque_no: "",
@@ -84,11 +97,15 @@ const DisbursementForm = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [creditedAccounts, setCreditedAccounts] = useState([]);
   const [selectedCreditedAccount, setSelectedCreditedAccount] = useState("");
-  const [selectedDate, setSelectedDate] = useState("");
-  const [uniqueDates, setUniqueDates] = useState([]);
+  const [selectedMonth, setSelectedMonth] = useState("");
+  const [uniqueMonths, setUniqueMonths] = useState([]);
+  const [selectedDateFilter, setSelectedDateFilter] = useState("");
+  const [dateCounts, setDateCounts] = useState({});
+
   const itemsPerPage = 30;
   const printRef = useRef();
 
+  // Format currency function
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -98,6 +115,7 @@ const DisbursementForm = () => {
     }).format(amount);
   };
 
+  // Custom styles for Select components
   const customStyles = {
     option: (provided, state) => ({
       ...provided,
@@ -117,6 +135,7 @@ const DisbursementForm = () => {
     }),
   };
 
+  // Initial data fetch
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem("token");
@@ -124,30 +143,30 @@ const DisbursementForm = () => {
         setErrorMessage("Unauthorized: Missing token.");
         return;
       }
+
       try {
-        const coaResponse = await fetch(`${api}/chart-of-accounts`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const [coaResponse, payeesResponse, invoicesResponse, disbursementsResponse] = await Promise.all([
+          fetch(`${api}/chart-of-accounts`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${api}/payee`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${api}/invoice-received`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${api}/cash-disbursement-journals`, { headers: { Authorization: `Bearer ${token}` } })
+        ]);
+
         if (!coaResponse.ok) throw new Error("Failed to fetch COA (token expired).");
-        const coaData = await coaResponse.json();
-        setCoaAccounts(coaData);
-        const payeesResponse = await fetch(`${api}/payee`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
         if (!payeesResponse.ok) throw new Error("Failed to fetch payees.");
-        const payeesData = await payeesResponse.json();
-        setPayees(payeesData);
-        const invoicesResponse = await fetch(`${api}/invoice-received`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
         if (!invoicesResponse.ok) throw new Error("Failed to fetch invoices.");
-        const invoicesData = await invoicesResponse.json();
-        setInvoices(invoicesData);
-        const disbursementsResponse = await fetch(`${api}/cash-disbursement-journals`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
         if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
-        const disbursementsData = await disbursementsResponse.json();
+
+        const [coaData, payeesData, invoicesData, disbursementsData] = await Promise.all([
+          coaResponse.json(),
+          payeesResponse.json(),
+          invoicesResponse.json(),
+          disbursementsResponse.json()
+        ]);
+
+        setCoaAccounts(coaData);
+        setPayees(payeesData);
+        setInvoices(invoicesData);
         setDisbursements(disbursementsData);
       } catch (error) {
         setErrorMessage(error.message);
@@ -155,28 +174,61 @@ const DisbursementForm = () => {
         setLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
+  // Calculate unique months and date counts
   useEffect(() => {
     if (disbursements.length > 0) {
-      const uniqueCreditedAccounts = [...new Set(disbursements.map(disbursement => disbursement.account_credited))];
-      setCreditedAccounts(uniqueCreditedAccounts);
-      const dates = [...new Set(disbursements.map(disbursement => disbursement.disbursement_date))];
-      setUniqueDates(dates);
+      // Extract unique months
+      const months = [...new Set(disbursements.map(disbursement => {
+        const date = new Date(disbursement.disbursement_date);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      }))];
+      setUniqueMonths(months);
+
+      // Calculate counts per month
+      const counts = {};
+      const creditedAccountsSet = new Set();
+
+      disbursements.forEach(disbursement => {
+        const date = new Date(disbursement.disbursement_date);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+        // For date counts
+        if (!counts[monthKey]) {
+          counts[monthKey] = {
+            count: 0,
+            displayName: formatMonthForDisplay(monthKey)
+          };
+        }
+        counts[monthKey].count++;
+
+        // For credited accounts
+        if (disbursement.account_credited) {
+          creditedAccountsSet.add(disbursement.account_credited);
+        }
+      });
+
+      setDateCounts(counts);
+      setCreditedAccounts(Array.from(creditedAccountsSet));
     }
   }, [disbursements]);
 
+  // Fetch journals function
   const fetchJournals = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
       setErrorMessage("Unauthorized: Missing token.");
       return;
     }
+
     try {
       const disbursementsResponse = await fetch(`${api}/cash-disbursement-journals`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
       const disbursementsData = await disbursementsResponse.json();
       setDisbursements(disbursementsData);
@@ -185,30 +237,40 @@ const DisbursementForm = () => {
     }
   };
 
+  // Input change handler
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevData) => {
       const updatedData = { ...prevData, [name]: value };
+
       if (name === "cash" || name === "bank") {
         updatedData.total = calculateTotal(updatedData.cash, updatedData.bank);
       }
+
       return updatedData;
     });
   };
 
+  // Calculate total amount
   const calculateTotal = (cash, bank) => {
-    return formatCurrency(parseFloat(cash.replace(/[^\d.-]/g, '')) + parseFloat(bank.replace(/[^\d.-]/g, '')));
+    return formatCurrency(
+      parseFloat(cash.replace(/[^\d.-]/g, '')) +
+      parseFloat(bank.replace(/[^\d.-]/g, ''))
+    );
   };
 
+  // Calculate balance and total disbursed
   const calculateBalanceAndTotalDisbursed = (payeeName) => {
     const payeeInvoices = invoices.filter((invoice) => invoice.name === payeeName);
     const totalInvoiceAmount = payeeInvoices.reduce(
       (sum, invoice) => sum + parseFloat(invoice.amount || 0),
       0
     );
+
     const payeeDisbursements = disbursements.filter(
       (disbursement) => disbursement.to_whom_paid === payeeName
     );
+
     const totalDisbursedAmount = payeeDisbursements.reduce(
       (sum, disbursement) => {
         const totalAsString = typeof disbursement.total === 'string'
@@ -218,34 +280,41 @@ const DisbursementForm = () => {
       },
       0
     );
+
     const payeeBalance = formatCurrency(totalInvoiceAmount - totalDisbursedAmount);
     setBalance(payeeBalance);
     setTotalDisbursed(formatCurrency(totalDisbursedAmount));
   };
 
+  // Generate unique voucher number
   const generateUniqueVoucherNumber = () => {
     const randomNumber = Math.floor(Math.random() * 10000) + 1;
     return `PV-${randomNumber}`;
   };
 
+  // Form submission handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem("token");
+
     if (!token) {
       setErrorMessage("Unauthorized: Missing token.");
       return;
     }
+
     const payload = {
       ...formData,
       disbursement_date: new Date(formData.disbursement_date).toISOString().split("T")[0],
-      p_voucher_no: editingDisbursement ? formData.p_voucher_no : generateUniqueVoucherNumber(disbursements),
+      p_voucher_no: editingDisbursement ? formData.p_voucher_no : generateUniqueVoucherNumber(),
       manual_number: formData.manual_number || null,
       cash: parseFloat(formData.cash.replace(/[^\d.-]/g, '')),
       bank: parseFloat(formData.bank.replace(/[^\d.-]/g, '')),
       total: parseFloat(formData.total.replace(/[^\d.-]/g, '')),
     };
+
     try {
       let response;
+
       if (editingDisbursement) {
         response = await fetch(`${api}/cash-disbursement-journals/${editingDisbursement.id}`, {
           method: "PUT",
@@ -265,17 +334,15 @@ const DisbursementForm = () => {
           body: JSON.stringify(payload),
         });
       }
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText);
       }
-      const disbursementsResponse = await fetch(`${api}/cash-disbursement-journals`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
-      const disbursementsData = await disbursementsResponse.json();
-      setDisbursements(disbursementsData);
+
+      await fetchJournals();
       alert(editingDisbursement ? "Disbursement updated successfully!" : "Disbursement added successfully!");
+
       setFormData({
         disbursement_date: "",
         cheque_no: "",
@@ -293,6 +360,7 @@ const DisbursementForm = () => {
         parent_account: "",
         department: "",
       });
+
       setErrorMessage("");
       setShowForm(false);
       setEditingDisbursement(null);
@@ -301,12 +369,15 @@ const DisbursementForm = () => {
     }
   };
 
+  // Delete disbursement handler
   const handleDeleteDisbursement = async (id) => {
     const token = localStorage.getItem("token");
+
     if (!token) {
       setErrorMessage("Unauthorized: Missing token.");
       return;
     }
+
     try {
       const response = await fetch(`${api}/cash-disbursement-journals/${id}`, {
         method: "DELETE",
@@ -314,29 +385,29 @@ const DisbursementForm = () => {
           Authorization: `Bearer ${token}`,
         },
       });
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(errorText);
       }
-      const disbursementsResponse = await fetch(`${api}/cash-disbursement-journals`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
-      const disbursementsData = await disbursementsResponse.json();
-      setDisbursements(disbursementsData);
+
+      await fetchJournals();
       alert("Disbursement deleted successfully!");
     } catch (error) {
       setErrorMessage(error.message);
     }
   };
 
+  // Delete all disbursements handler
   const handleDeleteAll = async () => {
     if (!window.confirm("Are you sure you want to delete all entries?")) return;
+
     const token = localStorage.getItem("token");
     if (!token) {
       setErrorMessage("Unauthorized: Missing token.");
       return;
     }
+
     try {
       await Promise.all(disbursements.map(async (disbursement) => {
         const response = await fetch(`${api}/cash-disbursement-journals/${disbursement.id}`, {
@@ -345,11 +416,13 @@ const DisbursementForm = () => {
             Authorization: `Bearer ${token}`,
           },
         });
+
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText);
         }
       }));
+
       setDisbursements([]);
       alert("All disbursements deleted successfully!");
     } catch (error) {
@@ -357,23 +430,28 @@ const DisbursementForm = () => {
     }
   };
 
+  // Delete by credited account handler
   const handleDeleteByCreditedAccount = async () => {
     if (!selectedCreditedAccount) {
       alert("Please select a credited account.");
       return;
     }
+
     if (!window.confirm(`Are you sure you want to delete all transactions for the credited account: ${selectedCreditedAccount}?`)) {
       return;
     }
+
     const token = localStorage.getItem("token");
     if (!token) {
       setErrorMessage("Unauthorized: Missing token.");
       return;
     }
+
     try {
       const disbursementsToDelete = disbursements.filter(
         (disbursement) => disbursement.account_credited === selectedCreditedAccount
       );
+
       await Promise.all(disbursementsToDelete.map(async (disbursement) => {
         const response = await fetch(`${api}/cash-disbursement-journals/${disbursement.id}`, {
           method: "DELETE",
@@ -381,17 +459,14 @@ const DisbursementForm = () => {
             Authorization: `Bearer ${token}`,
           },
         });
+
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText);
         }
       }));
-      const disbursementsResponse = await fetch(`${api}/cash-disbursement-journals`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
-      const disbursementsData = await disbursementsResponse.json();
-      setDisbursements(disbursementsData);
+
+      await fetchJournals();
       alert(`All transactions for the credited account "${selectedCreditedAccount}" have been deleted successfully!`);
       setSelectedCreditedAccount("");
     } catch (error) {
@@ -399,23 +474,36 @@ const DisbursementForm = () => {
     }
   };
 
-  const handleDeleteByDate = async () => {
-    if (!selectedDate) {
-      alert("Please select a date.");
+  // Delete by month handler
+  const handleDeleteByMonth = async () => {
+    if (!selectedMonth) {
+      alert("Please select a month.");
       return;
     }
-    if (!window.confirm(`Are you sure you want to delete all transactions for the date: ${selectedDate}?`)) {
+
+    const [year, month] = selectedMonth.split('-');
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+                      "July", "August", "September", "October", "November", "December"];
+    const monthName = monthNames[parseInt(month) - 1];
+    const displayMonth = `${monthName} ${year}`;
+
+    if (!window.confirm(`Are you sure you want to delete all transactions for ${displayMonth}?`)) {
       return;
     }
+
     const token = localStorage.getItem("token");
     if (!token) {
       setErrorMessage("Unauthorized: Missing token.");
       return;
     }
+
     try {
-      const disbursementsToDelete = disbursements.filter(
-        (disbursement) => disbursement.disbursement_date === selectedDate
-      );
+      const disbursementsToDelete = disbursements.filter((disbursement) => {
+        const date = new Date(disbursement.disbursement_date);
+        const disbursementMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        return disbursementMonth === selectedMonth;
+      });
+
       await Promise.all(disbursementsToDelete.map(async (disbursement) => {
         const response = await fetch(`${api}/cash-disbursement-journals/${disbursement.id}`, {
           method: "DELETE",
@@ -423,24 +511,22 @@ const DisbursementForm = () => {
             Authorization: `Bearer ${token}`,
           },
         });
+
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(errorText);
         }
       }));
-      const disbursementsResponse = await fetch(`${api}/cash-disbursement-journals`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!disbursementsResponse.ok) throw new Error("Failed to fetch disbursements.");
-      const disbursementsData = await disbursementsResponse.json();
-      setDisbursements(disbursementsData);
-      alert(`All transactions for the date "${selectedDate}" have been deleted successfully!`);
-      setSelectedDate("");
+
+      await fetchJournals();
+      alert(`All transactions for ${displayMonth} have been deleted successfully!`);
+      setSelectedMonth("");
     } catch (error) {
       setErrorMessage(error.message);
     }
   };
 
+  // Edit click handler
   const handleEditClick = (disbursement) => {
     setEditingDisbursement(disbursement);
     setFormData({
@@ -463,6 +549,7 @@ const DisbursementForm = () => {
     setShowForm(true);
   };
 
+  // Get debit accounts based on payment type
   const getDebitAccounts = () => {
     if (formData.payment_type === "Cash") {
       const cashAccounts = coaAccounts.flatMap((account) => {
@@ -487,17 +574,20 @@ const DisbursementForm = () => {
     }
   };
 
+  // Get credit accounts
   const getCreditAccounts = () => {
     const assetsAccount = coaAccounts.find(
-      (account) => account.account_name === "100-Current Assets"
+      (account) => account.parent_account === "1000-Cash & Cash Equivalent"
     );
     return assetsAccount?.sub_account_details || [];
   };
 
+  // Open form popup
   const openFormPopup = () => {
     setShowForm(true);
   };
 
+  // Close form popup
   const closeFormPopup = () => {
     setShowForm(false);
     setFormData({
@@ -521,6 +611,7 @@ const DisbursementForm = () => {
     setEditingDisbursement(null);
   };
 
+  // Open printable view
   const openPrintableView = (disbursement) => {
     setPrintableDisbursement(disbursement);
     setTimeout(() => {
@@ -529,10 +620,12 @@ const DisbursementForm = () => {
     }, 100);
   };
 
+  // Close printable view
   const closePrintableView = () => {
     setPrintableDisbursement(null);
   };
 
+  // Export to Excel
   const handleExportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(disbursements);
     const workbook = XLSX.utils.book_new();
@@ -540,9 +633,11 @@ const DisbursementForm = () => {
     XLSX.writeFile(workbook, 'disbursements.xlsx');
   };
 
+  // Handle file upload
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -554,6 +649,7 @@ const DisbursementForm = () => {
           defval: '',
           raw: false
         });
+
         const COLS = {
           DATE: 1,
           CHEQUE_NO: 2,
@@ -569,23 +665,28 @@ const DisbursementForm = () => {
           BANK: 12,
           TOTAL: 13
         };
+
         const token = localStorage.getItem('token');
         if (!token) {
           throw new Error('Authentication token missing');
         }
+
         const cashChequeNumbers = new Set();
         const results = [];
         let successCount = 0;
         let errorCount = 0;
+
         for (let i = 1; i < rawData.length; i++) {
           const row = rawData[i];
           if (!row || row.length < 13) {
             console.warn(`Skipping row ${i + 1}: insufficient columns`);
             continue;
           }
+
           if (row.every(cell => cell === '' || cell === null || cell === undefined)) {
             continue;
           }
+
           const dateValue = row[COLS.DATE];
           let chequeNo = String(row[COLS.CHEQUE_NO] || '').trim();
           const manualPvNo = String(row[COLS.MANUAL_PV_NO] || '').trim();
@@ -596,30 +697,37 @@ const DisbursementForm = () => {
           const parentAccount = String(row[COLS.PARENT_ACCOUNT] || '').trim();
           const accountDebited = String(row[COLS.ACCOUNT_DEBITED] || '').trim();
           const accountCredited = String(row[COLS.ACCOUNT_CREDITED] || '').trim();
+
           const parseAmount = (value) => {
             if (value === null || value === undefined || value === '') return 0;
             const numStr = String(value).replace(/,/g, '');
             return parseFloat(numStr) || 0;
           };
+
           const cash = parseAmount(row[COLS.CASH]);
           const bank = parseAmount(row[COLS.BANK]);
           const total = parseAmount(row[COLS.TOTAL]);
+
           if (chequeNo.toLowerCase().includes('cash')) {
             let newChequeNo;
             let attempts = 0;
             const maxAttempts = 5;
+
             do {
               attempts++;
               const timestamp = Date.now();
               const randomNum = Math.floor(Math.random() * 1000000);
               newChequeNo = `cash-${timestamp}-${randomNum}`;
+
               if (attempts >= maxAttempts) {
                 throw new Error(`Failed to generate unique cheque number after ${maxAttempts} attempts`);
               }
             } while (cashChequeNumbers.has(newChequeNo));
+
             chequeNo = newChequeNo;
             cashChequeNumbers.add(chequeNo);
           }
+
           let paymentDate;
           try {
             if (typeof dateValue === 'number') {
@@ -643,6 +751,7 @@ const DisbursementForm = () => {
             errorCount++;
             continue;
           }
+
           if (!paymentDate) {
             results.push({
               row: i + 1,
@@ -652,6 +761,7 @@ const DisbursementForm = () => {
             errorCount++;
             continue;
           }
+
           const journal = {
             disbursement_date: paymentDate,
             cheque_no: chequeNo,
@@ -668,6 +778,7 @@ const DisbursementForm = () => {
             bank: bank,
             total: total
           };
+
           try {
             const response = await fetch(`${api}/cash-disbursement-journals`, {
               method: 'POST',
@@ -677,10 +788,12 @@ const DisbursementForm = () => {
               },
               body: JSON.stringify(journal)
             });
+
             if (!response.ok) {
               const errorData = await response.json();
               throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
             }
+
             const result = await response.json();
             results.push({
               row: i + 1,
@@ -699,37 +812,84 @@ const DisbursementForm = () => {
             errorCount++;
           }
         }
+
         console.log('Upload results:', {
           total: rawData.length - 1,
           success: successCount,
           errors: errorCount,
           details: results
         });
+
         alert(`Upload completed: ${successCount} successful, ${errorCount} errors`);
+        await fetchJournals();
       } catch (err) {
         console.error('Upload error:', err);
         alert(`Upload failed: ${err.message}`);
       }
     };
+
     reader.readAsArrayBuffer(file);
   };
 
+  // Search handler
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
+    setCurrentPage(1);
   };
 
-  const handleDateChange = (e) => {
-    setSelectedDate(e.target.value);
+  // Month change handler
+  const handleMonthChange = (e) => {
+    setSelectedMonth(e.target.value);
   };
 
-  const filteredDisbursements = disbursements.filter((disbursement) => {
-    return disbursement.to_whom_paid.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  // Date filter change handler
+  const handleDateFilterChange = (e) => {
+    setSelectedDateFilter(e.target.value);
+    setCurrentPage(1);
+  };
 
+  // Credited account change handler
+  const handleCreditedAccountChange = (e) => {
+    setSelectedCreditedAccount(e.target.value);
+  };
+
+  // Format month for display
+  const formatMonthForDisplay = (monthValue) => {
+    if (!monthValue) return "";
+    const [year, month] = monthValue.split('-');
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+                      "July", "August", "September", "October", "November", "December"];
+    return `${monthNames[parseInt(month) - 1]} ${year}`;
+  };
+
+  // Apply search filter
+  const applySearchFilter = () => {
+    return disbursements.filter((disbursement) => {
+      return disbursement.to_whom_paid.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+  };
+
+  // Apply date filter
+  const applyDateFilter = (filteredDisbursements) => {
+    if (!selectedDateFilter) return filteredDisbursements;
+
+    return filteredDisbursements.filter(disbursement => {
+      const date = new Date(disbursement.disbursement_date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      return monthKey === selectedDateFilter;
+    });
+  };
+
+  // Get filtered disbursements
+  const searchFiltered = applySearchFilter();
+  const filteredDisbursements = applyDateFilter(searchFiltered);
+
+  // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredDisbursements.slice(indexOfFirstItem, indexOfLastItem);
 
+  // Select options
   const payeeOptions = payees.flatMap((payee) =>
     payee.sub_account_details?.map((subAccount) => ({
       value: subAccount.name,
@@ -747,51 +907,92 @@ const DisbursementForm = () => {
     label: subAccount.name,
   }));
 
-  const handleCreditedAccountChange = (e) => {
-    setSelectedCreditedAccount(e.target.value);
-  };
-
   return (
     <div className="disbursement-container">
       <h1 className="head">
         <FontAwesomeIcon icon={faWallet} className="icon" /> Cash Disbursement Journal
       </h1>
-      <button onClick={openFormPopup} className="add-button">
-        <FontAwesomeIcon icon={faPlus} className="icon" /> Add New Disbursement
-      </button>
-      <button onClick={handleExportToExcel} className="export-button">
-        <FontAwesomeIcon icon={faFileExcel} className="icon" /> Export to Excel
-      </button>
-      <div className="delete-by-credited-account">
-        <select value={selectedCreditedAccount} onChange={handleCreditedAccountChange} className="form-input">
-          <option value="">Select Credited Account</option>
-          {creditedAccounts.map((account, index) => (
-            <option key={index} value={account}>{account}</option>
-          ))}
-        </select>
-        <button onClick={handleDeleteByCreditedAccount} className="delete-button">
-          <FontAwesomeIcon icon={faTrash} className="icon" /> Delete by Credited Account
+
+      <div className="action-buttons">
+        <button onClick={openFormPopup} className="add-button">
+          <FontAwesomeIcon icon={faPlus} className="icon" /> Add New Disbursement
+        </button>
+
+        <button onClick={handleExportToExcel} className="export-button">
+          <FontAwesomeIcon icon={faFileExcel} className="icon" /> Export to Excel
         </button>
       </div>
-      <div className="delete-by-date">
-        <select value={selectedDate} onChange={handleDateChange} className="form-input">
-          <option value="">Select Date</option>
-          {uniqueDates.map((date, index) => (
-            <option key={index} value={date}>{date}</option>
-          ))}
-        </select>
-        <button onClick={handleDeleteByDate} className="delete-button">
-          <FontAwesomeIcon icon={faTrash} className="icon" /> Delete by Date
-        </button>
+
+      <div className="filter-controls">
+        <div className="filter-group">
+          <div className="delete-by-credited-account">
+            <select
+              value={selectedCreditedAccount}
+              onChange={handleCreditedAccountChange}
+              className="form-input"
+            >
+              <option value="">Select Credited Account</option>
+              {creditedAccounts.map((account, index) => (
+                <option key={index} value={account}>{account}</option>
+              ))}
+            </select>
+            <button onClick={handleDeleteByCreditedAccount} className="delete-button">
+              <FontAwesomeIcon icon={faTrash} className="icon" /> Delete by Credited Account
+            </button>
+          </div>
+
+          <div className="delete-by-date">
+            <select
+              value={selectedMonth}
+              onChange={handleMonthChange}
+              className="form-input"
+            >
+              <option value="">Select Month</option>
+              {uniqueMonths.map((month, index) => (
+                <option key={index} value={month}>
+                  {formatMonthForDisplay(month)}
+                </option>
+              ))}
+            </select>
+            <button onClick={handleDeleteByMonth} className="delete-button">
+              <FontAwesomeIcon icon={faTrash} className="icon" /> Delete by Month
+            </button>
+          </div>
+        </div>
+
+        <div className="filter-group">
+          <input
+            type="file"
+            onChange={handleFileUpload}
+            accept=".xlsx, .xls"
+            className="file-input"
+          />
+
+          <input
+            type="text"
+            placeholder="Search by 'To Whom Paid'..."
+            value={searchQuery}
+            onChange={handleSearch}
+            className="search-input"
+          />
+
+          <div className="filter-by-date">
+            <select
+              value={selectedDateFilter}
+              onChange={handleDateFilterChange}
+              className="form-input"
+            >
+              <option value="">All Dates</option>
+              {Object.entries(dateCounts).map(([monthKey, {displayName, count}]) => (
+                <option key={monthKey} value={monthKey}>
+                  {displayName} ({count} entries)
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
-      <input type="file" onChange={handleFileUpload} accept=".xlsx, .xls" />
-      <input
-        type="text"
-        placeholder="Search by 'To Whom Paid'..."
-        value={searchQuery}
-        onChange={handleSearch}
-        className="search-input"
-      />
+
       {showForm && (
         <div className="form-popup">
           <div className="form-container">
@@ -811,6 +1012,7 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
+
               <div className="form-row">
                 <label htmlFor="cheque_no">
                   <FontAwesomeIcon icon={faFileAlt} className="icon" /> Cheque No
@@ -825,6 +1027,7 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
+
               <div className="form-row">
                 <label htmlFor="p_voucher_no">
                   <FontAwesomeIcon icon={faFileAlt} className="icon" /> Payment Voucher No
@@ -839,6 +1042,7 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
+
               <div className="form-row">
                 <label htmlFor="manual_number">Manual PV Number</label>
                 <input
@@ -850,6 +1054,7 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
+
               <div className="form-row">
                 <label htmlFor="to_whom_paid">
                   <FontAwesomeIcon icon={faUser} className="icon" /> To Whom Paid
@@ -869,6 +1074,7 @@ const DisbursementForm = () => {
                   styles={customStyles}
                 />
               </div>
+
               <div className="form-row">
                 <label>Balance</label>
                 <input
@@ -878,6 +1084,7 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
+
               <div className="form-row">
                 <label htmlFor="description">Description</label>
                 <input
@@ -890,6 +1097,7 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
+
               <div className="form-row">
                 <label htmlFor="payment_type">Payment Type</label>
                 <select
@@ -905,6 +1113,7 @@ const DisbursementForm = () => {
                   <option value="Invoiced">Invoiced</option>
                 </select>
               </div>
+
               <div className="form-row">
                 <label htmlFor="parent_account">Parent Account:</label>
                 <select
@@ -922,6 +1131,7 @@ const DisbursementForm = () => {
                   ))}
                 </select>
               </div>
+
               <div className="form-row">
                 <label htmlFor="department">Department:</label>
                 <input
@@ -933,6 +1143,7 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
+
               <div className="form-row">
                 <label htmlFor="account_debited">Account Debited</label>
                 <Select
@@ -949,6 +1160,7 @@ const DisbursementForm = () => {
                   styles={customStyles}
                 />
               </div>
+
               <div className="form-row">
                 <label htmlFor="account_credited">Account Credited</label>
                 <Select
@@ -965,6 +1177,7 @@ const DisbursementForm = () => {
                   styles={customStyles}
                 />
               </div>
+
               <div className="form-row">
                 <label htmlFor="cash">
                   <FontAwesomeIcon icon={faDollarSign} className="icon" /> Cash
@@ -979,6 +1192,7 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
+
               <div className="form-row">
                 <label htmlFor="bank">
                   <FontAwesomeIcon icon={faBook} className="icon" /> Bank
@@ -993,6 +1207,7 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
+
               <div className="form-row">
                 <label htmlFor="total">
                   <FontAwesomeIcon icon={faWallet} className="icon" /> Total
@@ -1006,6 +1221,7 @@ const DisbursementForm = () => {
                   className="form-input"
                 />
               </div>
+
               <div className="form-actions">
                 <button type="submit" className="submit-button">
                   <FontAwesomeIcon icon={faWallet} className="icon" /> {editingDisbursement ? "Update" : "Submit"}
@@ -1018,76 +1234,89 @@ const DisbursementForm = () => {
           </div>
         </div>
       )}
+
       {loading ? (
         <p>Loading...</p>
       ) : (
         <div className="disbursements-list">
           <h2>Disbursements</h2>
           {errorMessage && <p className="error-message">{errorMessage}</p>}
+
           {filteredDisbursements.length > 0 ? (
-            <table className="disbursements-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Cheque No</th>
-                  <th>Voucher No</th>
-                  <th>Manual PV Number</th>
-                  <th>To Whom Paid</th>
-                  <th>Description</th>
-                  <th>Payment Type</th>
-                  <th>Parent Account</th>
-                  <th>Department</th>
-                  <th>Account Debited</th>
-                  <th>Account Credited</th>
-                  <th>Cash</th>
-                  <th>Bank</th>
-                  <th>Total</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentItems.map((disbursement) => (
-                  <tr key={disbursement.id}>
-                    <td>{disbursement.disbursement_date}</td>
-                    <td>{disbursement.cheque_no}</td>
-                    <td>{disbursement.p_voucher_no}</td>
-                    <td>{disbursement.manual_number}</td>
-                    <td>{disbursement.to_whom_paid}</td>
-                    <td>{disbursement.description}</td>
-                    <td>{disbursement.payment_type}</td>
-                    <td>{disbursement.parent_account}</td>
-                    <td>{disbursement.department}</td>
-                    <td>{disbursement.account_debited}</td>
-                    <td>{disbursement.account_credited}</td>
-                    <td>{formatCurrency(parseFloat(disbursement.cash))}</td>
-                    <td>{formatCurrency(parseFloat(disbursement.bank))}</td>
-                    <td>{formatCurrency(parseFloat(disbursement.total))}</td>
-                    <td>
-                      <button onClick={() => handleEditClick(disbursement)} className="edit-button">
-                        <FontAwesomeIcon icon={faEdit} className="icon" /> Edit
-                      </button>
-                      <button onClick={() => handleDeleteDisbursement(disbursement.id)} className="delete-button">
-                        <FontAwesomeIcon icon={faTrash} className="icon" /> Delete
-                      </button>
-                      <button onClick={() => openPrintableView(disbursement)} className="print-button">
-                        <FontAwesomeIcon icon={faPrint} className="icon" /> Print
-                      </button>
-                    </td>
+            <>
+              <div className="disbursement-stats">
+                <p>Showing {filteredDisbursements.length} of {disbursements.length} entries</p>
+                {selectedDateFilter && (
+                  <p>Filtered by: {formatMonthForDisplay(selectedDateFilter)}</p>
+                )}
+              </div>
+
+              <table className="disbursements-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Cheque No</th>
+                    <th>Voucher No</th>
+                    <th>Manual PV Number</th>
+                    <th>To Whom Paid</th>
+                    <th>Description</th>
+                    <th>Payment Type</th>
+                    <th>Parent Account</th>
+                    <th>Department</th>
+                    <th>Account Debited</th>
+                    <th>Account Credited</th>
+                    <th>Cash</th>
+                    <th>Bank</th>
+                    <th>Total</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {currentItems.map((disbursement) => (
+                    <tr key={disbursement.id}>
+                      <td>{disbursement.disbursement_date}</td>
+                      <td>{disbursement.cheque_no}</td>
+                      <td>{disbursement.p_voucher_no}</td>
+                      <td>{disbursement.manual_number}</td>
+                      <td>{disbursement.to_whom_paid}</td>
+                      <td>{disbursement.description}</td>
+                      <td>{disbursement.payment_type}</td>
+                      <td>{disbursement.parent_account}</td>
+                      <td>{disbursement.department}</td>
+                      <td>{disbursement.account_debited}</td>
+                      <td>{disbursement.account_credited}</td>
+                      <td>{formatCurrency(parseFloat(disbursement.cash))}</td>
+                      <td>{formatCurrency(parseFloat(disbursement.bank))}</td>
+                      <td>{formatCurrency(parseFloat(disbursement.total))}</td>
+                      <td>
+                        <button onClick={() => handleEditClick(disbursement)} className="edit-button">
+                          <FontAwesomeIcon icon={faEdit} className="icon" /> Edit
+                        </button>
+                        <button onClick={() => handleDeleteDisbursement(disbursement.id)} className="delete-button">
+                          <FontAwesomeIcon icon={faTrash} className="icon" /> Delete
+                        </button>
+                        <button onClick={() => openPrintableView(disbursement)} className="print-button">
+                          <FontAwesomeIcon icon={faPrint} className="icon" /> Print
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <Pagination
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredDisbursements.length}
+                paginate={setCurrentPage}
+                currentPage={currentPage}
+              />
+            </>
           ) : (
-            <p>No disbursements available.</p>
+            <p>No disbursements available.{searchQuery && " Try broadening your search."}</p>
           )}
-          <Pagination
-            itemsPerPage={itemsPerPage}
-            totalItems={filteredDisbursements.length}
-            paginate={setCurrentPage}
-            currentPage={currentPage}
-          />
         </div>
       )}
+
       {printableDisbursement && (
         <div className="printable-voucher" ref={printRef}>
           <Voucher disbursement={printableDisbursement} formatCurrency={formatCurrency} />
@@ -1097,6 +1326,7 @@ const DisbursementForm = () => {
   );
 };
 
+// Voucher component
 const Voucher = ({ disbursement, formatCurrency }) => {
   return (
     <div className="voucher">
@@ -1147,6 +1377,7 @@ const Voucher = ({ disbursement, formatCurrency }) => {
           </tr>
         </tbody>
       </table>
+
       <div className="signature-section">
         <table className="signature-table">
           <tbody>
@@ -1165,6 +1396,7 @@ const Voucher = ({ disbursement, formatCurrency }) => {
           </tbody>
         </table>
       </div>
+
       <style jsx>{`
         .voucher {
           font-family: Arial, sans-serif;

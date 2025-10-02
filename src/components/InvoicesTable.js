@@ -32,6 +32,8 @@ const InvoiceIssued = () => {
   const [groupedDescriptions, setGroupedDescriptions] = useState([]);
   const [selectedDescription, setSelectedDescription] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
+  const [availableMonths, setAvailableMonths] = useState([]);
+  const [selectedMonthYear, setSelectedMonthYear] = useState(null);
   const invoicesPerPage = 50;
   const api = 'https://backend.youmingtechnologies.co.ke';
 
@@ -54,6 +56,19 @@ const InvoiceIssued = () => {
     }),
   };
 
+  // Count invoices per month-year
+  const countInvoicesByMonth = () => {
+    const monthCounts = {};
+    invoices.forEach(invoice => {
+      const date = new Date(invoice.date_issued);
+      if (!isNaN(date.getTime())) {
+        const monthYear = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
+        monthCounts[monthYear] = (monthCounts[monthYear] || 0) + 1;
+      }
+    });
+    return monthCounts;
+  };
+
   useEffect(() => {
     fetchInvoices();
     fetchCustomers();
@@ -64,6 +79,30 @@ const InvoiceIssued = () => {
     if (invoices.length > 0) {
       const descriptions = [...new Set(invoices.map(invoice => invoice.description.trim()))];
       setGroupedDescriptions(descriptions);
+
+      const monthCounts = countInvoicesByMonth();
+      const monthsSet = new Set();
+
+      invoices.forEach(invoice => {
+        const date = new Date(invoice.date_issued);
+        if (!isNaN(date.getTime())) {
+          const monthYear = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
+          monthsSet.add(monthYear);
+        }
+      });
+
+      const sortedMonths = Array.from(monthsSet)
+        .map(monthYear => ({
+          value: monthYear,
+          label: `${monthYear} (${monthCounts[monthYear] || 0} invoices)`
+        }))
+        .sort((a, b) => {
+          const [monthA, yearA] = a.value.split(' ');
+          const [monthB, yearB] = b.value.split(' ');
+          return new Date(`${monthB} 1, ${yearB}`) - new Date(`${monthA} 1, ${yearA}`);
+        });
+
+      setAvailableMonths(sortedMonths);
     }
   }, [invoices]);
 
@@ -172,16 +211,13 @@ const InvoiceIssued = () => {
       setError("User is not authenticated");
       return;
     }
-
     const isValidDate = (date) => {
       return /^\d{4}-\d{2}-\d{2}$/.test(date);
     };
-
     if (!isValidDate(dateIssued)) {
       setError("Invalid date format. Please use YYYY-MM-DD.");
       return;
     }
-
     let customersToProcess = [];
     if (selectedCustomer) {
       const selectedCustomerData = customers.find((customer) =>
@@ -196,13 +232,11 @@ const InvoiceIssued = () => {
       setError("Please select a customer.");
       return;
     }
-
     const sumOfCreditedAmounts = accountsCredited.reduce((sum, account) => sum + account.amount, 0);
     if (sumOfCreditedAmounts !== totalAmount) {
       setError("The sum of credited amounts must equal the total amount.");
       return;
     }
-
     for (const subAccount of customersToProcess) {
       const uniqueInvoiceNumber = generateUniqueInvoiceNumber();
       const payload = {
@@ -219,7 +253,6 @@ const InvoiceIssued = () => {
         manual_number: manualNumber || null,
         parent_account: parentAccount,
       };
-
       try {
         const url = isEditing
           ? `${api}/invoices/${editingInvoiceId}`
@@ -242,7 +275,6 @@ const InvoiceIssued = () => {
         return;
       }
     }
-
     fetchInvoices();
     resetForm();
     setError("");
@@ -302,10 +334,8 @@ const InvoiceIssued = () => {
       setError("User is not authenticated");
       return;
     }
-
     setIsDeleting(true);
     setError("");
-
     try {
       const results = await Promise.allSettled(
         invoices.map(invoice =>
@@ -317,22 +347,65 @@ const InvoiceIssued = () => {
           })
         )
       );
-
       const successfulDeletions = results.filter(result => result.status === 'fulfilled');
       const failedDeletions = results.filter(result => result.status === 'rejected');
-
       if (successfulDeletions.length > 0) {
         alert(`${successfulDeletions.length} invoices deleted successfully!`);
       }
       if (failedDeletions.length > 0) {
         alert(`${failedDeletions.length} invoices failed to delete.`);
       }
-
       fetchInvoices();
     } catch (error) {
       setError("Error deleting invoices: " + error.message);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteByMonth = async () => {
+    if (!selectedMonthYear) {
+      setError("Please select a month/year to delete invoices for.");
+      return;
+    }
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("User is not authenticated");
+      return;
+    }
+    try {
+      const [monthName, year] = selectedMonthYear.value.split(' ');
+      const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth();
+      const filteredInvoices = invoices.filter((invoice) => {
+        const invoiceDate = new Date(invoice.date_issued);
+        return (
+          invoiceDate.getMonth() === monthIndex &&
+          invoiceDate.getFullYear() === parseInt(year)
+        );
+      });
+      if (filteredInvoices.length === 0) {
+        setError("No invoices found for the selected month/year.");
+        return;
+      }
+      const results = await Promise.allSettled(
+        filteredInvoices.map((invoice) =>
+          fetch(`${api}/invoices/${invoice.id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          })
+        )
+      );
+      const successfulDeletions = results.filter((r) => r.status === "fulfilled");
+      const failedDeletions = results.filter((r) => r.status === "rejected");
+      if (successfulDeletions.length > 0) {
+        alert(`${successfulDeletions.length} invoices deleted successfully!`);
+      }
+      if (failedDeletions.length > 0) {
+        alert(`${failedDeletions.length} invoices failed to delete.`);
+      }
+      fetchInvoices();
+    } catch (error) {
+      setError("Error deleting invoices: " + error.message);
     }
   };
 
@@ -571,7 +644,6 @@ ${invoice.account_credited.map(account => `
         <p>For inquiries, contact us at: info@company.com</p>
       </div>
     `;
-
     const printWindow = window.open("", "_blank");
     printWindow.document.open();
     printWindow.document.write(`
@@ -602,6 +674,7 @@ ${printContents}
 
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
+    setCurrentPage(0); // Reset to first page when searching
   };
 
   const handleExportToExcel = () => {
@@ -620,16 +693,15 @@ ${printContents}
     XLSX.utils.book_append_sheet(wb, ws, 'Invoices');
     XLSX.writeFile(wb, 'Invoices.xlsx');
   };
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-  
     const generateUniqueInvoiceNumber = () => {
       const timestamp = Date.now();
       const randomStr = Math.random().toString(36).substring(2, 8);
       return `INV-${timestamp}-${randomStr}`;
     };
-  
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -637,13 +709,10 @@ ${printContents}
         const workbook = XLSX.read(data, { type: 'array' });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' });
-  
         const invoicesToUpload = [];
-  
         for (let i = 1; i < rawData.length; i++) {
           const row = rawData[i];
           if (!row || row.length < 9 || row.every(cell => cell === '')) continue;
-  
           let amount = 0;
           try {
             const amountStr = String(row[8] || '0').trim();
@@ -653,7 +722,6 @@ ${printContents}
             console.warn(`Failed to parse amount in row ${i}: ${row[8]}`);
             continue;
           }
-  
           let paymentDate;
           const dateValue = row[1];
           try {
@@ -675,7 +743,6 @@ ${printContents}
             console.warn(`Invalid date in row ${i}: ${dateValue}. Using today's date.`);
             paymentDate = new Date();
           }
-  
           invoicesToUpload.push({
             invoice_number: generateUniqueInvoiceNumber(),
             date_issued: paymentDate.toISOString().split('T')[0],
@@ -688,15 +755,12 @@ ${printContents}
             parent_account: row[7]?.toString().trim() || ''
           });
         }
-  
         console.log('Processed invoices:', invoicesToUpload);
         if (invoicesToUpload.length === 0) {
           throw new Error('No valid invoices found after processing');
         }
-  
         const token = localStorage.getItem('token');
         if (!token) throw new Error('Authentication token missing');
-  
         const uploadResults = await Promise.allSettled(
           invoicesToUpload.map(invoice =>
             fetch(`${api}/invoices`, {
@@ -715,10 +779,8 @@ ${printContents}
             })
           )
         );
-  
         const successful = uploadResults.filter(r => r.status === 'fulfilled');
         const failed = uploadResults.filter(r => r.status === 'rejected');
-  
         if (successful.length > 0) {
           fetchInvoices();
           alert(`${successful.length} invoices uploaded successfully!`);
@@ -735,14 +797,25 @@ ${printContents}
     };
     reader.readAsArrayBuffer(file);
   };
-  
-  
 
-  const filteredInvoices = invoices.filter((invoice) =>
-    invoice.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    invoice.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    invoice.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter invoices by search query and selected month
+  const filteredInvoices = invoices.filter((invoice) => {
+    // First filter by month if selected
+    if (selectedMonthYear) {
+      const date = new Date(invoice.date_issued);
+      if (isNaN(date.getTime())) return false;
+
+      const invoiceMonthYear = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
+      if (invoiceMonthYear !== selectedMonthYear.value) return false;
+    }
+
+    // Then filter by search query
+    return (
+      invoice.invoice_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoice.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      invoice.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
   const pageCount = Math.ceil(filteredInvoices.length / invoicesPerPage);
   const currentInvoices = filteredInvoices.slice(
@@ -759,85 +832,110 @@ ${printContents}
       <h1 className="head">
         <FontAwesomeIcon icon={faFileInvoiceDollar} className="icon" /> Invoice Issued
       </h1>
-      <button
-        style={{
-          backgroundColor: '#007bff',
-          color: '#fff',
-          border: 'none',
-          padding: '12px 20px',
-          margin: '10px 10px 10px 0',
-          borderRadius: '6px',
-          fontSize: '1rem',
-          cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(0, 123, 255, 0.2)',
-          transition: 'background-color 0.3s ease, transform 0.2s ease',
-        }}
-        onMouseOver={e => (e.currentTarget.style.backgroundColor = '#0056b3')}
-        onMouseOut={e => (e.currentTarget.style.backgroundColor = '#007bff')}
-        onClick={() => setShowForm(true)}
-      >
-        Add New Invoice
-      </button>
-      <button
-        style={{
-          backgroundColor: '#28a745',
-          color: '#fff',
-          border: 'none',
-          padding: '12px 20px',
-          margin: '10px 10px 10px 0',
-          borderRadius: '6px',
-          fontSize: '1rem',
-          cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(40, 167, 69, 0.2)',
-          transition: 'background-color 0.3s ease, transform 0.2s ease',
-        }}
-        onMouseOver={e => (e.currentTarget.style.backgroundColor = '#1e7e34')}
-        onMouseOut={e => (e.currentTarget.style.backgroundColor = '#28a745')}
-        onClick={handleExportToExcel}
-      >
-        Export to Excel
-      </button>
-      {/* <button
-        style={{
-          backgroundColor: isDeleting ? '#dc3545a0' : '#dc3545',
-          color: '#fff',
-          border: 'none',
-          padding: '12px 20px',
-          margin: '10px 10px 10px 0',
-          borderRadius: '6px',
-          fontSize: '1rem',
-          cursor: isDeleting ? 'not-allowed' : 'pointer',
-          boxShadow: '0 4px 12px rgba(220, 53, 69, 0.2)',
-          transition: 'background-color 0.3s ease, transform 0.2s ease',
-          opacity: isDeleting ? 0.6 : 1,
-        }}
-        disabled={isDeleting}
-        onClick={handleDeleteAll}
-      >
-        {isDeleting ? 'Deleting...' : 'Delete All Invoices'}
-      </button> */}
-      <button
-        style={{
-          backgroundColor: '#ffc107',
-          color: '#212529',
-          border: 'none',
-          padding: '12px 20px',
-          margin: '10px 10px 10px 0',
-          borderRadius: '6px',
-          fontSize: '1rem',
-          cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(255, 193, 7, 0.2)',
-          transition: 'background-color 0.3s ease, transform 0.2s ease',
-        }}
-        onMouseOver={e => (e.currentTarget.style.backgroundColor = '#e0a800')}
-        onMouseOut={e => (e.currentTarget.style.backgroundColor = '#ffc107')}
-        onClick={() => setShowSchoolFeesUpload(true)}
-      >
-        Upload School Fees
-      </button>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', marginBottom: '20px' }}>
+        <button
+          style={{
+            backgroundColor: '#007bff',
+            color: '#fff',
+            border: 'none',
+            padding: '12px 20px',
+            margin: '10px 10px 10px 0',
+            borderRadius: '6px',
+            fontSize: '1rem',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(0, 123, 255, 0.2)',
+            transition: 'background-color 0.3s ease, transform 0.2s ease',
+          }}
+          onMouseOver={e => (e.currentTarget.style.backgroundColor = '#0056b3')}
+          onMouseOut={e => (e.currentTarget.style.backgroundColor = '#007bff')}
+          onClick={() => setShowForm(true)}
+        >
+          Add New Invoice
+        </button>
+
+        <button
+          style={{
+            backgroundColor: '#28a745',
+            color: '#fff',
+            border: 'none',
+            padding: '12px 20px',
+            margin: '10px 10px 10px 0',
+            borderRadius: '6px',
+            fontSize: '1rem',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(40, 167, 69, 0.2)',
+            transition: 'background-color 0.3s ease, transform 0.2s ease',
+          }}
+          onMouseOver={e => (e.currentTarget.style.backgroundColor = '#1e7e34')}
+          onMouseOut={e => (e.currentTarget.style.backgroundColor = '#28a745')}
+          onClick={handleExportToExcel}
+        >
+          Export to Excel
+        </button>
+
+        <button
+          style={{
+            backgroundColor: '#ffc107',
+            color: '#212529',
+            border: 'none',
+            padding: '12px 20px',
+            margin: '10px 10px 10px 0',
+            borderRadius: '6px',
+            fontSize: '1rem',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(255, 193, 7, 0.2)',
+            transition: 'background-color 0.3s ease, transform 0.2s ease',
+          }}
+          onMouseOver={e => (e.currentTarget.style.backgroundColor = '#e0a800')}
+          onMouseOut={e => (e.currentTarget.style.backgroundColor = '#ffc107')}
+          onClick={() => setShowSchoolFeesUpload(true)}
+        >
+          Upload School Fees
+        </button>
+      </div>
+
+      {/* Month/Year Filter Dropdown */}
+      <div style={{ margin: "20px 0", display: "flex", alignItems: "center", gap: "20px", flexWrap: 'wrap' }}>
+        <div style={{ minWidth: '350px' }}>
+          <label>Filter by Month/Year:</label>
+          <Select
+            value={selectedMonthYear}
+            onChange={setSelectedMonthYear}
+            options={availableMonths}
+            placeholder="Select Month/Year to filter..."
+            isSearchable
+            isClearable
+            styles={customStyles}
+          />
+        </div>
+
+        {selectedMonthYear && (
+          <button
+            style={{
+              backgroundColor: '#dc3545',
+              color: '#fff',
+              border: 'none',
+              padding: '12px 20px',
+              borderRadius: '6px',
+              fontSize: '1rem',
+              cursor: 'pointer',
+              height: '40px'
+            }}
+            onMouseOver={e => (e.currentTarget.style.backgroundColor = '#c82333')}
+            onMouseOut={e => (e.currentTarget.style.backgroundColor = '#dc3545')}
+            onClick={handleDeleteByMonth}
+          >
+            Delete Invoices for {selectedMonthYear.label.split(' (')[0]}
+          </button>
+        )}
+      </div>
+
       {isDeleting && <p>Deleting invoices, please wait...</p>}
       {error && <p className="error">{error}</p>}
-      <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
+
+      <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} style={{ marginBottom: '20px' }} />
+
       <div className="search-bar">
         <input
           type="text"
@@ -848,6 +946,13 @@ ${printContents}
         />
         <FaSearch style={{ position: "relative", left: "-30px", top: "10px" }} />
       </div>
+
+      {selectedMonthYear && (
+        <p style={{ margin: "10px 0", fontWeight: "bold" }}>
+          Showing {filteredInvoices.length} invoices for {selectedMonthYear.label.split(' (')[0]}
+        </p>
+      )}
+
       <div>
         <label>Select Customer Account:</label>
         <Select
@@ -859,6 +964,7 @@ ${printContents}
           styles={customStyles}
         />
       </div>
+
       <div>
         <label>Select Description:</label>
         <Select
@@ -870,6 +976,7 @@ ${printContents}
           styles={customStyles}
         />
       </div>
+
       <button
         style={{
           backgroundColor: '#dc3545',
@@ -889,6 +996,7 @@ ${printContents}
       >
         Delete Invoices by Description
       </button>
+
       {showForm && (
         <div className="modal">
           <div className="modal-content">
@@ -1024,6 +1132,7 @@ ${printContents}
           </div>
         </div>
       )}
+
       {showSchoolFeesUpload && (
         <div className="modal">
           <div className="modal-content">
@@ -1034,7 +1143,9 @@ ${printContents}
           </div>
         </div>
       )}
+
       {error && <p className="error">{error}</p>}
+
       <table className="invoice-table">
         <thead>
           <tr>
@@ -1083,21 +1194,26 @@ ${printContents}
           ))}
         </tbody>
       </table>
-      <ReactPaginate
-        previousLabel={'<'}
-        nextLabel={'>'}
-        breakLabel={'...'}
-        breakClassName={'break-me'}
-        pageCount={pageCount}
-        marginPagesDisplayed={2}
-        pageRangeDisplayed={5}
-        onPageChange={handlePageClick}
-        containerClassName={'pagination'}
-        activeClassName={'active'}
-        previousClassName={'previous'}
-        nextClassName={'next'}
-        disabledClassName={'disabled'}
-      />
+
+      {filteredInvoices.length === 0 ? (
+        <p style={{ textAlign: 'center', margin: '20px 0' }}>No invoices found matching your criteria.</p>
+      ) : (
+        <ReactPaginate
+          previousLabel={'<'}
+          nextLabel={'>'}
+          breakLabel={'...'}
+          breakClassName={'break-me'}
+          pageCount={pageCount}
+          marginPagesDisplayed={2}
+          pageRangeDisplayed={5}
+          onPageChange={handlePageClick}
+          containerClassName={'pagination'}
+          activeClassName={'active'}
+          previousClassName={'previous'}
+          nextClassName={'next'}
+          disabledClassName={'disabled'}
+        />
+      )}
     </div>
   );
 };

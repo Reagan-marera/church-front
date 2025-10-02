@@ -16,6 +16,7 @@ const InvoiceReceived = () => {
     }).format(value);
   };
 
+  // State declarations
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [dateIssued, setDateIssued] = useState("");
   const [description, setDescription] = useState("");
@@ -33,6 +34,10 @@ const InvoiceReceived = () => {
   const [chartOfAccounts, setChartOfAccounts] = useState([]);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [monthOptions, setMonthOptions] = useState([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const invoicesPerPage = 20;
 
   const customStyles = {
     option: (provided, state) => ({
@@ -55,11 +60,65 @@ const InvoiceReceived = () => {
 
   const api = 'https://backend.youmingtechnologies.co.ke';
 
+  // Generate month options from existing invoices with counts
+  const generateMonthOptionsFromInvoices = (invoices) => {
+    const monthMap = new Map();
+
+    invoices.forEach(invoice => {
+      if (!invoice.date_issued) return;
+
+      try {
+        const date = new Date(invoice.date_issued);
+        if (isNaN(date.getTime())) return;
+
+        const year = date.getFullYear();
+        const month = date.getMonth(); // 0-11
+        const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+        const monthName = date.toLocaleString('default', {
+          month: 'long',
+          year: 'numeric'
+        });
+
+        if (!monthMap.has(monthKey)) {
+          monthMap.set(monthKey, {
+            value: monthKey,
+            label: monthName,
+            count: 0
+          });
+        }
+
+        monthMap.get(monthKey).count++;
+      } catch (e) {
+        console.warn(`Invalid date format for invoice ${invoice.id}: ${invoice.date_issued}`);
+      }
+    });
+
+    // Convert to array and sort by date (newest first)
+    const options = Array.from(monthMap.values())
+      .sort((a, b) => {
+        const [aYear, aMonth] = a.value.split('-').map(Number);
+        const [bYear, bMonth] = b.value.split('-').map(Number);
+        return bYear - aYear || bMonth - aMonth;
+      })
+      .map(option => ({
+        ...option,
+        label: `${option.label} (${option.count} invoice${option.count !== 1 ? 's' : ''})`
+      }));
+
+    return options;
+  };
+
   useEffect(() => {
     fetchInvoices();
     fetchPayees();
     fetchChartOfAccounts();
   }, []);
+
+  useEffect(() => {
+    if (invoices.length > 0) {
+      setMonthOptions(generateMonthOptionsFromInvoices(invoices));
+    }
+  }, [invoices]);
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -80,7 +139,6 @@ const InvoiceReceived = () => {
         throw new Error(await response.text());
       }
       const data = await response.json();
-      console.log("Fetched Invoices:", data);
       setInvoices(Array.isArray(data) ? data : []);
     } catch (error) {
       setError("Error fetching invoices");
@@ -153,6 +211,68 @@ const InvoiceReceived = () => {
     }
   };
 
+  // Delete invoices by selected month
+  const handleDeleteByMonth = async () => {
+    if (!selectedMonth) {
+      setError("Please select a month");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("User is not authenticated");
+      return;
+    }
+
+    try {
+      const [year, month] = selectedMonth.value.split('-').map(Number);
+      const invoicesToDelete = invoices.filter(invoice => {
+        try {
+          const date = new Date(invoice.date_issued);
+          return date.getFullYear() === year && (date.getMonth() + 1) === month;
+        } catch {
+          return false;
+        }
+      });
+
+      if (invoicesToDelete.length === 0) {
+        setError(`No invoices found for ${selectedMonth.label}`);
+        return;
+      }
+
+      const confirmDelete = window.confirm(
+        `Are you sure you want to delete ${invoicesToDelete.length} invoice(s) from ${selectedMonth.label}?`
+      );
+
+      if (!confirmDelete) return;
+
+      setLoading(true);
+      const deletePromises = invoicesToDelete.map((invoice) =>
+        fetch(`${api}/invoice-received/${invoice.id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      );
+
+      const results = await Promise.allSettled(deletePromises);
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const errorCount = results.length - successCount;
+
+      fetchInvoices();
+      setSelectedMonth(null);
+
+      if (errorCount > 0) {
+        setError(`Deleted ${successCount} invoices, but failed to delete ${errorCount} invoices`);
+      } else {
+        alert(`Successfully deleted ${successCount} invoice(s) from ${selectedMonth.label}`);
+      }
+    } catch (error) {
+      setError(`Error deleting invoices: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePayeeChange = (selectedOption) => {
     setPayeeName(selectedOption.value);
     setAccountsDebited([]);
@@ -165,6 +285,7 @@ const InvoiceReceived = () => {
       setError("User is not authenticated");
       return;
     }
+
     const newInvoice = {
       invoice_number: invoiceNumber,
       date_issued: dateIssued,
@@ -179,6 +300,7 @@ const InvoiceReceived = () => {
       name: payeeName,
       parent_account: parentAccount,
     };
+
     try {
       const response = await fetch(
         `${api}/invoice-received/${editingInvoice ? editingInvoice : ''}`,
@@ -191,6 +313,7 @@ const InvoiceReceived = () => {
           body: JSON.stringify(newInvoice),
         }
       );
+
       if (response.ok) {
         fetchInvoices();
         resetForm();
@@ -220,11 +343,13 @@ const InvoiceReceived = () => {
     const payeeSubAccounts = payees.flatMap((payee) =>
       payee.sub_account_details.map((subAccount) => subAccount.name)
     );
+
     const coaSubAccounts = chartOfAccounts
       .filter((account) => account.account_type !== "40-Revenue")
       .flatMap((account) =>
         account.sub_account_details ? account.sub_account_details.map((subAccount) => subAccount.name) : []
       );
+
     return [...new Set([...payeeSubAccounts, ...coaSubAccounts])];
   };
 
@@ -347,12 +472,10 @@ const InvoiceReceived = () => {
       try {
         setError("");
         setLoading(true);
-
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: "array" });
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const rawData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
-
         const invoicesToUpload = [];
         let invoiceCounter = 1;
 
@@ -406,6 +529,7 @@ const InvoiceReceived = () => {
               const [month, day, year] = dateValue.split("/").map(Number);
               dateIssued = new Date(year, month - 1, day);
             }
+
             if (!dateIssued || isNaN(dateIssued.getTime())) {
               throw new Error('Invalid date');
             }
@@ -475,6 +599,7 @@ const InvoiceReceived = () => {
         setError(err.message);
       } finally {
         setLoading(false);
+        fetchInvoices();
       }
     };
 
@@ -499,65 +624,131 @@ const InvoiceReceived = () => {
         : 'No Accounts Debited',
       'Account Credited': invoice.account_credited,
     }));
+
     const ws = XLSX.utils.json_to_sheet(dataForExcel);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Invoices');
     XLSX.writeFile(wb, 'Invoices.xlsx');
   };
 
-  const filteredInvoices = invoices.filter(
-    (invoice) =>
+  // Filter invoices by search term and selected month
+  const filteredInvoices = invoices.filter(invoice => {
+    // First filter by month if selected
+    if (selectedMonth) {
+      try {
+        const date = new Date(invoice.date_issued);
+        if (isNaN(date.getTime())) return false;
+
+        const [year, month] = selectedMonth.value.split('-').map(Number);
+        if (date.getFullYear() !== year || (date.getMonth() + 1) !== month) {
+          return false;
+        }
+      } catch {
+        return false;
+      }
+    }
+
+    // Then filter by search term
+    return (
       invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       invoice.grn_number.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
+
+  // Pagination logic
+  const pageCount = Math.ceil(filteredInvoices.length / invoicesPerPage);
+  const currentInvoices = filteredInvoices.slice(
+    currentPage * invoicesPerPage,
+    (currentPage + 1) * invoicesPerPage
   );
+
+  const handlePageClick = ({ selected }) => {
+    setCurrentPage(selected);
+  };
 
   return (
     <div className="invoice-received">
       <h1 className="head">
         <FontAwesomeIcon icon={faCreditCard} className="icon" /> Invoice Received
       </h1>
-      <button
-        onClick={() => setShowForm(true)}
-        style={{
-          backgroundColor: "#FFA500",
-          color: "white",
-          padding: "10px 20px",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer",
-        }}
-      >
-        Add New Invoice
-      </button>
-      <button
-        onClick={handleExportToExcel}
-        style={{
-          backgroundColor: "#4CAF50",
-          color: "white",
-          padding: "10px 20px",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer",
-          marginLeft: "10px",
-        }}
-      >
-        Export to Excel
-      </button>
-      <input
-        type="file"
-        accept=".xlsx, .xls"
-        onChange={handleFileUpload}
-        style={{
-          marginLeft: "10px",
-        }}
-      />
+
+      {/* Action Buttons */}
+      <div style={{ marginBottom: "20px", display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
+        <button
+          onClick={() => setShowForm(true)}
+          style={{
+            backgroundColor: "#FFA500",
+            color: "white",
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          Add New Invoice
+        </button>
+
+        <button
+          onClick={handleExportToExcel}
+          style={{
+            backgroundColor: "#4CAF50",
+            color: "white",
+            padding: "10px 20px",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+        >
+          Export to Excel
+        </button>
+
+        <input
+          type="file"
+          accept=".xlsx, .xls"
+          onChange={handleFileUpload}
+          style={{ marginLeft: "10px" }}
+        />
+
+        {/* Delete by Month Section */}
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px" }}>
+          <Select
+            value={selectedMonth}
+            onChange={setSelectedMonth}
+            options={monthOptions}
+            placeholder={monthOptions.length > 0 ? "Select Month..." : "No invoices found"}
+            styles={customStyles}
+            isClearable
+            isDisabled={monthOptions.length === 0}
+            style={{ width: "300px" }}
+          />
+          <button
+            onClick={handleDeleteByMonth}
+            disabled={!selectedMonth || loading}
+            style={{
+              backgroundColor: (!selectedMonth || loading) ? "#cccccc" : "#f44336",
+              color: "white",
+              padding: "10px 15px",
+              border: "none",
+              borderRadius: "4px",
+              cursor: (!selectedMonth || loading) ? "not-allowed" : "pointer",
+            }}
+          >
+            {loading ? "Deleting..." : "Delete by Month"}
+          </button>
+        </div>
+      </div>
+
+      {/* Search Bar */}
       <input
         type="text"
         placeholder="Search invoices..."
         value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
+        onChange={(e) => {
+          setSearchTerm(e.target.value);
+          setCurrentPage(0); // Reset to first page when searching
+        }}
         style={{
           padding: "10px",
           margin: "10px 0",
@@ -566,6 +757,18 @@ const InvoiceReceived = () => {
           border: "1px solid #cbd5e0",
         }}
       />
+
+      {/* Loading Indicator */}
+      {loading && <div style={{ color: "#FFA500", margin: "10px 0" }}>Processing...</div>}
+
+      {/* Month Filter Summary */}
+      {selectedMonth && (
+        <p style={{ margin: "10px 0", fontWeight: "bold" }}>
+          Showing invoices for {selectedMonth.label}
+        </p>
+      )}
+
+      {/* Form Modal */}
       {showForm && (
         <div className="modal">
           <div className="modal-content">
@@ -632,32 +835,36 @@ const InvoiceReceived = () => {
               <div>
                 <label>Account Debited:</label>
                 {accountsDebited.map((account, index) => (
-                  <div key={index} style={{ display: "flex", alignItems: "center" }}>
+                  <div key={index} style={{ display: "flex", alignItems: "center", marginBottom: "10px" }}>
                     <Select
                       value={debitedAccountOptions.find((option) => option.value === account.value)}
                       onChange={(selectedOption) => handleDebitedAccountChange(index, selectedOption.value, account.amount)}
                       options={debitedAccountOptions}
                       placeholder="Select Debited Account"
                       isSearchable
-                      styles={customStyles}
+                      styles={{...customStyles, width: "300px"}}
                     />
                     <input
                       type="number"
                       value={account.amount}
                       onChange={(e) => handleDebitedAccountChange(index, account.value, e.target.value)}
                       placeholder="Amount"
-                      style={{ marginLeft: "10px" }}
+                      style={{ marginLeft: "10px", padding: "8px", width: "100px" }}
                     />
                     <button
                       type="button"
                       onClick={() => handleRemoveDebitedAccount(index)}
-                      style={{ marginLeft: "10px" }}
+                      style={{ marginLeft: "10px", background: "#ff4444", color: "white", border: "none", padding: "8px" }}
                     >
                       Remove
                     </button>
                   </div>
                 ))}
-                <button type="button" onClick={handleAddDebitedAccount}>
+                <button
+                  type="button"
+                  onClick={handleAddDebitedAccount}
+                  style={{ marginTop: "10px", padding: "8px 15px", background: "#4CAF50", color: "white", border: "none" }}
+                >
                   Add Another Account
                 </button>
               </div>
@@ -667,6 +874,7 @@ const InvoiceReceived = () => {
                   type="text"
                   value={accountCredited}
                   disabled
+                  style={{ backgroundColor: "#f5f5f5" }}
                 />
               </div>
               <div>
@@ -676,75 +884,168 @@ const InvoiceReceived = () => {
                   value={totalAmount}
                   readOnly
                   className="form-input"
+                  style={{ backgroundColor: "#f5f5f5" }}
                 />
               </div>
-              <button type="submit" disabled={loading}>
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  marginTop: "20px",
+                  padding: "10px 20px",
+                  backgroundColor: editingInvoice ? "#4CAF50" : "#2196F3",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer"
+                }}
+              >
                 {loading ? "Submitting..." : editingInvoice ? "Update Invoice" : "Submit Invoice"}
               </button>
             </form>
           </div>
         </div>
       )}
-      {error && <div className="error">{error}</div>}
+
+      {error && <div className="error" style={{ color: "red", margin: "10px 0" }}>{error}</div>}
+
       <h2>Invoices List</h2>
-      {loading ? (
-        <p>Loading...</p>
+      {loading && !invoices.length ? (
+        <p>Loading invoices...</p>
       ) : (
-        <table className="compact-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Invoice Number</th>
-              <th>GRN Number</th>
-              <th>Payee Name</th>
-              <th>Description</th>
-              <th>Account Debited</th>
-              <th>Account Credited</th>
-              <th>Parent Account</th>
-              <th>Amount</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredInvoices.length > 0 ? (
-              filteredInvoices.map((invoice) => (
-                <tr key={invoice.id}>
-                  <td>{invoice.date_issued}</td>
-                  <td>{invoice.invoice_number}</td>
-                  <td>{invoice.grn_number}</td>
-                  <td>{invoice.name}</td>
-                  <td>{invoice.description}</td>
-                  <td>
-                    {Array.isArray(invoice.account_debited) ? (
-                      invoice.account_debited.length > 0 ? (
-                        invoice.account_debited.map((account, index) => (
-                          <div key={index}>
-                            {account.name || account.account || 'Unknown Account'} - {formatFinancialValue(account.amount)}
-                          </div>
-                        ))
-                      ) : (
-                        "No Accounts Debited"
-                      )
-                    ) : (
-                      typeof invoice.account_debited === 'string' ? invoice.account_debited : "Invalid Format"
-                    )}
-                  </td>
-                  <td>{invoice.account_credited}</td>
-                  <td>{invoice.parent_account}</td>
-                  <td>{formatFinancialValue(invoice.amount)}</td>
-                  <td>
-                    <button onClick={() => handleEdit(invoice)}><FaEdit /></button>
-                    <button onClick={() => handleDelete(invoice.id)}><FaTrash /></button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="10">No invoices found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <div style={{ overflowX: "auto" }}>
+          {invoices.length === 0 ? (
+            <p>No invoices found in the system.</p>
+          ) : (
+            <>
+              <p style={{ color: "#666", marginBottom: "10px" }}>
+                Showing {filteredInvoices.length} of {invoices.length} invoices
+                {selectedMonth && ` for ${selectedMonth.label}`}
+              </p>
+
+              <table className="compact-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Invoice Number</th>
+                    <th>GRN Number</th>
+                    <th>Payee Name</th>
+                    <th>Description</th>
+                    <th>Account Debited</th>
+                    <th>Account Credited</th>
+                    <th>Parent Account</th>
+                    <th>Amount</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentInvoices.length > 0 ? (
+                    currentInvoices.map((invoice) => (
+                      <tr key={invoice.id}>
+                        <td>{invoice.date_issued}</td>
+                        <td>{invoice.invoice_number}</td>
+                        <td>{invoice.grn_number}</td>
+                        <td>{invoice.name}</td>
+                        <td>{invoice.description}</td>
+                        <td>
+                          {Array.isArray(invoice.account_debited) ? (
+                            invoice.account_debited.length > 0 ? (
+                              invoice.account_debited.map((account, index) => (
+                                <div key={index}>
+                                  {account.name || account.account || 'Unknown Account'} - {formatFinancialValue(account.amount)}
+                                </div>
+                              ))
+                            ) : (
+                              "No Accounts Debited"
+                            )
+                          ) : (
+                            typeof invoice.account_debited === 'string' ? invoice.account_debited : "Invalid Format"
+                          )}
+                        </td>
+                        <td>{invoice.account_credited}</td>
+                        <td>{invoice.parent_account}</td>
+                        <td>{formatFinancialValue(invoice.amount)}</td>
+                        <td>
+                          <button
+                            onClick={() => handleEdit(invoice)}
+                            style={{ background: "none", border: "none", cursor: "pointer", marginRight: "5px" }}
+                          >
+                            <FaEdit color="#4CAF50" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(invoice.id)}
+                            style={{ background: "none", border: "none", cursor: "pointer" }}
+                          >
+                            <FaTrash color="#f44336" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="10" style={{ textAlign: "center" }}>No matching invoices found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+
+              {/* Pagination */}
+              {pageCount > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+                  <button
+                    onClick={() => handlePageClick({ selected: currentPage - 1 })}
+                    disabled={currentPage === 0}
+                    style={{
+                      margin: '0 5px',
+                      padding: '5px 10px',
+                      backgroundColor: currentPage === 0 ? '#ccc' : '#FFA500',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: currentPage === 0 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    Previous
+                  </button>
+
+                  {Array.from({ length: pageCount }, (_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handlePageClick({ selected: i })}
+                      style={{
+                        margin: '0 5px',
+                        padding: '5px 10px',
+                        backgroundColor: currentPage === i ? '#FFA500' : '#ddd',
+                        color: currentPage === i ? 'white' : 'black',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+
+                  <button
+                    onClick={() => handlePageClick({ selected: currentPage + 1 })}
+                    disabled={currentPage === pageCount - 1}
+                    style={{
+                      margin: '0 5px',
+                      padding: '5px 10px',
+                      backgroundColor: currentPage === pageCount - 1 ? '#ccc' : '#FFA500',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: currentPage === pageCount - 1 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       )}
     </div>
   );
