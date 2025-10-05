@@ -9,26 +9,55 @@ const TransactionHistory = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [companyName, setCompanyName] = useState('');
+
+  useEffect(() => {
+    const fetchCompanyDetails = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API}/get-company-details`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch company details');
+        }
+        const data = await response.json();
+        setLogoUrl(data.logo);
+        setCompanyName(data.company_name);
+      } catch (err) {
+        console.error('Error fetching company details:', err);
+        // Handle error gracefully, maybe set a default logo/name
+      }
+    };
+
+    fetchCompanyDetails();
+  }, []);
 
   useEffect(() => {
     const fetchTransactions = async () => {
+      setLoading(true);
+      setError(null);
+
       try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('User not authenticated');
+        }
+
         let transactionDetails = [];
         let runningBalance = 0;
 
         if (type === 'debtor') {
           const [invoicesResponse, receiptsResponse] = await Promise.all([
-            fetch(`${API}/invoices`, {
-              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-            }),
-            fetch(`${API}/cash-receipt-journals`, {
-              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-            }),
+            fetch(`${API}/invoices`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetch(`${API}/cash-receipt-journals`, { headers: { 'Authorization': `Bearer ${token}` } }),
           ]);
 
-          if (!invoicesResponse.ok || !receiptsResponse.ok) {
-            throw new Error('Failed to fetch debtor data');
-          }
+          if (!invoicesResponse.ok) throw new Error(`Failed to fetch invoices: ${invoicesResponse.statusText}`);
+          if (!receiptsResponse.ok) throw new Error(`Failed to fetch cash receipts: ${receiptsResponse.statusText}`);
 
           const invoices = await invoicesResponse.json();
           const receipts = await receiptsResponse.json();
@@ -36,8 +65,9 @@ const TransactionHistory = () => {
           const customerInvoices = invoices
             .filter(inv => inv.name === name)
             .map(inv => ({
-              date: moment(inv.date),
-              details: `Invoice #${inv.invoice_number}`,
+              date: moment(inv.date_issued),
+              rec_no: inv.invoice_number,
+              details: inv.description || 'Invoice',
               required: parseFloat(inv.amount) || 0,
               paid: 0,
             }));
@@ -45,8 +75,9 @@ const TransactionHistory = () => {
           const customerReceipts = receipts
             .filter(r => r.from_whom_received === name)
             .map(r => ({
-              date: moment(r.date),
-              details: `Payment - ${r.description}`,
+              date: moment(r.receipt_date),
+              rec_no: r.receipt_no || r.manual_number,
+              details: `Payment - ${r.description || 'Cash/Bank Receipt'}`,
               required: 0,
               paid: (parseFloat(r.cash) || 0) + (parseFloat(r.bank) || 0),
             }));
@@ -55,17 +86,12 @@ const TransactionHistory = () => {
 
         } else if (type === 'creditor') {
           const [invoicesReceivedResponse, disbursementsResponse] = await Promise.all([
-            fetch(`${API}/invoice-received`, {
-              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-            }),
-            fetch(`${API}/cash-disbursement-journals`, {
-              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
-            }),
+            fetch(`${API}/invoice-received`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetch(`${API}/cash-disbursement-journals`, { headers: { 'Authorization': `Bearer ${token}` } }),
           ]);
 
-          if (!invoicesReceivedResponse.ok || !disbursementsResponse.ok) {
-            throw new Error('Failed to fetch creditor data');
-          }
+          if (!invoicesReceivedResponse.ok) throw new Error('Failed to fetch received invoices');
+          if (!disbursementsResponse.ok) throw new Error('Failed to fetch cash disbursements');
 
           const invoices = await invoicesReceivedResponse.json();
           const disbursements = await disbursementsResponse.json();
@@ -74,7 +100,8 @@ const TransactionHistory = () => {
             .filter(inv => inv.name === name)
             .map(inv => ({
               date: moment(inv.date),
-              details: `Invoice Received #${inv.invoice_number}`,
+              rec_no: inv.invoice_number,
+              details: inv.description || 'Invoice Received',
               required: parseFloat(inv.amount) || 0,
               paid: 0,
             }));
@@ -82,8 +109,9 @@ const TransactionHistory = () => {
           const supplierDisbursements = disbursements
             .filter(d => d.to_whom_paid === name)
             .map(d => ({
-              date: moment(d.date),
-              details: `Payment - ${d.description}`,
+              date: moment(d.disbursement_date),
+              rec_no: d.cheque_no || d.p_voucher_no,
+              details: `Payment - ${d.description || 'Disbursement'}`,
               required: 0,
               paid: (parseFloat(d.cash) || 0) + (parseFloat(d.bank) || 0),
             }));
@@ -93,13 +121,16 @@ const TransactionHistory = () => {
 
         transactionDetails.sort((a, b) => a.date.valueOf() - b.date.valueOf());
 
+        let initialBalance = 0;
         const processedTransactions = transactionDetails.map(t => {
           runningBalance += t.required - t.paid;
           return { ...t, balance: runningBalance };
         });
 
         setTransactions(processedTransactions);
+
       } catch (err) {
+        console.error("Fetch error:", err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -109,16 +140,26 @@ const TransactionHistory = () => {
     fetchTransactions();
   }, [type, name]);
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   if (loading) return <div style={{ padding: '20px' }}>Loading...</div>;
   if (error) return <div style={{ padding: '20px', color: 'red' }}>Error: {error}</div>;
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-      <h2 style={{ textTransform: 'capitalize' }}>{type} Statement for: {name}</h2>
+       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+        {logoUrl && <img src={logoUrl} alt="Company Logo" style={{ maxWidth: '150px', maxHeight: '150px' }} />}
+        <h1>{companyName}</h1>
+        <h2 style={{ textTransform: 'capitalize' }}>{type} Statement</h2>
+        <h3>For: {name}</h3>
+      </div>
       <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #ddd' }}>
         <thead>
           <tr style={{ backgroundColor: '#4CAF50', color: 'white' }}>
             <th style={{ padding: '12px', textAlign: 'left' }}>Date</th>
+            <th style={{ padding: '12px', textAlign: 'left' }}>Rec. No.</th>
             <th style={{ padding: '12px', textAlign: 'left' }}>Details</th>
             <th style={{ padding: '12px', textAlign: 'right' }}>Required</th>
             <th style={{ padding: '12px', textAlign: 'right' }}>Paid</th>
@@ -128,7 +169,8 @@ const TransactionHistory = () => {
         <tbody>
           {transactions.map((t, index) => (
             <tr key={index} style={{ borderBottom: '1px solid #ddd', backgroundColor: index % 2 ? '#f9f9f9' : 'white' }}>
-              <td style={{ padding: '12px' }}>{t.date.isValid() ? t.date.format('L') : 'Invalid Date'}</td>
+              <td style={{ padding: '12px' }}>{t.date.isValid() ? t.date.format('DD/MM/YYYY') : 'Invalid Date'}</td>
+              <td style={{ padding: '12px' }}>{t.rec_no}</td>
               <td style={{ padding: '12px' }}>{t.details}</td>
               <td style={{ padding: '12px', textAlign: 'right' }}>{t.required > 0 ? `KES ${t.required.toFixed(2)}` : '-'}</td>
               <td style={{ padding: '12px', textAlign: 'right' }}>{t.paid > 0 ? `KES ${t.paid.toFixed(2)}` : '-'}</td>
@@ -137,6 +179,11 @@ const TransactionHistory = () => {
           ))}
         </tbody>
       </table>
+      <div style={{ marginTop: '20px', textAlign: 'right' }}>
+        <button onClick={handlePrint} style={{ padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+          Print Statement
+        </button>
+      </div>
     </div>
   );
 };
