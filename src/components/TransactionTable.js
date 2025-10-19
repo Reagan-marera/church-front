@@ -1,13 +1,21 @@
 // TransactionTable.js
 import React from 'react';
+import { exportToExcel } from '../utils/export';
 
 const TransactionTable = ({ accounts, type, selectedParentAccount, calculateClosingBalance, formatDate }) => {
   // Filter accounts based on the type (Assets, Revenue, or Expenses)
   const filteredAccounts = accounts.filter(account => account.account_type === type);
 
+  const handleExport = () => {
+    exportToExcel(filteredAccounts, `transactions-${type}`);
+  };
+
   return (
     <div className="transaction-table-container">
       <h4>{type} Transactions</h4>
+      <button onClick={handleExport} style={{ marginBottom: '10px', padding: '8px 16px', borderRadius: '4px', border: '1px solid #4CAF50', backgroundColor: '#4CAF50', color: 'white', cursor: 'pointer' }}>
+        Export to Excel
+      </button>
       <table className="transaction-table">
         <thead>
           <tr>
