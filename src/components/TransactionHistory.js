@@ -86,7 +86,7 @@ const TransactionHistory = () => {
           const supplierInvoices = invoices
             .filter(inv => inv.name === name)
             .map(inv => ({
-              date: moment(inv.date),
+              date: moment(inv.date_issued),
               rec_no: inv.invoice_number,
               details: inv.description || 'Invoice Received',
               required: parseFloat(inv.amount) || 0,
