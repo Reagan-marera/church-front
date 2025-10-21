@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { exportToExcel } from '../utils/export';
 
 const API = 'https://backend.youmingtechnologies.co.ke';
 
@@ -187,6 +188,10 @@ const Creditors = () => {
     return matchesSearch && matchesAccount && matchesFilter;
   });
 
+  const handleExport = () => {
+    exportToExcel(filteredBalances, 'creditors');
+  };
+
   if (loading) {
     return <div style={{ padding: '20px' }}>Loading...</div>;
   }
@@ -237,6 +242,9 @@ const Creditors = () => {
             <option value="disbursementOnly">Disbursements Without Invoices</option>
           </select>
         </div>
+        <button onClick={handleExport} style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #4CAF50', backgroundColor: '#4CAF50', color: 'white', cursor: 'pointer' }}>
+          Export to Excel
+        </button>
       </div>
       <div style={{ overflowX: 'auto', marginBottom: '30px' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #ddd' }}>
